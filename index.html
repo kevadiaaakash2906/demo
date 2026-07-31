@@ -23,12 +23,21 @@
     --header-h: 68px;
   }
   *{ box-sizing: border-box; }
+  html{ scroll-behavior: smooth; }
   html,body{
     margin:0; padding:0; height:100%;
     background: var(--bg);
     color: var(--text);
     font-family: 'IBM Plex Sans', sans-serif;
     -webkit-font-smoothing: antialiased;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *, *::before, *::after{
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
   }
   h1,h2,h3{ font-family: 'Fraunces', serif; font-weight:600; margin:0; }
   ::selection{ background: var(--gold); color:#1E1B18; }
@@ -78,7 +87,7 @@
     min-height:48px; -webkit-tap-highlight-color:transparent;
   }
   #login button:hover, .btn:hover{ background:#c9a06a; animation: wiggle 0.4s ease; }
-  #login button:active, .btn:active{ transform: translateY(0); }
+  #login button:active, .btn:active{ transform: scale(0.97); transition: transform 0.08s ease; }
   #loginError{ color: var(--bad); font-size:13px; min-height:18px; }
 
   #app{ display:none; min-height:100vh; }
@@ -125,10 +134,11 @@
     text-align:left; padding:12px 14px; background: var(--surface);
     color: var(--text-dim); font-weight:500; font-size:11px; text-transform:uppercase;
     letter-spacing:0.6px; border-bottom:1px solid var(--line); white-space:nowrap;
-    cursor:pointer; user-select:none; transition: color 0.15s;
+    cursor:pointer; user-select:none; transition: color 0.15s, box-shadow 0.2s ease;
     position: sticky; top: var(--header-h); z-index: 5;
     box-shadow: 0 1px 0 var(--line);
   }
+  thead.is-stuck th{ box-shadow: 0 1px 0 var(--line), 0 6px 12px -6px rgba(0,0,0,0.45); }
   thead th:first-child{ border-top-left-radius:4px; }
   thead th:last-child{ border-top-right-radius:4px; }
   thead th:hover{ color: var(--gold); }
@@ -216,7 +226,7 @@
   #deleteBtn.holding{ background: var(--bad); color: var(--bg); }
   #deleteProgress{
     position:absolute; left:0; top:0; height:100%; width:0%;
-    background: rgba(255,255,255,0.25); transition: width 0.1s linear;
+    background: rgba(255,255,255,0.25);
   }
   #saveMsg{ font-size:13px; margin-top:10px; min-height:16px; }
   #saveMsg.good{ color: var(--good); }
@@ -284,17 +294,38 @@
   .order-card.open .order-card-chevron:hover{ color: var(--gold); }
   .order-card.open .order-card-chevron{ transform: rotate(180deg); }
   .order-card-body{
-    max-height:0; overflow:hidden; transition: max-height 0.28s ease, padding 0.28s ease;
+    display:grid; grid-template-rows: 0fr; transition: grid-template-rows 0.28s ease;
     border-top: 1px solid transparent;
   }
   .order-card.open .order-card-body{
-    max-height:400px; border-top:1px solid var(--line);
+    grid-template-rows: 1fr; border-top:1px solid var(--line);
   }
   .order-card-grid{
+    overflow:hidden; min-height:0;
     display:grid; grid-template-columns: 1fr 1fr; gap:10px 16px; padding:14px 16px;
   }
   .order-card-grid .field-item .k{ font-size:11px; text-transform:uppercase; letter-spacing:0.4px; color:var(--text-dim); }
   .order-card-grid .field-item .v{ font-family:'IBM Plex Mono', monospace; font-size:13.5px; margin-top:2px; }
+
+  .skel{
+    display:inline-block; background: linear-gradient(90deg, var(--line) 0%, var(--surface-raised) 50%, var(--line) 100%);
+    background-size: 200% 100%; animation: skelShimmer 1.3s ease-in-out infinite;
+    border-radius:3px; color:transparent !important;
+  }
+  @keyframes skelShimmer{
+    0%{ background-position: 200% 0; }
+    100%{ background-position: -200% 0; }
+  }
+  .skel-row td{ padding:11px 14px; }
+  .skel-row .skel{ display:block; height:13px; width:70%; }
+  .skel-card{
+    border:1px solid var(--line); border-radius:4px; background: var(--surface);
+    margin-bottom:10px; padding:14px 16px; display:flex; justify-content:space-between; gap:10px;
+  }
+  .skel-card .skel{ height:14px; }
+  .skel-card .skel.w1{ width:90px; }
+  .skel-card .skel.w2{ width:120px; margin-top:8px; }
+  .skel-card .skel.w3{ width:70px; }
 
   #screenFx{
     position:fixed; inset:0; z-index:50; pointer-events:none;
@@ -380,7 +411,7 @@
           </tr>
         </thead>
         <tbody id="tbody">
-          <tr class="loading-row"><td colspan="10">Loading orders…</td></tr>
+          <tr class="skel-row"><td colspan="10"><span class="skel" style="width:100%">Loading…</span></td></tr>
         </tbody>
       </table>
     </div>
@@ -487,7 +518,7 @@
   let editingRow = null;
   let sortKey = null;
   let sortDir = 'asc';
-  let deleteHoldTimer = null;
+  let deleteHoldRAF = null;
 
   const $ = (id) => document.getElementById(id);
 
@@ -496,9 +527,25 @@
   function syncHeaderHeight() {
     const topbar = document.querySelector('header.topbar');
     if (topbar) document.documentElement.style.setProperty('--header-h', topbar.offsetHeight + 'px');
+    updateStuckHeader();
   }
-  window.addEventListener('resize', syncHeaderHeight);
+  let resizeDebounceTimer = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeDebounceTimer);
+    resizeDebounceTimer = setTimeout(syncHeaderHeight, 100);
+  });
   window.addEventListener('load', syncHeaderHeight);
+
+  // Adds a drop shadow under the table header only once it's actually
+  // pinned in place, so it doesn't look like it's floating at rest.
+  function updateStuckHeader() {
+    const theadEl = document.querySelector('#app thead');
+    if (!theadEl) return;
+    const headerH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 0;
+    const rect = theadEl.getBoundingClientRect();
+    theadEl.classList.toggle('is-stuck', rect.top <= headerH + 1);
+  }
+  window.addEventListener('scroll', updateStuckHeader, { passive: true });
 
   // ============ UTILITIES ============
   function fmtMoney(n) {
@@ -674,9 +721,38 @@
     document.body.classList.toggle('view-only', !isStaff);
   }
 
+  // ============ SKELETON LOADING STATE ============
+  // Shown while the sheet is being fetched so the layout feels immediately
+  // responsive instead of flashing an empty page or plain "Loading…" text.
+  function renderSkeleton(count = 6) {
+    const tbody = $('tbody');
+    tbody.innerHTML = Array.from({ length: count }).map(() => `
+      <tr class="skel-row">
+        <td><span class="skel" style="width:24px">•</span></td>
+        <td><span class="skel" style="width:70px">•</span></td>
+        <td><span class="skel" style="width:90px">•</span></td>
+        <td><span class="skel" style="width:80px">•</span></td>
+        <td class="num"><span class="skel" style="width:50px">•</span></td>
+        <td class="num"><span class="skel" style="width:70px">•</span></td>
+        <td class="num"><span class="skel" style="width:70px">•</span></td>
+        <td class="num"><span class="skel" style="width:60px">•</span></td>
+        <td class="num"><span class="skel" style="width:80px">•</span></td>
+        <td class="num"><span class="skel" style="width:50px">•</span></td>
+      </tr>
+    `).join('');
+
+    const list = $('cardList');
+    list.innerHTML = Array.from({ length: count }).map(() => `
+      <div class="skel-card">
+        <div><span class="skel w1">•</span><span class="skel w2">•</span></div>
+        <span class="skel w3">•</span>
+      </div>
+    `).join('');
+  }
+
   // ============ REFRESH ============
   async function refreshOrders() {
-    $('tbody').innerHTML = '<tr class="loading-row"><td colspan="10">Refreshing…</td></tr>';
+    renderSkeleton();
     try {
       const data = await jsonp({ action: 'auth', pass: PASS });
       if (data.ok) {
@@ -695,6 +771,22 @@
   $('refreshBtn').addEventListener('click', refreshOrders);
 
   // ============ KPIs ============
+  let kpiRawValues = {};
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function animateKpiValue(el, from, to, formatter, duration = 500) {
+    if (prefersReducedMotion || from === to) { el.textContent = formatter(to); return; }
+    const start = performance.now();
+    function tick(now) {
+      const t = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic
+      el.textContent = formatter(from + (to - from) * eased);
+      if (t < 1) requestAnimationFrame(tick);
+      else el.textContent = formatter(to);
+    }
+    requestAnimationFrame(tick);
+  }
+
   function renderKPIs() {
     const totalOrders = ORDERS.length;
     const totalRevenue = ORDERS.reduce((s, r) => s + (parseFloat(r['SUB TOTAL'])||0), 0);
@@ -704,21 +796,31 @@
     const totalDiaCt = ORDERS.reduce((s, r) => s + (parseFloat(r['IN CT'])||0), 0);
 
     const kpis = [
-      { label: 'Total Orders', value: totalOrders, sub: 'across all customers' },
-      { label: 'Sub Total', value: fmtMoney(totalRevenue), sub: '₹' + fmtNum(totalRevenue/100000, 2) + ' Lakhs' },
-      { label: 'Gold Amount', value: fmtMoney(totalGold), sub: fmtNum((totalGold/totalRevenue)*100, 1) + '% of revenue' },
-      { label: 'Diamond Amount', value: fmtMoney(totalDiam), sub: fmtNum((totalDiam/totalRevenue)*100, 1) + '% of revenue' },
-      { label: 'Net Weight', value: fmtNum(totalNetWt, 2) + ' g', sub: 'total gold weight' },
-      { label: 'Diamonds', value: fmtNum(totalDiaCt, 2) + ' ct', sub: 'total carat weight' },
+      { key:'orders', label: 'Total Orders', raw: totalOrders, fmt: v => Math.round(v).toLocaleString('en-IN'), sub: 'across all customers' },
+      { key:'revenue', label: 'Sub Total', raw: totalRevenue, fmt: v => fmtMoney(v), sub: '₹' + fmtNum(totalRevenue/100000, 2) + ' Lakhs' },
+      { key:'gold', label: 'Gold Amount', raw: totalGold, fmt: v => fmtMoney(v), sub: fmtNum((totalGold/totalRevenue)*100, 1) + '% of revenue' },
+      { key:'diam', label: 'Diamond Amount', raw: totalDiam, fmt: v => fmtMoney(v), sub: fmtNum((totalDiam/totalRevenue)*100, 1) + '% of revenue' },
+      { key:'netwt', label: 'Net Weight', raw: totalNetWt, fmt: v => fmtNum(v, 2) + ' g', sub: 'total gold weight' },
+      { key:'diact', label: 'Diamonds', raw: totalDiaCt, fmt: v => fmtNum(v, 2) + ' ct', sub: 'total carat weight' },
     ];
 
-    $('kpiGrid').innerHTML = kpis.map(k => `
+    const grid = $('kpiGrid');
+    const isFirstRender = grid.children.length === 0;
+
+    grid.innerHTML = kpis.map(k => `
       <div class="kpi-card">
         <div class="kpi-label">${k.label}</div>
-        <div class="kpi-value">${k.value}</div>
+        <div class="kpi-value" data-kpi="${k.key}">${k.fmt(isFirstRender ? k.raw : (kpiRawValues[k.key] ?? 0))}</div>
         <div class="kpi-sub">${k.sub}</div>
       </div>
     `).join('');
+
+    kpis.forEach(k => {
+      const el = grid.querySelector(`[data-kpi="${k.key}"]`);
+      const from = isFirstRender ? k.raw : (kpiRawValues[k.key] ?? 0);
+      if (!isFirstRender) animateKpiValue(el, from, k.raw, k.fmt);
+      kpiRawValues[k.key] = k.raw;
+    });
   }
 
   // ============ TABLE ============
@@ -868,7 +970,11 @@
     }
     return sortRows(filtered);
   }
-  $('search').addEventListener('input', () => renderTable(applyFilter()));
+  let searchDebounceTimer = null;
+  $('search').addEventListener('input', () => {
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => renderTable(applyFilter()), 150);
+  });
 
   // ============ PANEL ============
   function openPanel() {
@@ -1019,22 +1125,26 @@
     e.preventDefault();
     if (editingRow === null) return;
     $('deleteBtn').classList.add('holding');
-    let progress = 0;
     $('deleteProgress').style.width = '0%';
-    deleteHoldTimer = setInterval(() => {
-      progress += 10;
+    const duration = 300; // ms — same total hold time as before
+    const start = performance.now();
+    function tick(now) {
+      const progress = Math.min(((now - start) / duration) * 100, 100);
       $('deleteProgress').style.width = progress + '%';
       if (progress >= 100) {
-        clearInterval(deleteHoldTimer);
+        deleteHoldRAF = null;
         executeDelete();
+      } else {
+        deleteHoldRAF = requestAnimationFrame(tick);
       }
-    }, 30);
+    }
+    deleteHoldRAF = requestAnimationFrame(tick);
   }
 
   function cancelDeleteHold() {
-    if (deleteHoldTimer) {
-      clearInterval(deleteHoldTimer);
-      deleteHoldTimer = null;
+    if (deleteHoldRAF) {
+      cancelAnimationFrame(deleteHoldRAF);
+      deleteHoldRAF = null;
     }
     $('deleteBtn').classList.remove('holding');
     $('deleteProgress').style.width = '0%';

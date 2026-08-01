@@ -250,6 +250,7 @@
   }
   .field input:focus{ outline:none; border-color:var(--gold); box-shadow: 0 0 0 3px var(--gold-glow); }
   .field input.error{ border-color: var(--bad); box-shadow: 0 0 0 3px rgba(192,112,90,0.15); }
+  .field input[readonly]{ opacity:0.6; cursor:not-allowed; }
   .field-error{ color: var(--bad); font-size:11.5px; margin-top:5px; display:none; }
   .field.has-error .field-error{ display:block; }
   .field-row{ display:flex; gap:12px; }
@@ -595,7 +596,7 @@
 
 <script>
   // ============ CONFIGURE THIS ============
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx7TgZM42BXQuoVAX6PZCqqBj8xHdp4BCgmzOa5zgdniSUnFlBWRWzWNzoWyPKijbU9/exec';
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyVKCjKJgJ3SyDKPT3cgrivUuKbBh061Z7c0OqA1nrv442VHU64G4t-8Q-aEjqrsDmf/exec';
   const GOLD_RATE_PER_10G = 16000;
   const USD_RATE = 94;
   // =========================================
@@ -894,13 +895,18 @@
     }
   }
 
-  // Customers get view-only access: no adding, editing, or deleting.
-  // The backend also enforces this — this just keeps the UI honest.
+  // Three roles: 'staff' (manufacturer — full access), 'seller' (your
+  // brother — can view everything, but only edit Sold To / Sale Price /
+  // Date Sold / payments), 'customer' (view-only). The backend enforces
+  // all of this independently — this just keeps the UI honest.
   function applyRoleRestrictions() {
     const isStaff = ROLE === 'staff';
+    const canEditSale = ROLE === 'staff' || ROLE === 'seller';
     const newOrderBtn = $('newOrderBtn');
     if (newOrderBtn) newOrderBtn.style.display = isStaff ? '' : 'none';
-    document.body.classList.toggle('view-only', !isStaff);
+    // 'view-only' hides the Save button and dims controls entirely — only
+    // applies to pure viewers (customers), since sellers can still save.
+    document.body.classList.toggle('view-only', !canEditSale);
   }
 
   // ============ SKELETON LOADING STATE ============
@@ -1327,7 +1333,9 @@
     if (!order) return;
     editingRow = rowNum;
     const isStaff = ROLE === 'staff';
-    $('panelTitle').textContent = `${isStaff ? 'Edit' : 'View'} — ${order['Style No.'] ?? ''}`;
+    const isSeller = ROLE === 'seller';
+    const canEditSale = isStaff || isSeller;
+    $('panelTitle').textContent = `${canEditSale ? 'Edit' : 'View'} — ${order['Style No.'] ?? ''}`;
     $('f_customer').value = order['CUSTOMER '] ?? order['CUSTOMER'] ?? '';
     $('f_style').value = order['Style No.'] ?? '';
     $('f_date').value = order['Date'] ? String(order['Date']).split('T')[0] : '';
@@ -1372,7 +1380,19 @@
     $('err_f_installment').textContent = '';
     renderInstallments();
 
-    document.querySelectorAll('#panel .field input, #panel .field textarea').forEach(inp => inp.readOnly = !isStaff);
+    currentInstallments = loadedInstallments;
+    $('f_instAmount').value = '';
+    $('f_instDate').value = '';
+    $('err_f_installment').textContent = '';
+    renderInstallments();
+
+    // Manufacturing details: only the manufacturer (staff) can edit these.
+    const manufacturingIds = ['f_customer','f_style','f_date','f_grossWt','f_netWt','f_diaQty','f_inCt','f_colourStone','f_multiplier','f_diamAmount','f_lCharges'];
+    manufacturingIds.forEach(id => { $(id).readOnly = !isStaff; });
+    // Sale & payment details: the manufacturer AND the seller can edit these.
+    const saleIds = ['f_soldTo','f_salePrice','f_dateSold','f_instAmount','f_instDate'];
+    saleIds.forEach(id => { $(id).readOnly = !canEditSale; });
+    $('addInstallmentBtn').style.display = canEditSale ? '' : 'none';
     $('deleteBtn').style.display = isStaff ? 'inline-block' : 'none';
     $('deleteText').textContent = 'Delete';
     $('deleteBtn').classList.remove('holding');

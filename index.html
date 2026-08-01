@@ -107,6 +107,7 @@
     transition: border-color 0.2s, box-shadow 0.2s;
   }
   #search:focus{ outline:none; border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-glow); }
+  .last-updated{ font-size:12px; color: var(--text-dim); white-space:nowrap; }
   .btn.secondary{ background: transparent; color: var(--text); border-color: var(--line); }
   .btn.secondary:hover{ background: var(--surface-raised); }
   .btn.danger{ background: transparent; color: var(--bad); border-color: var(--bad); }
@@ -209,6 +210,8 @@
   }
   .field input:focus{ outline:none; border-color:var(--gold); box-shadow: 0 0 0 3px var(--gold-glow); }
   .field input.error{ border-color: var(--bad); box-shadow: 0 0 0 3px rgba(192,112,90,0.15); }
+  .field-error{ color: var(--bad); font-size:11.5px; margin-top:5px; display:none; }
+  .field.has-error .field-error{ display:block; }
   .field-row{ display:flex; gap:12px; }
   .field-row .field{ flex:1; }
   body.view-only .panel-foot{ display:none; }
@@ -385,6 +388,7 @@
     </div>
     <div class="controls">
       <input id="search" placeholder="Search customer, style, or date…" autocomplete="off">
+      <span id="lastUpdated" class="last-updated"></span>
       <button class="btn secondary" id="refreshBtn">Refresh</button>
       <button class="btn" id="newOrderBtn">+ New order</button>
     </div>
@@ -427,25 +431,25 @@
     <button id="closePanel">&times;</button>
   </div>
   <div class="panel-body">
-    <div class="field"><label>Customer *</label><input id="f_customer" placeholder="e.g. HET"></div>
-    <div class="field"><label>Style No. *</label><input id="f_style" placeholder="e.g. SLER-0079 I"></div>
+    <div class="field"><label>Customer *</label><input id="f_customer" placeholder="e.g. HET"><div class="field-error" id="err_f_customer"></div></div>
+    <div class="field"><label>Style No. *</label><input id="f_style" placeholder="e.g. SLER-0079 I"><div class="field-error" id="err_f_style"></div></div>
     <div class="field"><label>Date</label><input id="f_date" type="date"></div>
 
     <div class="field-row">
-      <div class="field"><label>Gross Wt (g)</label><input id="f_grossWt" type="number" step="0.001" placeholder="0.000"></div>
-      <div class="field"><label>Net Wt (g) *</label><input id="f_netWt" type="number" step="0.001" placeholder="0.000"></div>
+      <div class="field"><label>Gross Wt (g)</label><input id="f_grossWt" type="number" step="0.001" placeholder="0.000"><div class="field-error" id="err_f_grossWt"></div></div>
+      <div class="field"><label>Net Wt (g) *</label><input id="f_netWt" type="number" step="0.001" placeholder="0.000"><div class="field-error" id="err_f_netWt"></div></div>
     </div>
     <div class="field-row">
-      <div class="field"><label>Dia Qty</label><input id="f_diaQty" type="number" step="1" placeholder="0"></div>
-      <div class="field"><label>IN CT</label><input id="f_inCt" type="number" step="0.01" placeholder="0.00"></div>
+      <div class="field"><label>Dia Qty</label><input id="f_diaQty" type="number" step="1" placeholder="0"><div class="field-error" id="err_f_diaQty"></div></div>
+      <div class="field"><label>IN CT</label><input id="f_inCt" type="number" step="0.01" placeholder="0.00"><div class="field-error" id="err_f_inCt"></div></div>
     </div>
     <div class="field-row">
-      <div class="field"><label>Colour Stone</label><input id="f_colourStone" type="number" step="1" placeholder="0"></div>
-      <div class="field"><label>Multiplier</label><input id="f_multiplier" type="number" step="0.001" value="0.595" placeholder="0.595"></div>
+      <div class="field"><label>Colour Stone</label><input id="f_colourStone" type="number" step="1" placeholder="0"><div class="field-error" id="err_f_colourStone"></div></div>
+      <div class="field"><label>Multiplier</label><input id="f_multiplier" type="number" step="0.001" value="0.595" placeholder="0.595"><div class="field-error" id="err_f_multiplier"></div></div>
     </div>
     <div class="field-row">
-      <div class="field"><label>Diamond Amount (₹)</label><input id="f_diamAmount" type="number" step="1" placeholder="0"></div>
-      <div class="field"><label>L Charges (₹/g)</label><input id="f_lCharges" type="number" step="1" placeholder="900"></div>
+      <div class="field"><label>Diamond Amount (₹)</label><input id="f_diamAmount" type="number" step="1" placeholder="0"><div class="field-error" id="err_f_diamAmount"></div></div>
+      <div class="field"><label>L Charges (₹/g)</label><input id="f_lCharges" type="number" step="1" placeholder="900"><div class="field-error" id="err_f_lCharges"></div></div>
     </div>
 
     <div class="computed-preview">
@@ -548,6 +552,28 @@
     theadEl.classList.toggle('is-stuck', rect.top <= headerH + 1);
   }
   window.addEventListener('scroll', updateStuckHeader, { passive: true });
+
+  // ============ LAST UPDATED ============
+  let lastUpdatedAt = null;
+  let lastUpdatedTicker = null;
+
+  function markUpdatedNow() {
+    lastUpdatedAt = Date.now();
+    renderLastUpdated();
+    if (!lastUpdatedTicker) lastUpdatedTicker = setInterval(renderLastUpdated, 15000);
+  }
+
+  function renderLastUpdated() {
+    const el = $('lastUpdated');
+    if (!el || !lastUpdatedAt) return;
+    const secs = Math.floor((Date.now() - lastUpdatedAt) / 1000);
+    let text;
+    if (secs < 10) text = 'Updated just now';
+    else if (secs < 60) text = `Updated ${secs}s ago`;
+    else if (secs < 3600) text = `Updated ${Math.floor(secs / 60)}m ago`;
+    else text = `Updated ${Math.floor(secs / 3600)}h ago`;
+    el.textContent = text;
+  }
 
   // ============ UTILITIES ============
   function fmtMoney(n) {
@@ -707,6 +733,7 @@
       applyRoleRestrictions();
       renderKPIs();
       renderTable(ORDERS);
+      markUpdatedNow();
       showToast(`Welcome. ${ORDERS.length} orders loaded.`);
     } catch (err) {
       $('loginError').textContent = 'Could not reach the sheet. Check the Apps Script URL and your connection.';
@@ -752,6 +779,23 @@
     `).join('');
   }
 
+  // Shown when a refresh genuinely fails, so the skeleton doesn't spin
+  // forever with no way out except guessing to hit Refresh again.
+  function renderErrorState(msg) {
+    const errorHtml = `
+      <div class="empty-state">
+        <h3>Couldn't load orders</h3>
+        <p>${msg}</p>
+        <button class="btn secondary small" id="retryLoadBtn" style="margin-top:14px;">Retry</button>
+      </div>
+    `;
+    $('tbody').innerHTML = `<tr><td colspan="10">${errorHtml}</td></tr>`;
+    $('cardList').innerHTML = errorHtml;
+    const bind = (el) => el && el.addEventListener('click', refreshOrders);
+    bind(document.querySelector('#tbody #retryLoadBtn'));
+    bind(document.querySelector('#cardList #retryLoadBtn'));
+  }
+
   // ============ REFRESH ============
   async function refreshOrders() {
     renderSkeleton();
@@ -764,9 +808,14 @@
         });
         renderKPIs();
         renderTable(applyFilter());
+        markUpdatedNow();
         showToast('Orders refreshed');
+      } else {
+        renderErrorState(data.error || 'The sheet returned an error.');
+        showToast('Refresh failed', 'bad');
       }
     } catch (err) {
+      renderErrorState('Check your connection and try again.');
       showToast('Refresh failed', 'bad');
     }
   }
@@ -1000,6 +1049,8 @@
     $('panel').classList.add('open');
     $('saveMsg').textContent = '';
     $('saveMsg').className = '';
+    clearAllFieldErrors();
+    formDirty = false;
     updatePreview();
   }
   function closePanelFn() {
@@ -1007,8 +1058,23 @@
     $('panel').classList.remove('open');
     document.querySelectorAll('tbody tr').forEach(r => r.classList.remove('selected'));
   }
-  $('closePanel').addEventListener('click', closePanelFn);
-  $('overlay').addEventListener('click', closePanelFn);
+
+  // Warns before discarding a form the person has actually started typing
+  // into, so an accidental tap on the backdrop or X doesn't silently lose
+  // their work. Only wired to the user-facing close controls — internal
+  // calls to closePanelFn() after a successful save/delete skip this.
+  let formDirty = false;
+  document.querySelectorAll('#panel .field input').forEach(inp => {
+    inp.addEventListener('input', () => { formDirty = true; });
+  });
+  function requestClosePanel() {
+    if (formDirty && !document.body.classList.contains('view-only')) {
+      if (!confirm('Discard unsaved changes to this order?')) return;
+    }
+    closePanelFn();
+  }
+  $('closePanel').addEventListener('click', requestClosePanel);
+  $('overlay').addEventListener('click', requestClosePanel);
 
   function openEdit(rowNum) {
     const order = ORDERS.find(r => r._row === rowNum);
@@ -1067,17 +1133,68 @@
     };
   }
 
+  function setFieldError(id, msg) {
+    const field = $(id).closest('.field');
+    const errEl = $('err_' + id);
+    if (msg) {
+      field.classList.add('has-error');
+      $(id).classList.add('error');
+      if (errEl) errEl.textContent = msg;
+    } else {
+      field.classList.remove('has-error');
+      $(id).classList.remove('error');
+      if (errEl) errEl.textContent = '';
+    }
+  }
+
+  function clearAllFieldErrors() {
+    ['f_customer','f_style','f_grossWt','f_netWt','f_diaQty','f_inCt','f_colourStone','f_multiplier','f_diamAmount','f_lCharges']
+      .forEach(id => setFieldError(id, ''));
+  }
+
+  // Live-clear a field's error as soon as the person edits it, rather than
+  // making them hit Save again just to see if it's fixed.
+  ['f_customer','f_style','f_grossWt','f_netWt','f_diaQty','f_inCt','f_colourStone','f_multiplier','f_diamAmount','f_lCharges']
+    .forEach(id => $(id).addEventListener('input', () => setFieldError(id, '')));
+
   function validateFields(fields) {
+    clearAllFieldErrors();
     let valid = true;
-    ['f_customer','f_style','f_netWt'].forEach(id => {
-      const el = $(id);
-      if (!el.value.trim()) {
-        el.classList.add('error');
-        valid = false;
-      } else {
-        el.classList.remove('error');
+    const fail = (id, msg) => { setFieldError(id, msg); valid = false; };
+
+    if (!fields.customer) fail('f_customer', 'Customer is required.');
+    if (!fields.style) fail('f_style', 'Style No. is required.');
+
+    // Net Wt is required and must be a real positive number — everything
+    // downstream (gold amount, sub total, $) is derived from it.
+    if (!String(fields.netWt).trim()) {
+      fail('f_netWt', 'Net Wt is required.');
+    } else if (isNaN(parseFloat(fields.netWt)) || parseFloat(fields.netWt) <= 0) {
+      fail('f_netWt', 'Net Wt must be a positive number.');
+    }
+
+    if (String(fields.grossWt).trim() !== '') {
+      const gross = parseFloat(fields.grossWt);
+      if (isNaN(gross) || gross < 0) {
+        fail('f_grossWt', 'Gross Wt must be a positive number.');
+      } else if (!isNaN(parseFloat(fields.netWt)) && gross < parseFloat(fields.netWt)) {
+        fail('f_grossWt', 'Gross Wt can\'t be less than Net Wt.');
+      }
+    }
+
+    [['f_diaQty', fields.diaQty, 'Dia Qty'], ['f_inCt', fields.inCt, 'IN CT'],
+     ['f_colourStone', fields.colourStone, 'Colour Stone'], ['f_diamAmount', fields.diamAmount, 'Diamond Amount'],
+     ['f_lCharges', fields.lCharges, 'L Charges']].forEach(([id, val, label]) => {
+      if (String(val).trim() !== '' && (isNaN(parseFloat(val)) || parseFloat(val) < 0)) {
+        fail(id, `${label} can't be negative.`);
       }
     });
+
+    if (String(fields.multiplier).trim() !== '') {
+      const m = parseFloat(fields.multiplier);
+      if (isNaN(m) || m <= 0) fail('f_multiplier', 'Multiplier must be a positive number.');
+    }
+
     return valid;
   }
 
@@ -1085,7 +1202,7 @@
   $('saveBtn').addEventListener('click', async () => {
     const fields = collectFields();
     if (!validateFields(fields)) {
-      $('saveMsg').textContent = 'Please fill in all required fields (marked with *).';
+      $('saveMsg').textContent = 'Please fix the highlighted fields before saving.';
       $('saveMsg').className = 'bad';
       return;
     }
@@ -1193,7 +1310,7 @@
 
   // Keyboard shortcuts
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') closePanelFn();
+    if (e.key === 'Escape') requestClosePanel();
     if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
       e.preventDefault();
       $('search').focus();

@@ -294,14 +294,13 @@
   .order-card.open .order-card-chevron:hover{ color: var(--gold); }
   .order-card.open .order-card-chevron{ transform: rotate(180deg); }
   .order-card-body{
-    display:grid; grid-template-rows: 0fr; transition: grid-template-rows 0.28s ease;
+    max-height:0; overflow:hidden; transition: max-height 0.3s ease;
     border-top: 1px solid transparent;
   }
   .order-card.open .order-card-body{
-    grid-template-rows: 1fr; border-top:1px solid var(--line);
+    border-top:1px solid var(--line);
   }
   .order-card-grid{
-    overflow:hidden; min-height:0;
     display:grid; grid-template-columns: 1fr 1fr; gap:10px 16px; padding:14px 16px;
   }
   .order-card-grid .field-item .k{ font-size:11px; text-transform:uppercase; letter-spacing:0.4px; color:var(--text-dim); }
@@ -398,7 +397,7 @@
       <table>
         <thead>
           <tr>
-            <th data-key="sr">Sr.</th>
+            <th class="num" data-key="sr">Sr.</th>
             <th data-key="customer">Customer</th>
             <th data-key="style">Style No.</th>
             <th data-key="date">Date</th>
@@ -528,6 +527,9 @@
     const topbar = document.querySelector('header.topbar');
     if (topbar) document.documentElement.style.setProperty('--header-h', topbar.offsetHeight + 'px');
     updateStuckHeader();
+    document.querySelectorAll('.order-card.open .order-card-body').forEach(body => {
+      body.style.maxHeight = body.scrollHeight + 'px';
+    });
   }
   let resizeDebounceTimer = null;
   window.addEventListener('resize', () => {
@@ -887,7 +889,6 @@
         </div>
         <div class="order-card-body">
           <div class="order-card-grid">
-            <div class="field-item"><div class="k">Sr.</div><div class="v">${r['Sr. No.'] ?? ''}</div></div>
             <div class="field-item"><div class="k">Net Wt</div><div class="v">${fmtNum(r['Net Wt'], 3)}</div></div>
             <div class="field-item"><div class="k">Gold Amt</div><div class="v">${fmtMoney(r['Gold Amount'])}</div></div>
             <div class="field-item"><div class="k">Diam Amt</div><div class="v">${fmtMoney(r['Diam Amount'])}</div></div>
@@ -907,15 +908,32 @@
         const onChevron = !!e.target.closest('.order-card-chevron');
         if (card.classList.contains('open')) {
           if (onChevron) {
-            card.classList.remove('open');
+            closeCard(card);
           } else {
             openEdit(parseInt(card.dataset.row));
           }
           return;
         }
-        list.querySelectorAll('.order-card.open').forEach(c => { if (c !== card) c.classList.remove('open'); });
-        card.classList.add('open');
+        openCard(card);
       });
+    });
+  }
+
+  function openCard(card) {
+    $('cardList').querySelectorAll('.order-card.open').forEach(c => { if (c !== card) closeCard(c); });
+    card.classList.add('open');
+    const body = card.querySelector('.order-card-body');
+    body.style.maxHeight = body.scrollHeight + 'px';
+  }
+
+  function closeCard(card) {
+    const body = card.querySelector('.order-card-body');
+    // Lock in the current rendered height first so the transition always
+    // has a real starting point to animate down from.
+    body.style.maxHeight = body.scrollHeight + 'px';
+    requestAnimationFrame(() => {
+      card.classList.remove('open');
+      body.style.maxHeight = '0px';
     });
   }
 

@@ -254,6 +254,22 @@
   .field.has-error .field-error{ display:block; }
   .field-row{ display:flex; gap:12px; }
   .field-row .field{ flex:1; }
+  .installments-list{ display:flex; flex-direction:column; gap:6px; margin-bottom:10px; }
+  .installments-empty{ font-size:12.5px; color:var(--text-dim); padding:4px 2px; }
+  .installment-item{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:8px 10px; background:var(--surface); border:1px solid var(--line); border-radius:3px; font-size:13px;
+  }
+  .installment-item .inst-date{ color:var(--text-dim); font-family:'IBM Plex Mono', monospace; font-size:12px; }
+  .installment-item .inst-amount{ font-family:'IBM Plex Mono', monospace; color:var(--gold); font-weight:500; }
+  .installment-item .inst-remove{
+    background:none; border:none; color:var(--text-dim); cursor:pointer; font-size:16px; line-height:1; padding:2px 6px;
+    transition: color 0.15s;
+  }
+  .installment-item .inst-remove:hover{ color:var(--bad); }
+  .installment-add-row{ margin-bottom:8px; }
+  #err_f_installment{ color:var(--bad); font-size:11.5px; margin-top:2px; min-height:14px; }
+  body.view-only .inst-remove, body.view-only #addInstallmentBtn{ display:none; }
   body.view-only .panel-foot{ display:none; }
   body.view-only tbody tr{ cursor:default; }
   body.view-only .field input, body.view-only .field textarea{ opacity:0.65; cursor:not-allowed; }
@@ -475,10 +491,7 @@
             <th data-key="customer">Customer</th>
             <th data-key="style">Style No.</th>
             <th data-key="date">Date</th>
-            <th class="num" data-key="netWt">Net Wt</th>
-            <th class="num" data-key="goldAmt">Gold Amt</th>
-            <th class="num" data-key="diamAmt">Diam Amt</th>
-            <th class="num" data-key="laborAmt">Labor</th>
+            <th class="num" data-key="grossWt">Gross Wt</th>
             <th class="num" data-key="subTotal">Sub Total</th>
             <th class="num" data-key="usd">$</th>
             <th data-key="soldTo">Sold To</th>
@@ -486,7 +499,7 @@
           </tr>
         </thead>
         <tbody id="tbody">
-          <tr class="skel-row"><td colspan="12"><span class="skel" style="width:100%">Loading…</span></td></tr>
+          <tr class="skel-row"><td colspan="9"><span class="skel" style="width:100%">Loading…</span></td></tr>
         </tbody>
       </table>
     </div>
@@ -544,11 +557,20 @@
       <div class="field"><label>Sale Price (₹)</label><input id="f_salePrice" type="number" step="1" placeholder="0"><div class="field-error" id="err_f_salePrice"></div></div>
       <div class="field"><label>Date Sold</label><input id="f_dateSold" type="date"></div>
     </div>
-    <div class="field"><label>Amount Paid (₹)</label><input id="f_amountPaid" type="number" step="1" placeholder="0"><div class="field-error" id="err_f_amountPaid"></div></div>
-    <div class="field"><label>Payment Log</label><textarea id="f_paymentLog" placeholder="e.g. 8/1: 21000 paid; balance on delivery"></textarea></div>
+    <div class="field">
+      <label>Installments</label>
+      <div id="installmentsList" class="installments-list"></div>
+      <div class="field-row installment-add-row">
+        <div class="field"><input id="f_instAmount" type="number" step="1" min="0" placeholder="Amount ₹"></div>
+        <div class="field"><input id="f_instDate" type="date"></div>
+      </div>
+      <button class="btn secondary small" id="addInstallmentBtn" type="button" style="width:100%">+ Add installment</button>
+      <div class="field-error" id="err_f_installment"></div>
+    </div>
 
     <div class="computed-preview">
       <h4>Payment Preview</h4>
+      <div class="computed-row"><span class="label">Amount Paid</span><span class="value" id="prev_amountPaid">—</span></div>
       <div class="computed-row"><span class="label">Balance Due</span><span class="value" id="prev_balanceDue">—</span></div>
       <div class="computed-row"><span class="label">Payment Status</span><span class="value" id="prev_paymentStatus">—</span></div>
     </div>
@@ -573,7 +595,7 @@
 
 <script>
   // ============ CONFIGURE THIS ============
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzukScyagl3kSUaVmxZwwgWN6C9IWqIZ_uY1XohAuQeuWZCFjOUaaypIPZKdmyn22hC/exec';
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx7TgZM42BXQuoVAX6PZCqqBj8xHdp4BCgmzOa5zgdniSUnFlBWRWzWNzoWyPKijbU9/exec';
   const GOLD_RATE_PER_10G = 16000;
   const USD_RATE = 94;
   // =========================================
@@ -613,6 +635,7 @@
   let sortKey = null;
   let sortDir = 'asc';
   let deleteHoldRAF = null;
+  let currentInstallments = []; // [{date, amount}] for the order currently open in the panel
 
   const $ = (id) => document.getElementById(id);
   $('rateNote').textContent = `Gold: ₹${GOLD_RATE_PER_10G.toLocaleString('en-IN')}/10g · $1 = ₹${USD_RATE} (fixed rates)`;
@@ -772,21 +795,64 @@
     $('prev_usd').textContent = '$' + fmtNum(comp.usd, 2);
 
     const sale = computeSale(fields);
+    $('prev_amountPaid').textContent = sale.amountPaid > 0 ? fmtMoney(sale.amountPaid) : '—';
     $('prev_balanceDue').textContent = sale.salePrice === null ? '—' : fmtMoney(sale.balanceDue);
     $('prev_paymentStatus').textContent = sale.status || '—';
   }
 
-  // Mirrors the backend's Balance Due / Payment Status formulas, purely
-  // for the live preview — the sheet is still the source of truth once saved.
+  // Mirrors the backend's Amount Paid / Balance Due / Payment Status logic,
+  // purely for the live preview — the sheet is still the source of truth
+  // once saved. Amount Paid is always the sum of the installment list.
   function computeSale(fields) {
+    const paid = currentInstallments.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
     const priceStr = String(fields.salePrice ?? '').trim();
-    if (priceStr === '') return { salePrice: null, balanceDue: 0, status: '' };
+    if (priceStr === '') return { salePrice: null, amountPaid: paid, balanceDue: 0, status: '' };
     const price = parseFloat(priceStr) || 0;
-    const paid = parseFloat(fields.amountPaid) || 0;
     const balanceDue = price - paid;
     const status = paid <= 0 ? 'Unpaid' : (paid >= price ? 'Paid' : 'Partial');
-    return { salePrice: price, balanceDue, status };
+    return { salePrice: price, amountPaid: paid, balanceDue, status };
   }
+
+  // ============ INSTALLMENTS ============
+  function renderInstallments() {
+    const list = $('installmentsList');
+    if (!currentInstallments.length) {
+      list.innerHTML = `<div class="installments-empty">No payments recorded yet.</div>`;
+    } else {
+      list.innerHTML = currentInstallments.map((inst, i) => `
+        <div class="installment-item">
+          <span class="inst-date">${inst.date ? fmtDate(inst.date) : '—'}</span>
+          <span class="inst-amount">${fmtMoney(inst.amount)}</span>
+          <button type="button" class="inst-remove" data-idx="${i}" title="Remove this payment">&times;</button>
+        </div>
+      `).join('');
+      list.querySelectorAll('.inst-remove').forEach(btn => {
+        btn.addEventListener('click', () => {
+          currentInstallments.splice(parseInt(btn.dataset.idx, 10), 1);
+          formDirty = true;
+          renderInstallments();
+        });
+      });
+    }
+    updatePreview();
+  }
+
+  $('addInstallmentBtn').addEventListener('click', () => {
+    const amtStr = $('f_instAmount').value;
+    const amt = parseFloat(amtStr);
+    if (!amtStr || isNaN(amt) || amt <= 0) {
+      $('err_f_installment').textContent = 'Enter a valid amount to add a payment.';
+      return;
+    }
+    $('err_f_installment').textContent = '';
+    const date = $('f_instDate').value || new Date().toISOString().split('T')[0];
+    currentInstallments.push({ date, amount: amt });
+    currentInstallments.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+    $('f_instAmount').value = '';
+    $('f_instDate').value = '';
+    formDirty = true;
+    renderInstallments();
+  });
 
   // ============ LOGIN ============
   $('loginBtn').addEventListener('click', login);
@@ -849,9 +915,6 @@
         <td><span class="skel" style="width:90px">•</span></td>
         <td><span class="skel" style="width:80px">•</span></td>
         <td class="num"><span class="skel" style="width:50px">•</span></td>
-        <td class="num"><span class="skel" style="width:70px">•</span></td>
-        <td class="num"><span class="skel" style="width:70px">•</span></td>
-        <td class="num"><span class="skel" style="width:60px">•</span></td>
         <td class="num"><span class="skel" style="width:80px">•</span></td>
         <td class="num"><span class="skel" style="width:50px">•</span></td>
         <td><span class="skel" style="width:70px">•</span></td>
@@ -878,7 +941,7 @@
         <button class="btn secondary small" id="retryLoadBtn" style="margin-top:14px;">Retry</button>
       </div>
     `;
-    $('tbody').innerHTML = `<tr><td colspan="12">${errorHtml}</td></tr>`;
+    $('tbody').innerHTML = `<tr><td colspan="9">${errorHtml}</td></tr>`;
     $('cardList').innerHTML = errorHtml;
     $('paginationBar').innerHTML = '';
     const bind = (el) => el && el.addEventListener('click', refreshOrders);
@@ -989,7 +1052,7 @@
   function renderTable(rows) {
     const tbody = $('tbody');
     if (!rows.length) {
-      tbody.innerHTML = `<tr><td colspan="12"><div class="empty-state"><h3>No orders found</h3><p>Try a different search, or add a new order.</p></div></td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><h3>No orders found</h3><p>Try a different search, or add a new order.</p></div></td></tr>`;
       renderCards(rows);
       return;
     }
@@ -999,10 +1062,7 @@
         <td class="customer-cell">${getCustomerBadge(r['CUSTOMER '] ?? r['CUSTOMER'])}</td>
         <td><span class="style-tag">${r['Style No.'] ?? ''}</span></td>
         <td>${fmtDate(r['Date'])}</td>
-        <td class="num">${fmtNum(r['Net Wt'], 3)}</td>
-        <td class="num">${fmtMoney(r['Gold Amount'])}</td>
-        <td class="num">${fmtMoney(r['Diam Amount'])}</td>
-        <td class="num">${fmtMoney(r['LABOR AMOUNT'])}</td>
+        <td class="num">${fmtNum(r['Gross Wt'], 3)}</td>
         <td class="num" style="font-weight:600">${fmtMoney(r['SUB TOTAL'])}</td>
         <td class="num">${fmtNum(r['$'], 2)}</td>
         <td>${r['Sold To'] ?? '—'}</td>
@@ -1044,10 +1104,7 @@
         </div>
         <div class="order-card-body">
           <div class="order-card-grid">
-            <div class="field-item"><div class="k">Net Wt</div><div class="v">${fmtNum(r['Net Wt'], 3)}</div></div>
-            <div class="field-item"><div class="k">Gold Amt</div><div class="v">${fmtMoney(r['Gold Amount'])}</div></div>
-            <div class="field-item"><div class="k">Diam Amt</div><div class="v">${fmtMoney(r['Diam Amount'])}</div></div>
-            <div class="field-item"><div class="k">Labor</div><div class="v">${fmtMoney(r['LABOR AMOUNT'])}</div></div>
+            <div class="field-item"><div class="k">Gross Wt</div><div class="v">${fmtNum(r['Gross Wt'], 3)}</div></div>
             <div class="field-item"><div class="k">$</div><div class="v">${fmtNum(r['$'], 2)}</div></div>
             <div class="field-item"><div class="k">Sold To</div><div class="v">${r['Sold To'] || '—'}</div></div>
             <div class="field-item"><div class="k">Status</div><div class="v">${getPaymentBadge(r)}</div></div>
@@ -1116,8 +1173,7 @@
     if (!sortKey) return rows;
     const map = {
       sr: 'Sr. No.', customer: 'CUSTOMER ', style: 'Style No.', date: 'Date',
-      netWt: 'Net Wt', goldAmt: 'Gold Amount', diamAmt: 'Diam Amount',
-      laborAmt: 'LABOR AMOUNT', subTotal: 'SUB TOTAL', usd: '$',
+      grossWt: 'Gross Wt', subTotal: 'SUB TOTAL', usd: '$',
       soldTo: 'Sold To', paymentStatus: 'Payment Status'
     };
     const col = map[sortKey];
@@ -1286,8 +1342,36 @@
     $('f_soldTo').value = order['Sold To'] ?? '';
     $('f_salePrice').value = order['Sale Price'] ?? '';
     $('f_dateSold').value = order['Date Sold'] ? String(order['Date Sold']).split('T')[0] : '';
-    $('f_amountPaid').value = order['Amount Paid'] ?? '';
-    $('f_paymentLog').value = order['Payment Log'] ?? '';
+
+    // Load installments from the structured Payment Log JSON. If the sheet
+    // has an older freeform note there instead (or nothing), fall back to
+    // seeding one installment from the existing Amount Paid total, so a
+    // previously-recorded payment isn't lost the first time this order is
+    // reopened under the new installment tracking.
+    let loadedInstallments = [];
+    const rawLog = order['Payment Log'];
+    if (rawLog) {
+      try {
+        const parsed = JSON.parse(rawLog);
+        if (Array.isArray(parsed)) {
+          loadedInstallments = parsed
+            .filter(x => x && !isNaN(parseFloat(x.amount)))
+            .map(x => ({ date: x.date || '', amount: parseFloat(x.amount) }));
+        }
+      } catch (e) { /* legacy freeform note — ignored, handled by the fallback below */ }
+    }
+    if (!loadedInstallments.length) {
+      const existingPaid = parseFloat(order['Amount Paid']);
+      if (existingPaid > 0) {
+        loadedInstallments = [{ date: order['Date Sold'] ? String(order['Date Sold']).split('T')[0] : '', amount: existingPaid }];
+      }
+    }
+    currentInstallments = loadedInstallments;
+    $('f_instAmount').value = '';
+    $('f_instDate').value = '';
+    $('err_f_installment').textContent = '';
+    renderInstallments();
+
     document.querySelectorAll('#panel .field input, #panel .field textarea').forEach(inp => inp.readOnly = !isStaff);
     $('deleteBtn').style.display = isStaff ? 'inline-block' : 'none';
     $('deleteText').textContent = 'Delete';
@@ -1301,15 +1385,18 @@
     editingRow = null;
     $('panelTitle').textContent = 'New order';
     ['f_customer','f_style','f_date','f_grossWt','f_netWt','f_diaQty','f_inCt','f_colourStone','f_multiplier','f_diamAmount','f_lCharges',
-     'f_soldTo','f_salePrice','f_dateSold','f_amountPaid','f_paymentLog']
+     'f_soldTo','f_salePrice','f_dateSold','f_instAmount','f_instDate']
       .forEach(id => $(id).value = '');
     $('f_multiplier').value = '0.595';
+    currentInstallments = [];
+    $('err_f_installment').textContent = '';
+    renderInstallments();
     $('deleteBtn').style.display = 'none';
     updatePreview();
     openPanel();
   });
 
-  ['f_netWt','f_multiplier','f_diamAmount','f_lCharges','f_salePrice','f_amountPaid'].forEach(id => {
+  ['f_netWt','f_multiplier','f_diamAmount','f_lCharges','f_salePrice'].forEach(id => {
     $(id).addEventListener('input', updatePreview);
   });
 
@@ -1329,8 +1416,7 @@
       soldTo: $('f_soldTo').value.trim(),
       salePrice: $('f_salePrice').value,
       dateSold: $('f_dateSold').value,
-      amountPaid: $('f_amountPaid').value,
-      paymentLog: $('f_paymentLog').value,
+      paymentLog: JSON.stringify(currentInstallments),
     };
   }
 
@@ -1349,13 +1435,14 @@
   }
 
   function clearAllFieldErrors() {
-    ['f_customer','f_style','f_grossWt','f_netWt','f_diaQty','f_inCt','f_colourStone','f_multiplier','f_diamAmount','f_lCharges','f_salePrice','f_amountPaid']
+    ['f_customer','f_style','f_grossWt','f_netWt','f_diaQty','f_inCt','f_colourStone','f_multiplier','f_diamAmount','f_lCharges','f_salePrice']
       .forEach(id => setFieldError(id, ''));
+    $('err_f_installment').textContent = '';
   }
 
   // Live-clear a field's error as soon as the person edits it, rather than
   // making them hit Save again just to see if it's fixed.
-  ['f_customer','f_style','f_grossWt','f_netWt','f_diaQty','f_inCt','f_colourStone','f_multiplier','f_diamAmount','f_lCharges','f_salePrice','f_amountPaid']
+  ['f_customer','f_style','f_grossWt','f_netWt','f_diaQty','f_inCt','f_colourStone','f_multiplier','f_diamAmount','f_lCharges','f_salePrice']
     .forEach(id => $(id).addEventListener('input', () => setFieldError(id, '')));
 
   function validateFields(fields) {
@@ -1399,20 +1486,16 @@
     // Sale & payment fields are optional (a piece may not be sold yet), but
     // if provided, they need to hold together.
     const priceStr = String(fields.salePrice).trim();
-    const paidStr = String(fields.amountPaid).trim();
     if (priceStr !== '') {
       const price = parseFloat(priceStr);
       if (isNaN(price) || price < 0) fail('f_salePrice', 'Sale Price must be a positive number.');
     }
-    if (paidStr !== '') {
-      const paid = parseFloat(paidStr);
-      if (isNaN(paid) || paid < 0) {
-        fail('f_amountPaid', 'Amount Paid must be a positive number.');
-      } else if (priceStr === '') {
-        fail('f_salePrice', 'Enter a Sale Price before recording a payment.');
-      } else if (paid > parseFloat(priceStr)) {
-        fail('f_amountPaid', "Amount Paid can't exceed the Sale Price.");
-      }
+    const totalPaid = currentInstallments.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
+    if (totalPaid > 0 && priceStr === '') {
+      fail('f_salePrice', 'Enter a Sale Price before recording payments.');
+    } else if (priceStr !== '' && totalPaid > parseFloat(priceStr)) {
+      $('err_f_installment').textContent = "Total payments can't exceed the Sale Price.";
+      valid = false;
     }
 
     return valid;

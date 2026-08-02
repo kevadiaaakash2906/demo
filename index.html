@@ -865,7 +865,7 @@
   function getMemoSiblings(memoNo, excludeRow) {
     const key = String(memoNo || '').trim().toLowerCase();
     if (!key) return [];
-    return ORDERS.filter(r => r._row !== excludeRow && String(getField(r, 'memo') ?? '').trim().toLowerCase() === key);
+    return ORDERS.filter(r => r._row !== excludeRow && String(getField(r, 'Memo No.') ?? '').trim().toLowerCase() === key);
   }
 
   // Mirrors the backend's Amount Paid / Balance Due / Payment Status logic,
@@ -1150,7 +1150,7 @@
         <td class="num col-ctWt">${fmtNum(gramsToCarats(r['Gross Wt']), 3)}</td>
         <td class="num col-subTotal" style="font-weight:600">${fmtMoney(r['SUB TOTAL'])}</td>
         <td class="num col-usd">${fmtNum(r['$'], 2)}</td>
-        <td class="col-memoNo">${getField(r, 'memo') || '—'}</td>
+        <td class="col-memoNo">${getField(r, 'Memo No.') || '—'}</td>
         <td>${r['Sold To'] ?? '—'}</td>
         <td>${getPaymentBadge(r)}</td>
       </tr>
@@ -1193,7 +1193,7 @@
             <div class="field-item col-grossWt"><div class="k">Gross Wt</div><div class="v">${fmtNum(r['Gross Wt'], 3)}</div></div>
             <div class="field-item col-ctWt"><div class="k">Ct Wt</div><div class="v">${fmtNum(gramsToCarats(r['Gross Wt']), 3)}</div></div>
             <div class="field-item col-usd"><div class="k">$</div><div class="v">${fmtNum(r['$'], 2)}</div></div>
-            <div class="field-item col-memoNo"><div class="k">Memo No.</div><div class="v">${getField(r, 'memo') || '—'}</div></div>
+            <div class="field-item col-memoNo"><div class="k">Memo No.</div><div class="v">${getField(r, 'Memo No.') || '—'}</div></div>
             <div class="field-item"><div class="k">Sold To</div><div class="v">${r['Sold To'] || '—'}</div></div>
             <div class="field-item"><div class="k">Status</div><div class="v">${getPaymentBadge(r)}</div></div>
             <div class="field-item col-balanceDue"><div class="k">Balance Due</div><div class="v">${String(r['Sale Price'] ?? '').trim() === '' ? '—' : fmtMoney(r['Balance Due'])}</div></div>
@@ -1262,7 +1262,7 @@
     const map = {
       sr: 'Sr. No.', customer: 'CUSTOMER ', style: 'Style No.', date: 'Date',
       grossWt: 'Gross Wt', subTotal: 'SUB TOTAL', usd: '$',
-      memoNo: 'memo', soldTo: 'Sold To', paymentStatus: 'Payment Status'
+      memoNo: 'Memo No.', soldTo: 'Sold To', paymentStatus: 'Payment Status'
     };
     const col = map[sortKey];
     return [...rows].sort((a, b) => {
@@ -1303,7 +1303,7 @@
         String(r['CUSTOMER '] ?? r['CUSTOMER'] ?? '').toLowerCase().includes(q) ||
         String(r['Style No.'] ?? '').toLowerCase().includes(q) ||
         String(r['Date'] ?? '').includes(q) ||
-        String(getField(r, 'memo') ?? '').toLowerCase().includes(q) ||
+        String(getField(r, 'Memo No.') ?? '').toLowerCase().includes(q) ||
         String(r['Sold To'] ?? '').toLowerCase().includes(q)
       );
     }
@@ -1434,7 +1434,7 @@
     $('f_soldTo').value = order['Sold To'] ?? '';
     $('f_salePrice').value = order['Sale Price'] ?? '';
     $('f_dateSold').value = order['Date Sold'] ? String(order['Date Sold']).split('T')[0] : '';
-    $('f_memoNo').value = getField(order, 'memo') ?? '';
+    $('f_memoNo').value = getField(order, 'Memo No.') ?? '';
 
     // Load installments from the structured Payment Log JSON. If the sheet
     // has an older freeform note there instead (or nothing), fall back to

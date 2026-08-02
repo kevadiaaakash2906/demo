@@ -274,6 +274,18 @@
   body.view-only .panel-foot{ display:none; }
   body.view-only tbody tr{ cursor:default; }
   body.view-only .field input, body.view-only .field textarea{ opacity:0.65; cursor:not-allowed; }
+
+  /* ---- Role-based column visibility ----
+     staff (manufacturer, Arpan): INR pricing — hides $ and Memo No.
+     seller (based in USA): USD pricing + carat weight — hides the INR
+     manufacturing weight/amount columns entirely.
+     customer: unchanged, sees the same columns as staff (minus edit rights,
+     handled separately by .view-only above). */
+  .col-ctWt{ display:none; } /* hidden by default; only the seller view shows it */
+  body.role-staff .col-usd, body.role-staff .col-memoNo{ display:none; }
+  body.role-seller .col-grossWt, body.role-seller .col-subTotal, body.role-seller .col-balanceDue{ display:none; }
+  body.role-seller th.col-ctWt, body.role-seller td.col-ctWt{ display:table-cell; }
+  body.role-seller .order-card-grid .col-ctWt{ display:block; }
   .panel-foot{
     padding:18px 24px; border-top:1px solid var(--line); display:flex; gap:10px;
   }
@@ -492,10 +504,11 @@
             <th data-key="customer">Customer</th>
             <th data-key="style">Style No.</th>
             <th data-key="date">Date</th>
-            <th class="num" data-key="grossWt">Gross Wt</th>
-            <th class="num" data-key="subTotal">Sub Total</th>
-            <th class="num" data-key="usd">$</th>
-            <th data-key="memoNo">Memo No.</th>
+            <th class="num col-grossWt" data-key="grossWt">Gross Wt</th>
+            <th class="num col-ctWt">Ct Wt</th>
+            <th class="num col-subTotal" data-key="subTotal">Sub Total</th>
+            <th class="num col-usd" data-key="usd">$</th>
+            <th class="col-memoNo" data-key="memoNo">Memo No.</th>
             <th data-key="soldTo">Sold To</th>
             <th data-key="paymentStatus">Status</th>
           </tr>
@@ -687,6 +700,12 @@
     return n.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: d });
   }
 
+  // 1 gram = 5 carats — used to show the seller a carat weight instead of
+  // the manufacturing gram weight.
+  function gramsToCarats(grams) {
+    return (parseFloat(grams) || 0) * 5;
+  }
+
   // Handles dates whether the backend sends a plain 'yyyy-MM-dd' string
   // or a full ISO timestamp like '2026-06-03T07:00:00.000Z' — displays
   // just the date, in a readable dd-Mon-yyyy form.
@@ -832,7 +851,7 @@
   function getMemoSiblings(memoNo, excludeRow) {
     const key = String(memoNo || '').trim().toLowerCase();
     if (!key) return [];
-    return ORDERS.filter(r => r._row !== excludeRow && String(r['Memo No.'] ?? '').trim().toLowerCase() === key);
+    return ORDERS.filter(r => r._row !== excludeRow && String(r['memo'] ?? '').trim().toLowerCase() === key);
   }
 
   // Mirrors the backend's Amount Paid / Balance Due / Payment Status logic,
@@ -947,6 +966,10 @@
     // 'view-only' hides the Save button and dims controls entirely — only
     // applies to pure viewers (customers), since sellers can still save.
     document.body.classList.toggle('view-only', !canEditSale);
+    // role-staff / role-seller / role-customer drives which columns show
+    // (INR manufacturing figures for staff, USD + carat weight for seller).
+    document.body.classList.remove('role-staff', 'role-seller', 'role-customer');
+    document.body.classList.add('role-' + ROLE);
   }
 
   // ============ SKELETON LOADING STATE ============
@@ -1109,10 +1132,11 @@
         <td class="customer-cell">${getCustomerBadge(r['CUSTOMER '] ?? r['CUSTOMER'])}</td>
         <td><span class="style-tag">${r['Style No.'] ?? ''}</span></td>
         <td>${fmtDate(r['Date'])}</td>
-        <td class="num">${fmtNum(r['Gross Wt'], 3)}</td>
-        <td class="num" style="font-weight:600">${fmtMoney(r['SUB TOTAL'])}</td>
-        <td class="num">${fmtNum(r['$'], 2)}</td>
-        <td>${r['Memo No.'] || '—'}</td>
+        <td class="num col-grossWt">${fmtNum(r['Gross Wt'], 3)}</td>
+        <td class="num col-ctWt">${fmtNum(gramsToCarats(r['Gross Wt']), 3)}</td>
+        <td class="num col-subTotal" style="font-weight:600">${fmtMoney(r['SUB TOTAL'])}</td>
+        <td class="num col-usd">${fmtNum(r['$'], 2)}</td>
+        <td class="col-memoNo">${r['memo'] || '—'}</td>
         <td>${r['Sold To'] ?? '—'}</td>
         <td>${getPaymentBadge(r)}</td>
       </tr>
@@ -1147,17 +1171,18 @@
             </div>
             <span class="head-sub">${getCustomerBadge(r['CUSTOMER '] ?? r['CUSTOMER'])} · ${fmtDate(r['Date'])}</span>
           </div>
-          <div class="head-total">${fmtMoney(r['SUB TOTAL'])}</div>
+          <div class="head-total">${ROLE === 'seller' ? '$' + fmtNum(r['$'], 2) : fmtMoney(r['SUB TOTAL'])}</div>
           <svg class="order-card-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
         </div>
         <div class="order-card-body">
           <div class="order-card-grid">
-            <div class="field-item"><div class="k">Gross Wt</div><div class="v">${fmtNum(r['Gross Wt'], 3)}</div></div>
-            <div class="field-item"><div class="k">$</div><div class="v">${fmtNum(r['$'], 2)}</div></div>
-            <div class="field-item"><div class="k">Memo No.</div><div class="v">${r['Memo No.'] || '—'}</div></div>
+            <div class="field-item col-grossWt"><div class="k">Gross Wt</div><div class="v">${fmtNum(r['Gross Wt'], 3)}</div></div>
+            <div class="field-item col-ctWt"><div class="k">Ct Wt</div><div class="v">${fmtNum(gramsToCarats(r['Gross Wt']), 3)}</div></div>
+            <div class="field-item col-usd"><div class="k">$</div><div class="v">${fmtNum(r['$'], 2)}</div></div>
+            <div class="field-item col-memoNo"><div class="k">Memo No.</div><div class="v">${r['memo'] || '—'}</div></div>
             <div class="field-item"><div class="k">Sold To</div><div class="v">${r['Sold To'] || '—'}</div></div>
             <div class="field-item"><div class="k">Status</div><div class="v">${getPaymentBadge(r)}</div></div>
-            <div class="field-item"><div class="k">Balance Due</div><div class="v">${String(r['Sale Price'] ?? '').trim() === '' ? '—' : fmtMoney(r['Balance Due'])}</div></div>
+            <div class="field-item col-balanceDue"><div class="k">Balance Due</div><div class="v">${String(r['Sale Price'] ?? '').trim() === '' ? '—' : fmtMoney(r['Balance Due'])}</div></div>
           </div>
         </div>
       </div>
@@ -1223,7 +1248,7 @@
     const map = {
       sr: 'Sr. No.', customer: 'CUSTOMER ', style: 'Style No.', date: 'Date',
       grossWt: 'Gross Wt', subTotal: 'SUB TOTAL', usd: '$',
-      memoNo: 'Memo No.', soldTo: 'Sold To', paymentStatus: 'Payment Status'
+      memoNo: 'memo', soldTo: 'Sold To', paymentStatus: 'Payment Status'
     };
     const col = map[sortKey];
     return [...rows].sort((a, b) => {
@@ -1264,7 +1289,7 @@
         String(r['CUSTOMER '] ?? r['CUSTOMER'] ?? '').toLowerCase().includes(q) ||
         String(r['Style No.'] ?? '').toLowerCase().includes(q) ||
         String(r['Date'] ?? '').includes(q) ||
-        String(r['Memo No.'] ?? '').toLowerCase().includes(q) ||
+        String(r['memo'] ?? '').toLowerCase().includes(q) ||
         String(r['Sold To'] ?? '').toLowerCase().includes(q)
       );
     }
@@ -1395,7 +1420,7 @@
     $('f_soldTo').value = order['Sold To'] ?? '';
     $('f_salePrice').value = order['Sale Price'] ?? '';
     $('f_dateSold').value = order['Date Sold'] ? String(order['Date Sold']).split('T')[0] : '';
-    $('f_memoNo').value = order['Memo No.'] ?? '';
+    $('f_memoNo').value = order['memo'] ?? '';
 
     // Load installments from the structured Payment Log JSON. If the sheet
     // has an older freeform note there instead (or nothing), fall back to

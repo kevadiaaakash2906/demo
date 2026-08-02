@@ -284,6 +284,9 @@
   .col-ctWt{ display:none; } /* hidden by default; only the seller view shows it */
   body.role-staff .col-usd, body.role-staff .col-memoNo{ display:none; }
   body.role-seller .col-grossWt, body.role-seller .col-subTotal, body.role-seller .col-balanceDue{ display:none; }
+  .col-salePrice{ display:none; }
+  body.role-seller th.col-salePrice, body.role-seller td.col-salePrice,
+  body.role-staff th.col-salePrice, body.role-staff td.col-salePrice{ display:table-cell; }
   body.role-seller th.col-ctWt, body.role-seller td.col-ctWt{ display:table-cell; }
   body.role-seller .order-card-grid .col-ctWt{ display:block; }
   .panel-foot{
@@ -509,12 +512,12 @@
             <th class="num col-subTotal" data-key="subTotal">Sub Total</th>
             <th class="num col-usd" data-key="usd">$</th>
             <th class="col-memoNo" data-key="memoNo">Memo No.</th>
-            <th data-key="soldTo">Sold To</th>
+            <th data-key="soldTo">Sold To</th>             <th class="num col-salePrice" data-key="salePrice">Sale Price</th>
             <th data-key="paymentStatus">Status</th>
           </tr>
         </thead>
         <tbody id="tbody">
-          <tr class="skel-row"><td colspan="10"><span class="skel" style="width:100%">Loading…</span></td></tr>
+          <tr class="skel-row"><td colspan="12"><span class="skel" style="width:100%">Loading…</span></td></tr>
         </tbody>
       </table>
     </div>
@@ -1136,7 +1139,7 @@
   function renderTable(rows) {
     const tbody = $('tbody');
     if (!rows.length) {
-      tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><h3>No orders found</h3><p>Try a different search, or add a new order.</p></div></td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="12"><div class="empty-state"><h3>No orders found</h3><p>Try a different search, or add a new order.</p></div></td></tr>`;
       renderCards(rows);
       return;
     }
@@ -1195,6 +1198,7 @@
             <div class="field-item col-usd"><div class="k">$</div><div class="v">${fmtNum(r['$'], 2)}</div></div>
             <div class="field-item col-memoNo"><div class="k">Memo No.</div><div class="v">${getField(r, 'Memo No.') || '—'}</div></div>
             <div class="field-item"><div class="k">Sold To</div><div class="v">${r['Sold To'] || '—'}</div></div>
+            <div class="field-item col-salePrice"><div class="k">Sale Price</div><div class="v">${String(r['Sale Price'] ?? '').trim() === '' ? '—' : fmtMoney(r['Sale Price'])}</div></div>
             <div class="field-item"><div class="k">Status</div><div class="v">${getPaymentBadge(r)}</div></div>
             <div class="field-item col-balanceDue"><div class="k">Balance Due</div><div class="v">${String(r['Sale Price'] ?? '').trim() === '' ? '—' : fmtMoney(r['Balance Due'])}</div></div>
           </div>
@@ -1259,10 +1263,10 @@
 
   function sortRows(rows) {
     if (!sortKey) return rows;
-    const map = {
+        const map = {
       sr: 'Sr. No.', customer: 'CUSTOMER ', style: 'Style No.', date: 'Date',
       grossWt: 'Gross Wt', subTotal: 'SUB TOTAL', usd: '$',
-      memoNo: 'Memo No.', soldTo: 'Sold To', paymentStatus: 'Payment Status'
+      memoNo: 'Memo No.', soldTo: 'Sold To', salePrice: 'Sale Price', paymentStatus: 'Payment Status'
     };
     const col = map[sortKey];
     return [...rows].sort((a, b) => {

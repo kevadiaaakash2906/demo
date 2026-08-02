@@ -1504,7 +1504,17 @@
   ['f_netWt','f_multiplier','f_diamAmount','f_lCharges','f_salePrice','f_memoNo'].forEach(id => {
     $(id).addEventListener('input', updatePreview);
   });
-
+  // Auto-fill buyer when memo number matches an existing order
+  $('f_memoNo').addEventListener('input', () => {
+    const memoVal = $('f_memoNo').value.trim();
+    if (memoVal && !$('f_soldTo').value.trim()) {
+      const siblings = getMemoSiblings(memoVal, editingRow);
+      if (siblings.length && siblings[0]['Sold To']) {
+        $('f_soldTo').value = siblings[0]['Sold To'];
+        formDirty = true;
+      }
+    }
+  });
   function collectFields() {
     return {
       customer: $('f_customer').value.trim(),

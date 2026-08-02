@@ -697,6 +697,10 @@
     n = parseFloat(n) || 0;
     return '₹' + n.toLocaleString('en-IN', { maximumFractionDigits: 2 });
   }
+    function fmtUSD(n) {
+    n = parseFloat(n) || 0;
+    return '$' + n.toLocaleString('en-IN', { maximumFractionDigits: 2 });
+  }
 
   function fmtNum(n, d=3) {
     n = parseFloat(n) || 0;
@@ -1151,7 +1155,7 @@
         <td>${fmtDate(r['Date'])}</td>
         <td class="num col-grossWt">${fmtNum(r['Gross Wt'], 3)}</td>
         <td class="num col-ctWt">${fmtNum(gramsToCarats(r['Gross Wt']), 3)}</td>
-        <td class="num col-subTotal" style="font-weight:600">${fmtMoney(r['SUB TOTAL'])}</td>
+        <td class="num col-subTotal" style="font-weight:600">${fmtUSD(r['SUB TOTAL'])}</td>
         <td class="num col-usd">${fmtNum(r['$'], 2)}</td>
         <td class="col-memoNo">${getField(r, 'Memo No.') || '—'}</td>
         <td>${r['Sold To'] ?? '—'}</td>
@@ -1198,9 +1202,9 @@
             <div class="field-item col-usd"><div class="k">$</div><div class="v">${fmtNum(r['$'], 2)}</div></div>
             <div class="field-item col-memoNo"><div class="k">Memo No.</div><div class="v">${getField(r, 'Memo No.') || '—'}</div></div>
             <div class="field-item"><div class="k">Sold To</div><div class="v">${r['Sold To'] || '—'}</div></div>
-            <div class="field-item col-salePrice"><div class="k">Sale Price</div><div class="v">${String(r['Sale Price'] ?? '').trim() === '' ? '—' : fmtMoney(r['Sale Price'])}</div></div>
+            <div class="field-item col-salePrice"><div class="k">Sale Price</div><div class="v">${String(r['Sale Price'] ?? '').trim() === '' ? '—' : fmtUSD(r['Sale Price'])}</div></div>
             <div class="field-item"><div class="k">Status</div><div class="v">${getPaymentBadge(r)}</div></div>
-            <div class="field-item col-balanceDue"><div class="k">Balance Due</div><div class="v">${String(r['Sale Price'] ?? '').trim() === '' ? '—' : fmtMoney(r['Balance Due'])}</div></div>
+            <div class="field-item col-balanceDue"><div class="k">Balance Due</div><div class="v">${String(r['Sale Price'] ?? '').trim() === '' ? '—' : fmtUSD(r['Balance Due'])}</div></div>
           </div>
         </div>
       </div>

@@ -1139,11 +1139,7 @@
     const cls = status === 'Paid' ? 'badge-paid' : status === 'Partial' ? 'badge-partial' : 'badge-unpaid';
     return `<span class="badge ${cls}">${status}</span>`;
   }
-    // DEBUG: check what keys the backend sends
-    if (rows.length > 0) {
-      console.log('Row keys:', Object.keys(rows[0]));
-      console.log('Sale Price values:', rows[0]['Sale Price'], rows[0]['Sale Price '], rows[0]['salePrice'], rows[0]['SALE PRICE']);
-    }
+   
   function renderTable(rows) {
     const tbody = $('tbody');
     if (!rows.length) {
@@ -1159,10 +1155,11 @@
         <td>${fmtDate(r['Date'])}</td>
         <td class="num col-grossWt">${fmtNum(r['Gross Wt'], 3)}</td>
         <td class="num col-ctWt">${fmtNum(gramsToCarats(r['Gross Wt']), 3)}</td>
-        <td class="num col-subTotal" style="font-weight:600">${fmtUSD(r['SUB TOTAL'])}</td>
+        <td class="num col-subTotal" style="font-weight:600">${fmtMoney(r['SUB TOTAL'])}</td>
         <td class="num col-usd">${fmtNum(r['$'], 2)}</td>
         <td class="col-memoNo">${getField(r, 'Memo No.') || '—'}</td>
         <td>${r['Sold To'] ?? '—'}</td>
+                <td class="num col-salePrice">${String(getField(r, 'Sale Price') ?? '').trim() === '' ? '—' : fmtUSD(getField(r, 'Sale Price'))}</td>
         <td>${getPaymentBadge(r)}</td>
       </tr>
     `).join('');

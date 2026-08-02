@@ -448,7 +448,7 @@
       <div class="sub">Orders Delivered</div>
     </div>
     <div class="controls">
-      <input id="search" placeholder="Search customer, style, or date…" autocomplete="off">
+      <input id="search" placeholder="Search customer, style, memo, buyer, or date…" autocomplete="off">
       <button class="btn secondary" id="refreshBtn">Refresh</button>
       <button class="btn" id="newOrderBtn">+ New order</button>
     </div>
@@ -495,12 +495,13 @@
             <th class="num" data-key="grossWt">Gross Wt</th>
             <th class="num" data-key="subTotal">Sub Total</th>
             <th class="num" data-key="usd">$</th>
+            <th data-key="memoNo">Memo No.</th>
             <th data-key="soldTo">Sold To</th>
             <th data-key="paymentStatus">Status</th>
           </tr>
         </thead>
         <tbody id="tbody">
-          <tr class="skel-row"><td colspan="9"><span class="skel" style="width:100%">Loading…</span></td></tr>
+          <tr class="skel-row"><td colspan="10"><span class="skel" style="width:100%">Loading…</span></td></tr>
         </tbody>
       </table>
     </div>
@@ -553,13 +554,18 @@
 
     <div class="section-divider">Sale &amp; Payment</div>
 
+    <div class="field">
+      <label>Memo No.</label>
+      <input id="f_memoNo" placeholder="e.g. MEMO-014 (leave blank if sold alone)">
+      <div class="computed-note" id="memoSummary" style="display:none;"></div>
+    </div>
     <div class="field"><label>Sold To (Buyer)</label><input id="f_soldTo" placeholder="e.g. Priya Shah"></div>
     <div class="field-row">
       <div class="field"><label>Sale Price (₹)</label><input id="f_salePrice" type="number" step="1" placeholder="0"><div class="field-error" id="err_f_salePrice"></div></div>
       <div class="field"><label>Date Sold</label><input id="f_dateSold" type="date"></div>
     </div>
     <div class="field">
-      <label>Installments</label>
+      <label>Installments <span id="instScopeLabel"></span></label>
       <div id="installmentsList" class="installments-list"></div>
       <div class="field-row installment-add-row">
         <div class="field"><input id="f_instAmount" type="number" step="1" min="0" placeholder="Amount ₹"></div>
@@ -571,6 +577,7 @@
 
     <div class="computed-preview">
       <h4>Payment Preview</h4>
+      <div class="computed-row" id="row_memoTotal" style="display:none;"><span class="label">Memo Total (all items)</span><span class="value" id="prev_memoTotal">—</span></div>
       <div class="computed-row"><span class="label">Amount Paid</span><span class="value" id="prev_amountPaid">—</span></div>
       <div class="computed-row"><span class="label">Balance Due</span><span class="value" id="prev_balanceDue">—</span></div>
       <div class="computed-row"><span class="label">Payment Status</span><span class="value" id="prev_paymentStatus">—</span></div>
@@ -596,7 +603,7 @@
 
 <script>
   // ============ CONFIGURE THIS ============
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyVKCjKJgJ3SyDKPT3cgrivUuKbBh061Z7c0OqA1nrv442VHU64G4t-8Q-aEjqrsDmf/exec';
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxDkrDaDSFR7DLCeFeOrbytiLCRWqZj7uXrIQ96MRp0VZjM8r7jioub20JAfcAK8KCK/exec';
   const GOLD_RATE_PER_10G = 16000;
   const USD_RATE = 94;
   // =========================================
@@ -799,19 +806,52 @@
     $('prev_amountPaid').textContent = sale.amountPaid > 0 ? fmtMoney(sale.amountPaid) : '—';
     $('prev_balanceDue').textContent = sale.salePrice === null ? '—' : fmtMoney(sale.balanceDue);
     $('prev_paymentStatus').textContent = sale.status || '—';
+
+    // Memo grouping: show the other items sharing this memo number, and
+    // switch the preview/labels over to memo-wide totals once there's more
+    // than one item involved.
+    const siblings = getMemoSiblings(fields.memoNo, editingRow);
+    const summaryEl = $('memoSummary');
+    const instLabel = $('instScopeLabel');
+    if (siblings.length) {
+      summaryEl.style.display = '';
+      const names = siblings.map(r => r['Style No.'] || 'item').join(', ');
+      summaryEl.textContent = `Also in this memo: ${names} — ${siblings.length + 1} item(s) total.`;
+      instLabel.textContent = '(applies to the whole memo)';
+      $('row_memoTotal').style.display = '';
+      $('prev_memoTotal').textContent = fmtMoney(sale.memoTotal);
+    } else {
+      summaryEl.style.display = 'none';
+      instLabel.textContent = '';
+      $('row_memoTotal').style.display = 'none';
+    }
+  }
+
+  // Finds other orders sharing the same Memo No. (case/whitespace-insensitive),
+  // excluding the row currently open in the panel.
+  function getMemoSiblings(memoNo, excludeRow) {
+    const key = String(memoNo || '').trim().toLowerCase();
+    if (!key) return [];
+    return ORDERS.filter(r => r._row !== excludeRow && String(r['Memo No.'] ?? '').trim().toLowerCase() === key);
   }
 
   // Mirrors the backend's Amount Paid / Balance Due / Payment Status logic,
   // purely for the live preview — the sheet is still the source of truth
-  // once saved. Amount Paid is always the sum of the installment list.
+  // once saved. Amount Paid is always the sum of the installment list. When
+  // this item shares a Memo No. with others, the balance/status are judged
+  // against the combined memo total rather than just this item's price.
   function computeSale(fields) {
     const paid = currentInstallments.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
     const priceStr = String(fields.salePrice ?? '').trim();
-    if (priceStr === '') return { salePrice: null, amountPaid: paid, balanceDue: 0, status: '' };
-    const price = parseFloat(priceStr) || 0;
-    const balanceDue = price - paid;
-    const status = paid <= 0 ? 'Unpaid' : (paid >= price ? 'Paid' : 'Partial');
-    return { salePrice: price, amountPaid: paid, balanceDue, status };
+    const siblings = getMemoSiblings(fields.memoNo, editingRow);
+    const siblingsTotal = siblings.reduce((s, r) => s + (parseFloat(r['Sale Price']) || 0), 0);
+
+    if (priceStr === '' && !siblings.length) return { salePrice: null, amountPaid: paid, balanceDue: 0, status: '', memoTotal: 0 };
+    const itemPrice = parseFloat(priceStr) || 0;
+    const memoTotal = itemPrice + siblingsTotal;
+    const balanceDue = memoTotal - paid;
+    const status = paid <= 0 ? 'Unpaid' : (paid >= memoTotal ? 'Paid' : 'Partial');
+    return { salePrice: priceStr === '' ? null : itemPrice, amountPaid: paid, balanceDue, status, memoTotal };
   }
 
   // ============ INSTALLMENTS ============
@@ -923,6 +963,7 @@
         <td class="num"><span class="skel" style="width:50px">•</span></td>
         <td class="num"><span class="skel" style="width:80px">•</span></td>
         <td class="num"><span class="skel" style="width:50px">•</span></td>
+        <td><span class="skel" style="width:60px">•</span></td>
         <td><span class="skel" style="width:70px">•</span></td>
         <td><span class="skel" style="width:60px">•</span></td>
       </tr>
@@ -947,7 +988,7 @@
         <button class="btn secondary small" id="retryLoadBtn" style="margin-top:14px;">Retry</button>
       </div>
     `;
-    $('tbody').innerHTML = `<tr><td colspan="9">${errorHtml}</td></tr>`;
+    $('tbody').innerHTML = `<tr><td colspan="10">${errorHtml}</td></tr>`;
     $('cardList').innerHTML = errorHtml;
     $('paginationBar').innerHTML = '';
     const bind = (el) => el && el.addEventListener('click', refreshOrders);
@@ -1058,7 +1099,7 @@
   function renderTable(rows) {
     const tbody = $('tbody');
     if (!rows.length) {
-      tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><h3>No orders found</h3><p>Try a different search, or add a new order.</p></div></td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><h3>No orders found</h3><p>Try a different search, or add a new order.</p></div></td></tr>`;
       renderCards(rows);
       return;
     }
@@ -1071,6 +1112,7 @@
         <td class="num">${fmtNum(r['Gross Wt'], 3)}</td>
         <td class="num" style="font-weight:600">${fmtMoney(r['SUB TOTAL'])}</td>
         <td class="num">${fmtNum(r['$'], 2)}</td>
+        <td>${r['Memo No.'] || '—'}</td>
         <td>${r['Sold To'] ?? '—'}</td>
         <td>${getPaymentBadge(r)}</td>
       </tr>
@@ -1112,6 +1154,7 @@
           <div class="order-card-grid">
             <div class="field-item"><div class="k">Gross Wt</div><div class="v">${fmtNum(r['Gross Wt'], 3)}</div></div>
             <div class="field-item"><div class="k">$</div><div class="v">${fmtNum(r['$'], 2)}</div></div>
+            <div class="field-item"><div class="k">Memo No.</div><div class="v">${r['Memo No.'] || '—'}</div></div>
             <div class="field-item"><div class="k">Sold To</div><div class="v">${r['Sold To'] || '—'}</div></div>
             <div class="field-item"><div class="k">Status</div><div class="v">${getPaymentBadge(r)}</div></div>
             <div class="field-item"><div class="k">Balance Due</div><div class="v">${String(r['Sale Price'] ?? '').trim() === '' ? '—' : fmtMoney(r['Balance Due'])}</div></div>
@@ -1180,7 +1223,7 @@
     const map = {
       sr: 'Sr. No.', customer: 'CUSTOMER ', style: 'Style No.', date: 'Date',
       grossWt: 'Gross Wt', subTotal: 'SUB TOTAL', usd: '$',
-      soldTo: 'Sold To', paymentStatus: 'Payment Status'
+      memoNo: 'Memo No.', soldTo: 'Sold To', paymentStatus: 'Payment Status'
     };
     const col = map[sortKey];
     return [...rows].sort((a, b) => {
@@ -1220,7 +1263,9 @@
       filtered = filtered.filter(r =>
         String(r['CUSTOMER '] ?? r['CUSTOMER'] ?? '').toLowerCase().includes(q) ||
         String(r['Style No.'] ?? '').toLowerCase().includes(q) ||
-        String(r['Date'] ?? '').includes(q)
+        String(r['Date'] ?? '').includes(q) ||
+        String(r['Memo No.'] ?? '').toLowerCase().includes(q) ||
+        String(r['Sold To'] ?? '').toLowerCase().includes(q)
       );
     }
     if (customer) {
@@ -1350,6 +1395,7 @@
     $('f_soldTo').value = order['Sold To'] ?? '';
     $('f_salePrice').value = order['Sale Price'] ?? '';
     $('f_dateSold').value = order['Date Sold'] ? String(order['Date Sold']).split('T')[0] : '';
+    $('f_memoNo').value = order['Memo No.'] ?? '';
 
     // Load installments from the structured Payment Log JSON. If the sheet
     // has an older freeform note there instead (or nothing), fall back to
@@ -1390,7 +1436,7 @@
     const manufacturingIds = ['f_customer','f_style','f_date','f_grossWt','f_netWt','f_diaQty','f_inCt','f_colourStone','f_multiplier','f_diamAmount','f_lCharges'];
     manufacturingIds.forEach(id => { $(id).readOnly = !isStaff; });
     // Sale & payment details: the manufacturer AND the seller can edit these.
-    const saleIds = ['f_soldTo','f_salePrice','f_dateSold','f_instAmount','f_instDate'];
+    const saleIds = ['f_memoNo','f_soldTo','f_salePrice','f_dateSold','f_instAmount','f_instDate'];
     saleIds.forEach(id => { $(id).readOnly = !canEditSale; });
     $('addInstallmentBtn').style.display = canEditSale ? '' : 'none';
     $('deleteBtn').style.display = isStaff ? 'inline-block' : 'none';
@@ -1405,7 +1451,7 @@
     editingRow = null;
     $('panelTitle').textContent = 'New order';
     ['f_customer','f_style','f_date','f_grossWt','f_netWt','f_diaQty','f_inCt','f_colourStone','f_multiplier','f_diamAmount','f_lCharges',
-     'f_soldTo','f_salePrice','f_dateSold','f_instAmount','f_instDate']
+     'f_memoNo','f_soldTo','f_salePrice','f_dateSold','f_instAmount','f_instDate']
       .forEach(id => $(id).value = '');
     $('f_multiplier').value = '0.595';
     currentInstallments = [];
@@ -1416,7 +1462,7 @@
     openPanel();
   });
 
-  ['f_netWt','f_multiplier','f_diamAmount','f_lCharges','f_salePrice'].forEach(id => {
+  ['f_netWt','f_multiplier','f_diamAmount','f_lCharges','f_salePrice','f_memoNo'].forEach(id => {
     $(id).addEventListener('input', updatePreview);
   });
 
@@ -1437,6 +1483,7 @@
       salePrice: $('f_salePrice').value,
       dateSold: $('f_dateSold').value,
       paymentLog: JSON.stringify(currentInstallments),
+      memoNo: $('f_memoNo').value.trim(),
     };
   }
 
@@ -1511,10 +1558,14 @@
       if (isNaN(price) || price < 0) fail('f_salePrice', 'Sale Price must be a positive number.');
     }
     const totalPaid = currentInstallments.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
-    if (totalPaid > 0 && priceStr === '') {
+    const siblings = getMemoSiblings(fields.memoNo, editingRow);
+    const memoTotal = (priceStr === '' ? 0 : parseFloat(priceStr) || 0) + siblings.reduce((s, r) => s + (parseFloat(r['Sale Price']) || 0), 0);
+    if (totalPaid > 0 && priceStr === '' && !siblings.length) {
       fail('f_salePrice', 'Enter a Sale Price before recording payments.');
-    } else if (priceStr !== '' && totalPaid > parseFloat(priceStr)) {
-      $('err_f_installment').textContent = "Total payments can't exceed the Sale Price.";
+    } else if ((priceStr !== '' || siblings.length) && totalPaid > memoTotal) {
+      $('err_f_installment').textContent = siblings.length
+        ? "Total payments can't exceed the memo's combined total."
+        : "Total payments can't exceed the Sale Price.";
       valid = false;
     }
 

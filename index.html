@@ -297,33 +297,6 @@
   body.role-seller .col-balanceDue{ display:none; } /* mobile card field, unrelated to <col> */
   body.role-seller .order-card-grid .col-ctWt{ display:block; }
 
-  /* ---- Seller-view column widths ----
-     With Gross Wt and Sub Total hidden, the remaining 10 columns are
-     given proportional widths so they fill the table neatly instead of
-     leaving uneven gaps. */
-  body.role-seller col.col-sr        { width: 6%; }
-  body.role-seller col.col-customer  { width: 10%; }
-  body.role-seller col.col-style     { width: 12%; }
-  body.role-seller col.col-date      { width: 10%; }
-  body.role-seller col.col-ctWt      { width: 8%; }
-  body.role-seller col.col-usd       { width: 10%; }
-  body.role-seller col.col-memoNo    { width: 10%; }
-  body.role-seller col.col-soldTo    { width: 14%; }
-  body.role-seller col.col-salePrice { width: 10%; }
-  body.role-seller col.col-paymentStatus { width: 10%; }
-
-  /* ---- Staff-view column widths ----
-     With $ and Memo No. hidden, the remaining 9 columns are balanced. */
-  body.role-staff col.col-sr        { width: 7%; }
-  body.role-staff col.col-customer  { width: 11%; }
-  body.role-staff col.col-style     { width: 13%; }
-  body.role-staff col.col-date      { width: 11%; }
-  body.role-staff col.col-grossWt   { width: 9%; }
-  body.role-staff col.col-subTotal  { width: 11%; }
-  body.role-staff col.col-soldTo    { width: 15%; }
-  body.role-staff col.col-salePrice { width: 11%; }
-  body.role-staff col.col-paymentStatus { width: 12%; }
-
   .panel-foot{
     padding:18px 24px; border-top:1px solid var(--line); display:flex; gap:10px;
   }
@@ -558,7 +531,7 @@
             <th data-key="style">Style No.</th>
             <th data-key="date">Date</th>
             <th class="num col-grossWt" data-key="grossWt">Gross Wt</th>
-            <th class="num col-ctWt">Ct Wt</th>
+            <th class="num col-ctWt" data-key="carat">Diamond Carat</th>
             <th class="num col-subTotal" data-key="subTotal">Sub Total</th>
             <th class="num col-usd" data-key="usd">$</th>
             <th class="col-memoNo" data-key="memoNo">Memo No.</th>
@@ -670,7 +643,7 @@
 
 <script>
   // ============ CONFIGURE THIS ============
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyDa2ZxtSG8qBwOmoAhZsojzRLaJjyiDQHhhCyBPqGoIZJcRfnIFpGSPP7tI8c_MpNa/exec';
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby6EY9PbCkjukEltyuAIF9qIh1rVQoYDOin2q18RX2e1vEEvz9wdebkVQVnSYlkpyjR/exec';
   const GOLD_RATE_PER_10G = 16000;
   const USD_RATE = 94;
   // =========================================
@@ -1042,6 +1015,24 @@
     // (INR manufacturing figures for staff, USD + carat weight for seller).
     document.body.classList.remove('role-staff', 'role-seller', 'role-customer');
     document.body.classList.add('role-' + ROLE);
+    equalizeColumnWidths();
+  }
+
+  // visibility:collapse hides a column, but doesn't reliably make the
+  // *remaining* columns stretch to fill the freed space in every browser —
+  // some just leave a blank gap where the hidden columns used to be. This
+  // computes an exact equal share for whichever columns are actually
+  // visible for the current role, so the table always fills the full
+  // width no matter how many columns that role happens to see.
+  function equalizeColumnWidths() {
+    const cols = document.querySelectorAll('.table-wrap col');
+    if (!cols.length) return;
+    const visibleCols = Array.from(cols).filter(col => getComputedStyle(col).visibility !== 'collapse');
+    if (!visibleCols.length) return;
+    const widthPct = (100 / visibleCols.length) + '%';
+    cols.forEach(col => {
+      col.style.width = getComputedStyle(col).visibility !== 'collapse' ? widthPct : '0%';
+    });
   }
 
   // ============ SKELETON LOADING STATE ============
@@ -1268,7 +1259,7 @@
         <div class="order-card-body">
           <div class="order-card-grid">
             <div class="field-item col-grossWt"><div class="k">Gross Wt</div><div class="v">${fmtNum(r['Gross Wt'], 3)}</div></div>
-            <div class="field-item col-ctWt"><div class="k">Ct Wt</div><div class="v">${fmtNum(gramsToCarats(r['Gross Wt']), 3)}</div></div>
+            <div class="field-item col-ctWt"><div class="k">Diamond Carat</div><div class="v">${fmtNum(gramsToCarats(r['Gross Wt']), 3)}</div></div>
             <div class="field-item col-usd"><div class="k">$</div><div class="v">${fmtNum(r['$'], 2)}</div></div>
             <div class="field-item col-memoNo"><div class="k">Memo No.</div><div class="v">${getField(r, 'Memo No.') || '—'}</div></div>
             <div class="field-item"><div class="k">Sold To</div><div class="v">${r['Sold To'] || '—'}</div></div>
@@ -1338,7 +1329,7 @@
   function sortRows(rows) {
     if (!sortKey) return rows;
         const map = {
-      sr: 'Sr. No.', customer: 'CUSTOMER ', style: 'Style No.', date: 'Date',
+      sr: 'Sr. No.', customer: 'CUSTOMER ', style: 'Style No.', date: 'Date', carat: 'Gross Wt',
       grossWt: 'Gross Wt', subTotal: 'SUB TOTAL', usd: '$',
       memoNo: 'Memo No.', soldTo: 'Sold To', salePrice: 'Sale Price', paymentStatus: 'Payment Status'
     };
@@ -1382,7 +1373,8 @@
         String(r['Style No.'] ?? '').toLowerCase().includes(q) ||
         String(r['Date'] ?? '').includes(q) ||
         String(getField(r, 'Memo No.') ?? '').toLowerCase().includes(q) ||
-        String(r['Sold To'] ?? '').toLowerCase().includes(q)
+        String(r['Sold To'] ?? '').toLowerCase().includes(q) ||
+        String(fmtNum(gramsToCarats(r['Gross Wt']), 2)).includes(q)
       );
     }
     if (customer) {

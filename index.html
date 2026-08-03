@@ -289,14 +289,13 @@
      Hiding is done via visibility:collapse on the <col> element (not
      display:none on cells) so the remaining columns stretch to fill the
      freed space and stay evenly spaced, instead of leaving a gap. */
-  col.col-ctWt, col.col-salePrice, col.col-diaCt{ visibility:collapse; } /* hidden by default */
+  col.col-ctWt, col.col-salePrice{ visibility:collapse; } /* hidden by default */
   body.role-staff col.col-usd, body.role-staff col.col-memoNo{ visibility:collapse; }
-  body.role-seller col.col-subTotal{ visibility:collapse; }
-  body.role-seller col.col-grossWt, body.role-seller col.col-ctWt, body.role-seller col.col-salePrice, body.role-seller col.col-diaCt{ visibility:visible; }
-  body.role-staff col.col-salePrice, body.role-staff col.col-diaCt{ visibility:visible; }
+  body.role-seller col.col-grossWt, body.role-seller col.col-subTotal{ visibility:collapse; }
+  body.role-seller col.col-ctWt, body.role-seller col.col-salePrice{ visibility:visible; }
+  body.role-staff col.col-salePrice{ visibility:visible; }
   body.role-seller .col-balanceDue{ display:none; } /* mobile card field, unrelated to <col> */
   body.role-seller .order-card-grid .col-ctWt{ display:block; }
-  body.role-seller .order-card-grid .col-diaCt{ display:block; }
 
   .panel-foot{
     padding:18px 24px; border-top:1px solid var(--line); display:flex; gap:10px;
@@ -518,7 +517,6 @@
           <col class="col-date">
           <col class="col-grossWt">
           <col class="col-ctWt">
-          <col class="col-diaCt">
           <col class="col-subTotal">
           <col class="col-usd">
           <col class="col-memoNo">
@@ -533,8 +531,7 @@
             <th data-key="style">Style No.</th>
             <th data-key="date">Date</th>
             <th class="num col-grossWt" data-key="grossWt">Gross Wt</th>
-            <th class="num col-ctWt" data-key="carat">Carat</th>
-            <th class="num col-diaCt" data-key="inCt">Diamond Carat</th>
+            <th class="num col-ctWt">Ct Wt</th>
             <th class="num col-subTotal" data-key="subTotal">Sub Total</th>
             <th class="num col-usd" data-key="usd">$</th>
             <th class="col-memoNo" data-key="memoNo">Memo No.</th>
@@ -544,7 +541,7 @@
           </tr>
         </thead>
         <tbody id="tbody">
-          <tr class="skel-row"><td colspan="13"><span class="skel" style="width:100%">Loading…</span></td></tr>
+          <tr class="skel-row"><td colspan="12"><span class="skel" style="width:100%">Loading…</span></td></tr>
         </tbody>
       </table>
     </div>
@@ -604,7 +601,7 @@
     </div>
     <div class="field"><label>Sold To (Buyer)</label><input id="f_soldTo" placeholder="e.g. Priya Shah"></div>
     <div class="field-row">
-      <div class="field"><label>Sale Price (₹)</label><input id="f_salePrice" type="number" step="1" placeholder="0"><div class="field-error" id="err_f_salePrice"></div></div>
+      <div class="field"><label id="lbl_salePrice">Sale Price (₹)</label><input id="f_salePrice" type="number" step="1" placeholder="0"><div class="field-error" id="err_f_salePrice"></div></div>
       <div class="field"><label>Date Sold</label><input id="f_dateSold" type="date"></div>
     </div>
     <div class="field">
@@ -870,8 +867,9 @@
     $('prev_usd').textContent = '$' + fmtNum(comp.usd, 2);
 
     const sale = computeSale(fields);
-    $('prev_amountPaid').textContent = sale.amountPaid > 0 ? fmtMoney(sale.amountPaid) : '—';
-    $('prev_balanceDue').textContent = sale.salePrice === null ? '—' : fmtMoney(sale.balanceDue);
+    const fmtPay = ROLE === 'seller' ? fmtUSD : fmtMoney;
+    $('prev_amountPaid').textContent = sale.amountPaid > 0 ? fmtPay(sale.amountPaid) : '—';
+    $('prev_balanceDue').textContent = sale.salePrice === null ? '—' : fmtPay(sale.balanceDue);
     $('prev_paymentStatus').textContent = sale.status || '—';
 
     // Memo grouping: show the other items sharing this memo number, and
@@ -886,7 +884,7 @@
       summaryEl.textContent = `Also in this memo: ${names} — ${siblings.length + 1} item(s) total.`;
       instLabel.textContent = '(applies to the whole memo)';
       $('row_memoTotal').style.display = '';
-      $('prev_memoTotal').textContent = fmtMoney(sale.memoTotal);
+      $('prev_memoTotal').textContent = (ROLE === 'seller' ? fmtUSD : fmtMoney)(sale.memoTotal);
     } else {
       summaryEl.style.display = 'none';
       instLabel.textContent = '';
@@ -927,10 +925,11 @@
     if (!currentInstallments.length) {
       list.innerHTML = `<div class="installments-empty">No payments recorded yet.</div>`;
     } else {
+      const fmtInst = ROLE === 'seller' ? fmtUSD : fmtMoney;
       list.innerHTML = currentInstallments.map((inst, i) => `
         <div class="installment-item">
           <span class="inst-date">${inst.date ? fmtDate(inst.date) : '—'}</span>
-          <span class="inst-amount">${fmtMoney(inst.amount)}</span>
+          <span class="inst-amount">${fmtInst(inst.amount)}</span>
           <button type="button" class="inst-remove" data-idx="${i}" title="Remove this payment">&times;</button>
         </div>
       `).join('');
@@ -1050,12 +1049,10 @@
         <td><span class="skel" style="width:90px">•</span></td>
         <td><span class="skel" style="width:80px">•</span></td>
         <td class="num"><span class="skel" style="width:50px">•</span></td>
-        <td class="num"><span class="skel" style="width:50px">•</span></td>
-        <td class="num"><span class="skel" style="width:50px">•</span></td>
+        <td class="num"><span class="skel" style="width:80px">•</span></td>
         <td class="num"><span class="skel" style="width:50px">•</span></td>
         <td><span class="skel" style="width:60px">•</span></td>
         <td><span class="skel" style="width:70px">•</span></td>
-        <td><span class="skel" style="width:60px">•</span></td>
         <td><span class="skel" style="width:60px">•</span></td>
       </tr>
     `).join('');
@@ -1208,7 +1205,7 @@
   function renderTable(rows) {
     const tbody = $('tbody');
     if (!rows.length) {
-      tbody.innerHTML = `<tr><td colspan="13"><div class="empty-state"><h3>No orders found</h3><p>Try a different search, or add a new order.</p></div></td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="12"><div class="empty-state"><h3>No orders found</h3><p>Try a different search, or add a new order.</p></div></td></tr>`;
       renderCards(rows);
       return;
     }
@@ -1220,7 +1217,6 @@
         <td>${fmtDate(r['Date'])}</td>
         <td class="num col-grossWt">${fmtNum(r['Gross Wt'], 3)}</td>
         <td class="num col-ctWt">${fmtNum(gramsToCarats(r['Gross Wt']), 3)}</td>
-        <td class="num col-diaCt">${fmtNum(r['IN CT'], 2)}</td>
         <td class="num col-subTotal" style="font-weight:600">${fmtMoney(r['SUB TOTAL'])}</td>
         <td class="num col-usd">${fmtNum(r['$'], 2)}</td>
         <td class="col-memoNo">${getField(r, 'Memo No.') || '—'}</td>
@@ -1265,8 +1261,7 @@
         <div class="order-card-body">
           <div class="order-card-grid">
             <div class="field-item col-grossWt"><div class="k">Gross Wt</div><div class="v">${fmtNum(r['Gross Wt'], 3)}</div></div>
-            <div class="field-item col-ctWt"><div class="k">Carat</div><div class="v">${fmtNum(gramsToCarats(r['Gross Wt']), 3)}</div></div>
-            <div class="field-item col-diaCt"><div class="k">Diamond Carat</div><div class="v">${fmtNum(r['IN CT'], 2)}</div></div>
+            <div class="field-item col-ctWt"><div class="k">Ct Wt</div><div class="v">${fmtNum(gramsToCarats(r['Gross Wt']), 3)}</div></div>
             <div class="field-item col-usd"><div class="k">$</div><div class="v">${fmtNum(r['$'], 2)}</div></div>
             <div class="field-item col-memoNo"><div class="k">Memo No.</div><div class="v">${getField(r, 'Memo No.') || '—'}</div></div>
             <div class="field-item"><div class="k">Sold To</div><div class="v">${r['Sold To'] || '—'}</div></div>
@@ -1337,7 +1332,7 @@
     if (!sortKey) return rows;
         const map = {
       sr: 'Sr. No.', customer: 'CUSTOMER ', style: 'Style No.', date: 'Date',
-      grossWt: 'Gross Wt', carat: 'Gross Wt', inCt: 'IN CT', subTotal: 'SUB TOTAL', usd: '$',
+      grossWt: 'Gross Wt', subTotal: 'SUB TOTAL', usd: '$',
       memoNo: 'Memo No.', soldTo: 'Sold To', salePrice: 'Sale Price', paymentStatus: 'Payment Status'
     };
     const col = map[sortKey];
@@ -1380,9 +1375,7 @@
         String(r['Style No.'] ?? '').toLowerCase().includes(q) ||
         String(r['Date'] ?? '').includes(q) ||
         String(getField(r, 'Memo No.') ?? '').toLowerCase().includes(q) ||
-        String(r['Sold To'] ?? '').toLowerCase().includes(q) ||
-        String(fmtNum(gramsToCarats(r['Gross Wt']), 2)).includes(q) ||
-        String(fmtNum(r['IN CT'] ?? '', 2)).includes(q)
+        String(r['Sold To'] ?? '').toLowerCase().includes(q)
       );
     }
     if (customer) {
@@ -1554,6 +1547,9 @@
     $('deleteText').textContent = 'Delete';
     $('deleteBtn').classList.remove('holding');
     $('deleteProgress').style.width = '0%';
+    // Currency labels: seller works in USD, staff in INR
+    $('lbl_salePrice').textContent = isSeller ? 'Sale Price ($)' : 'Sale Price (₹)';
+    $('f_instAmount').placeholder = isSeller ? 'Amount $' : 'Amount ₹';
     updatePreview();
     openPanel();
   }
@@ -1569,6 +1565,8 @@
     $('err_f_installment').textContent = '';
     renderInstallments();
     $('deleteBtn').style.display = 'none';
+    $('lbl_salePrice').textContent = ROLE === 'seller' ? 'Sale Price ($)' : 'Sale Price (₹)';
+    $('f_instAmount').placeholder = ROLE === 'seller' ? 'Amount $' : 'Amount ₹';
     updatePreview();
     openPanel();
   });

@@ -297,6 +297,33 @@
   body.role-seller .col-balanceDue{ display:none; } /* mobile card field, unrelated to <col> */
   body.role-seller .order-card-grid .col-ctWt{ display:block; }
 
+  /* ---- Seller-view column widths ----
+     With Gross Wt and Sub Total hidden, the remaining 10 columns are
+     given proportional widths so they fill the table neatly instead of
+     leaving uneven gaps. */
+  body.role-seller col.col-sr        { width: 6%; }
+  body.role-seller col.col-customer  { width: 10%; }
+  body.role-seller col.col-style     { width: 12%; }
+  body.role-seller col.col-date      { width: 10%; }
+  body.role-seller col.col-ctWt      { width: 8%; }
+  body.role-seller col.col-usd       { width: 10%; }
+  body.role-seller col.col-memoNo    { width: 10%; }
+  body.role-seller col.col-soldTo    { width: 14%; }
+  body.role-seller col.col-salePrice { width: 10%; }
+  body.role-seller col.col-paymentStatus { width: 10%; }
+
+  /* ---- Staff-view column widths ----
+     With $ and Memo No. hidden, the remaining 9 columns are balanced. */
+  body.role-staff col.col-sr        { width: 7%; }
+  body.role-staff col.col-customer  { width: 11%; }
+  body.role-staff col.col-style     { width: 13%; }
+  body.role-staff col.col-date      { width: 11%; }
+  body.role-staff col.col-grossWt   { width: 9%; }
+  body.role-staff col.col-subTotal  { width: 11%; }
+  body.role-staff col.col-soldTo    { width: 15%; }
+  body.role-staff col.col-salePrice { width: 11%; }
+  body.role-staff col.col-paymentStatus { width: 12%; }
+
   .panel-foot{
     padding:18px 24px; border-top:1px solid var(--line); display:flex; gap:10px;
   }
@@ -450,6 +477,7 @@
     .pagination-bar{ justify-content:center; text-align:center; }
   }
 </style>
+<base target="_blank">
 </head>
 <body>
 

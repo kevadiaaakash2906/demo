@@ -531,7 +531,7 @@
             <th data-key="style">Style No.</th>
             <th data-key="date">Date</th>
             <th class="num col-grossWt" data-key="grossWt">Gross Wt</th>
-            <th class="num col-ctWt" data-key="carat">Diamond Carat</th>
+            <th class="num col-ctWt">Ct Wt</th>
             <th class="num col-subTotal" data-key="subTotal">Sub Total</th>
             <th class="num col-usd" data-key="usd">$</th>
             <th class="col-memoNo" data-key="memoNo">Memo No.</th>
@@ -601,14 +601,14 @@
     </div>
     <div class="field"><label>Sold To (Buyer)</label><input id="f_soldTo" placeholder="e.g. Priya Shah"></div>
     <div class="field-row">
-      <div class="field"><label>Sale Price (₹)</label><input id="f_salePrice" type="number" step="1" placeholder="0"><div class="field-error" id="err_f_salePrice"></div></div>
+      <div class="field"><label id="lbl_salePrice">Sale Price ($)</label><input id="f_salePrice" type="number" step="1" placeholder="0"><div class="field-error" id="err_f_salePrice"></div></div>
       <div class="field"><label>Date Sold</label><input id="f_dateSold" type="date"></div>
     </div>
     <div class="field">
       <label>Installments <span id="instScopeLabel"></span></label>
       <div id="installmentsList" class="installments-list"></div>
       <div class="field-row installment-add-row">
-        <div class="field"><input id="f_instAmount" type="number" step="1" min="0" placeholder="Amount ₹"></div>
+        <div class="field"><input id="f_instAmount" type="number" step="1" min="0" id="f_instPlaceholder" placeholder="Amount $"></div>
         <div class="field"><input id="f_instDate" type="date"></div>
       </div>
       <button class="btn secondary small" id="addInstallmentBtn" type="button" style="width:100%">+ Add installment</button>
@@ -867,8 +867,9 @@
     $('prev_usd').textContent = '$' + fmtNum(comp.usd, 2);
 
     const sale = computeSale(fields);
-    $('prev_amountPaid').textContent = sale.amountPaid > 0 ? fmtMoney(sale.amountPaid) : '—';
-    $('prev_balanceDue').textContent = sale.salePrice === null ? '—' : fmtMoney(sale.balanceDue);
+    const fmtPay = ROLE === 'seller' ? fmtUSD : fmtMoney;
+    $('prev_amountPaid').textContent = sale.amountPaid > 0 ? fmtPay(sale.amountPaid) : '—';
+    $('prev_balanceDue').textContent = sale.salePrice === null ? '—' : fmtPay(sale.balanceDue);
     $('prev_paymentStatus').textContent = sale.status || '—';
 
     // Memo grouping: show the other items sharing this memo number, and
@@ -883,7 +884,7 @@
       summaryEl.textContent = `Also in this memo: ${names} — ${siblings.length + 1} item(s) total.`;
       instLabel.textContent = '(applies to the whole memo)';
       $('row_memoTotal').style.display = '';
-      $('prev_memoTotal').textContent = fmtMoney(sale.memoTotal);
+      $('prev_memoTotal').textContent = (ROLE === 'seller' ? fmtUSD : fmtMoney)(sale.memoTotal);
     } else {
       summaryEl.style.display = 'none';
       instLabel.textContent = '';
@@ -924,10 +925,11 @@
     if (!currentInstallments.length) {
       list.innerHTML = `<div class="installments-empty">No payments recorded yet.</div>`;
     } else {
+      const fmtInst = ROLE === 'seller' ? fmtUSD : fmtMoney;
       list.innerHTML = currentInstallments.map((inst, i) => `
         <div class="installment-item">
           <span class="inst-date">${inst.date ? fmtDate(inst.date) : '—'}</span>
-          <span class="inst-amount">${fmtMoney(inst.amount)}</span>
+          <span class="inst-amount">${fmtInst(inst.amount)}</span>
           <button type="button" class="inst-remove" data-idx="${i}" title="Remove this payment">&times;</button>
         </div>
       `).join('');
@@ -1259,7 +1261,7 @@
         <div class="order-card-body">
           <div class="order-card-grid">
             <div class="field-item col-grossWt"><div class="k">Gross Wt</div><div class="v">${fmtNum(r['Gross Wt'], 3)}</div></div>
-            <div class="field-item col-ctWt"><div class="k">Diamond Carat</div><div class="v">${fmtNum(gramsToCarats(r['Gross Wt']), 3)}</div></div>
+            <div class="field-item col-ctWt"><div class="k">Ct Wt</div><div class="v">${fmtNum(gramsToCarats(r['Gross Wt']), 3)}</div></div>
             <div class="field-item col-usd"><div class="k">$</div><div class="v">${fmtNum(r['$'], 2)}</div></div>
             <div class="field-item col-memoNo"><div class="k">Memo No.</div><div class="v">${getField(r, 'Memo No.') || '—'}</div></div>
             <div class="field-item"><div class="k">Sold To</div><div class="v">${r['Sold To'] || '—'}</div></div>
@@ -1329,7 +1331,7 @@
   function sortRows(rows) {
     if (!sortKey) return rows;
         const map = {
-      sr: 'Sr. No.', customer: 'CUSTOMER ', style: 'Style No.', date: 'Date', carat: 'Gross Wt',
+      sr: 'Sr. No.', customer: 'CUSTOMER ', style: 'Style No.', date: 'Date',
       grossWt: 'Gross Wt', subTotal: 'SUB TOTAL', usd: '$',
       memoNo: 'Memo No.', soldTo: 'Sold To', salePrice: 'Sale Price', paymentStatus: 'Payment Status'
     };
@@ -1373,8 +1375,7 @@
         String(r['Style No.'] ?? '').toLowerCase().includes(q) ||
         String(r['Date'] ?? '').includes(q) ||
         String(getField(r, 'Memo No.') ?? '').toLowerCase().includes(q) ||
-        String(r['Sold To'] ?? '').toLowerCase().includes(q) ||
-        String(fmtNum(gramsToCarats(r['Gross Wt']), 2)).includes(q)
+        String(r['Sold To'] ?? '').toLowerCase().includes(q)
       );
     }
     if (customer) {
@@ -1543,6 +1544,9 @@
     saleIds.forEach(id => { $(id).readOnly = !canEditSale; });
     $('addInstallmentBtn').style.display = canEditSale ? '' : 'none';
     $('deleteBtn').style.display = isStaff ? 'inline-block' : 'none';
+    // Currency labels: seller works in USD, staff in INR
+    $('lbl_salePrice').textContent = isSeller ? 'Sale Price ($)' : 'Sale Price (₹)';
+    $('f_instAmount').placeholder = isSeller ? 'Amount $' : 'Amount ₹';
     $('deleteText').textContent = 'Delete';
     $('deleteBtn').classList.remove('holding');
     $('deleteProgress').style.width = '0%';
@@ -1561,6 +1565,8 @@
     $('err_f_installment').textContent = '';
     renderInstallments();
     $('deleteBtn').style.display = 'none';
+    $('lbl_salePrice').textContent = ROLE === 'seller' ? 'Sale Price ($)' : 'Sale Price (₹)';
+    $('f_instAmount').placeholder = ROLE === 'seller' ? 'Amount $' : 'Amount ₹';
     updatePreview();
     openPanel();
   });

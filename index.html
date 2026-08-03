@@ -642,7 +642,7 @@
 
 <script>
   // ============ CONFIGURE THIS ============
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby6EY9PbCkjukEltyuAIF9qIh1rVQoYDOin2q18RX2e1vEEvz9wdebkVQVnSYlkpyjR/exec';
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyDa2ZxtSG8qBwOmoAhZsojzRLaJjyiDQHhhCyBPqGoIZJcRfnIFpGSPP7tI8c_MpNa/exec';
   const GOLD_RATE_PER_10G = 16000;
   const USD_RATE = 94;
   // =========================================
@@ -1497,12 +1497,6 @@
     $('err_f_installment').textContent = '';
     renderInstallments();
 
-    currentInstallments = loadedInstallments;
-    $('f_instAmount').value = '';
-    $('f_instDate').value = '';
-    $('err_f_installment').textContent = '';
-    renderInstallments();
-
     // Manufacturing details: only the manufacturer (staff) can edit these.
     const manufacturingIds = ['f_customer','f_style','f_date','f_grossWt','f_netWt','f_diaQty','f_inCt','f_colourStone','f_multiplier','f_diamAmount','f_lCharges'];
     manufacturingIds.forEach(id => { $(id).readOnly = !isStaff; });
@@ -1536,14 +1530,35 @@
   ['f_netWt','f_multiplier','f_diamAmount','f_lCharges','f_salePrice','f_memoNo'].forEach(id => {
     $(id).addEventListener('input', updatePreview);
   });
-  // Auto-fill buyer when memo number matches an existing order
+  // Auto-fill buyer + existing payment history when memo number matches
+  // an existing order. Without this, a brand-new item linked to an
+  // existing memo would start "blank" and — since the backend treats the
+  // group's payment log as shared — could look like the memo has never
+  // been paid even though sibling items already have recorded payments.
   $('f_memoNo').addEventListener('input', () => {
     const memoVal = $('f_memoNo').value.trim();
-    if (memoVal && !$('f_soldTo').value.trim()) {
-      const siblings = getMemoSiblings(memoVal, editingRow);
-      if (siblings.length && siblings[0]['Sold To']) {
-        $('f_soldTo').value = siblings[0]['Sold To'];
-        formDirty = true;
+    if (!memoVal) return;
+    const siblings = getMemoSiblings(memoVal, editingRow);
+    if (!siblings.length) return;
+
+    if (!$('f_soldTo').value.trim() && siblings[0]['Sold To']) {
+      $('f_soldTo').value = siblings[0]['Sold To'];
+      formDirty = true;
+    }
+
+    if (!currentInstallments.length) {
+      const withLog = siblings.find(r => r['Payment Log']);
+      if (withLog) {
+        try {
+          const parsed = JSON.parse(withLog['Payment Log']);
+          if (Array.isArray(parsed)) {
+            currentInstallments = parsed
+              .filter(x => x && !isNaN(parseFloat(x.amount)))
+              .map(x => ({ date: x.date || '', amount: parseFloat(x.amount) }));
+            renderInstallments();
+            formDirty = true;
+          }
+        } catch (e) { /* ignore unparsable legacy log */ }
       }
     }
   });

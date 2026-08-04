@@ -1,3 +1,5 @@
+
+Style · CSS
   :root{
     --bg: #1E1B18;
     --surface: #262220;
@@ -32,7 +34,7 @@
   }
   h1,h2,h3{ font-family: 'Fraunces', serif; font-weight:600; margin:0; }
   ::selection{ background: var(--gold); color:#1E1B18; }
-
+ 
   .mark{ font-family:'Fraunces', serif; font-weight:700; letter-spacing:0.5px; display:flex; align-items:center; gap:8px; }
   .mark .dot{ color: var(--gold); }
   .mark .mini-logo{ width:26px; height:26px; border-radius:50%; }
@@ -80,7 +82,7 @@
   #login button:hover, .btn:hover{ background:#c9a06a; animation: wiggle 0.4s ease; }
   #login button:active, .btn:active{ transform: scale(0.97); transition: transform 0.08s ease; }
   #loginError{ color: var(--bad); font-size:13px; min-height:18px; }
-
+ 
   #app{ display:none; min-height:100vh; }
   header.topbar{
     display:flex; align-items:center; justify-content:space-between;
@@ -115,9 +117,9 @@
   .btn.danger{ background: transparent; color: var(--bad); border-color: var(--bad); }
   .btn.danger:hover{ background: rgba(192,112,90,0.12); }
   .btn.small{ padding:8px 14px; font-size:12.5px; }
-
+ 
   main{ padding: 24px 32px 80px; max-width:1500px; margin:0 auto; }
-
+ 
   .filter-bar{
     display:flex; align-items:flex-end; gap:14px; flex-wrap:wrap;
     margin-bottom:18px;
@@ -135,14 +137,14 @@
   .btn:disabled{ opacity:0.4; cursor:not-allowed; }
   .btn:disabled:hover{ background:transparent; animation:none; }
   .btn.secondary:disabled:hover{ background:transparent; }
-
+ 
   .pagination-bar{
     display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;
     gap:12px; margin-top:16px; font-size:12.5px; color:var(--text-dim);
   }
   .page-controls{ display:flex; align-items:center; gap:10px; }
   .page-num{ font-family:'IBM Plex Mono', monospace; }
-
+ 
   .kpi-grid{
     display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap:14px; margin-bottom:24px;
@@ -155,7 +157,7 @@
   .kpi-label{ font-size:11px; text-transform:uppercase; letter-spacing:0.6px; color:var(--text-dim); margin-bottom:6px; }
   .kpi-value{ font-family:'IBM Plex Mono', monospace; font-size:20px; font-weight:500; color:var(--gold); }
   .kpi-sub{ font-size:11.5px; color:var(--text-dim); margin-top:4px; }
-
+ 
   .table-wrap{ border:1px solid var(--line); border-radius:4px; overflow:visible; }
   table{ width:100%; table-layout:fixed; border-collapse:separate; border-spacing:0; font-size:13px; }
   col{ width: 8.3333%; } /* 12 columns sharing the table equally by default */
@@ -177,6 +179,13 @@
   tbody td{
     padding:11px 14px; border-bottom:1px solid var(--line);
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  /* Buyer names can run long — wrap them instead of cropping with an
+     ellipsis. Row height just grows to fit since the table uses
+     table-layout:fixed, so neighboring columns stay unaffected. */
+  tbody td.col-soldTo{
+    overflow:visible; text-overflow:clip; white-space:normal;
+    word-break:break-word; line-height:1.4;
   }
   tbody tr{ cursor:pointer; transition: background 0.12s; }
   tbody tr:hover{ background: var(--surface); }
@@ -210,7 +219,7 @@
   .badge-partial{ background:rgba(184,147,90,0.15); color:var(--gold); }
   .badge-unpaid{ background:rgba(192,112,90,0.15); color:var(--bad); }
   .badge-notsold{ background:rgba(166,156,141,0.15); color:var(--text-dim); }
-
+ 
   .section-divider{
     display:flex; align-items:center; gap:10px; margin:22px 0 16px;
     color:var(--text-dim); font-size:11px; text-transform:uppercase; letter-spacing:0.6px;
@@ -222,7 +231,7 @@
     resize:vertical; min-height:56px; transition: border-color 0.2s, box-shadow 0.2s;
   }
   .field textarea:focus{ outline:none; border-color:var(--gold); box-shadow: 0 0 0 3px var(--gold-glow); }
-
+ 
   #overlay{
     display:none; position:fixed; inset:0; background: rgba(10,9,7,0.6);
     z-index:20; backdrop-filter: blur(3px);
@@ -282,7 +291,7 @@
   body.view-only .panel-foot{ display:none; }
   body.view-only tbody tr{ cursor:default; }
   body.view-only .field input, body.view-only .field textarea{ opacity:0.65; cursor:not-allowed; }
-
+ 
   /* ---- Role-based column visibility ----
      staff (manufacturer, Arpan): INR pricing — hides $ and Memo No.
      seller (based in USA): USD pricing + carat weight — hides the INR
@@ -300,7 +309,7 @@
   body.role-seller .col-balanceDue{ display:none; } /* mobile card field, unrelated to <col> */
   body.role-seller .order-card-grid .col-ctWt{ display:block; }
   body.role-seller .order-card-grid .col-diaCt{ display:block; }
-
+ 
   .panel-foot{
     padding:18px 24px; border-top:1px solid var(--line); display:flex; gap:10px;
   }
@@ -327,7 +336,7 @@
   .computed-row{ display:flex; justify-content:space-between; font-size:13px; padding:3px 0; }
   .computed-row .label{ color:var(--text-dim); }
   .computed-row .value{ font-family:'IBM Plex Mono', monospace; color:var(--gold); }
-
+ 
   #toast{
     position:fixed; bottom:24px; right:24px; padding:14px 20px; border-radius:4px;
     background: var(--surface-raised); border:1px solid var(--line);
@@ -338,7 +347,7 @@
   #toast.show{ transform: translateY(0); opacity:1; }
   #toast.good{ border-color: var(--good); color: var(--good); }
   #toast.bad{ border-color: var(--bad); color: var(--bad); }
-
+ 
   #undoToast{
     position:fixed; bottom:24px; right:24px; padding:14px 16px 14px 20px; border-radius:4px;
     background: var(--surface-raised); border:1px solid var(--bad);
@@ -356,7 +365,7 @@
     white-space:nowrap; transition: all 0.15s;
   }
   #undoBtn:hover{ background: var(--gold); color:#20190F; animation: wiggle 0.4s ease; }
-
+ 
   .card-list{ display:none; }
   .order-card{
     border:1px solid var(--line); border-radius:4px; background: var(--surface);
@@ -392,7 +401,7 @@
   }
   .order-card-grid .field-item .k{ font-size:11px; text-transform:uppercase; letter-spacing:0.4px; color:var(--text-dim); }
   .order-card-grid .field-item .v{ font-family:'IBM Plex Mono', monospace; font-size:13.5px; margin-top:2px; }
-
+ 
   .skel{
     display:inline-block; background: linear-gradient(90deg, var(--line) 0%, var(--surface-raised) 50%, var(--line) 100%);
     background-size: 200% 100%; animation: skelShimmer 1.3s ease-in-out infinite;
@@ -412,7 +421,7 @@
   .skel-card .skel.w1{ width:90px; }
   .skel-card .skel.w2{ width:120px; margin-top:8px; }
   .skel-card .skel.w3{ width:70px; }
-
+ 
   #screenFx{
     position:fixed; inset:0; z-index:50; pointer-events:none;
     opacity:0;
@@ -440,7 +449,7 @@
     0%{ opacity:0.9; }
     100%{ opacity:0; }
   }
-
+ 
   @media (max-width: 768px){
     header.topbar{ padding:14px 16px; }
     .header-stats{ order:99; width:100%; justify-content:space-between; gap:12px; padding:2px 0 0; }
@@ -454,3 +463,4 @@
     .rate-note{ margin-left:0; order:99; width:100%; }
     .pagination-bar{ justify-content:center; text-align:center; }
   }
+ 

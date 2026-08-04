@@ -159,6 +159,11 @@
   .table-wrap{ border:1px solid var(--line); border-radius:4px; overflow:visible; }
   table{ width:100%; table-layout:fixed; border-collapse:separate; border-spacing:0; font-size:13px; }
   col{ width: 8.3333%; } /* 12 columns sharing the table equally by default */
+/* Add this — creates a solid stacking context for the entire header */
+thead {
+  position: relative;
+  z-index: 5;
+}
   thead th{
     text-align:left; padding:12px 14px; background: var(--surface);
     color: var(--text-dim); font-weight:500; font-size:11px; text-transform:uppercase;

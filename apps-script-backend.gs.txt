@@ -1,0 +1,518 @@
+/**
+ * HET Orders Portal — Backend API (v2.3 Fixed)
+ */
+
+var SHEET_NAME = 'Sheet1';
+var HEADER_ROW = 5;
+var DATA_START_ROW = 6;
+var GOLD_RATE = 16000;
+var USD_RATE = 94;
+
+// Sale & payment tracking columns, added after the original order columns
+// (A-Q). These live in R-Y (18-25). If your sheet doesn't have these
+// headers in row 5 yet, add this row of headers starting in R5:
+//   Sold To | Sale Price | Date Sold | Amount Paid | Balance Due | Payment Status | Payment Log | Memo No.
+var COL_SOLD_TO = 18;        // R
+var COL_SALE_PRICE = 19;     // S
+var COL_DATE_SOLD = 20;      // T
+var COL_AMOUNT_PAID = 21;    // U
+var COL_BALANCE_DUE = 22;    // V — formula: Sale Price - Amount Paid
+var COL_PAYMENT_STATUS = 23; // W — formula: Unpaid / Partial / Paid
+var COL_PAYMENT_LOG = 24;    // X
+var COL_MEMO_NO = 25;        // Y — groups multiple items sold together under one memo
+var SALE_COLS_COUNT = 25;    // total columns a row snapshot needs to cover (A-Y)
+var STAFF_PASSWORD = 'Arp&diam4265';  // <-- manufacturer: full access, view + add + edit + delete everything
+var SELLER_PASSWORD = 'Het&ke4265';  // <-- your brother: sees everything, can only edit Sold To / Sale Price / Date Sold / payments — set this to something different from the other passwords
+var CUSTOMER_PASSWORD = 'qwertyuiop';  // <-- view-only access — set this to something different from the other passwords
+
+function getSheet_() {
+  return SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+}
+
+// Columns R-Y (Sold To ... Memo No.) are fully owned by this app — nothing
+// else ever writes to them. So instead of trusting whatever text happens to
+// be typed in row 5 for those columns (which breaks silently if a header
+// cell is blank, misspelled, or was never added), we always use fixed
+// names for that block. The row 5 cells are still worth keeping labeled
+// for readability when looking at the sheet directly, but the app no
+// longer depends on them being exactly right.
+var SALE_HEADERS = ['Sold To', 'Sale Price', 'Date Sold', 'Amount Paid', 'Balance Due', 'Payment Status', 'Payment Log', 'Memo No.'];
+
+function getHeaders_(sheet) {
+  var lastCol = Math.max(sheet.getLastColumn(), SALE_COLS_COUNT);
+  var headers = sheet.getRange(HEADER_ROW, 1, 1, lastCol).getValues()[0];
+  for (var i = 0; i < SALE_HEADERS.length; i++) {
+    headers[COL_SOLD_TO - 1 + i] = SALE_HEADERS[i];
+  }
+  return headers;
+}
+
+function jsonOut_(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function checkPass_(pass) {
+  return pass === STAFF_PASSWORD || pass === SELLER_PASSWORD || pass === CUSTOMER_PASSWORD;
+}
+
+// Returns 'staff', 'seller', 'customer', or null depending on which password was entered.
+function roleForPass_(pass) {
+  if (pass === STAFF_PASSWORD) return 'staff';
+  if (pass === SELLER_PASSWORD) return 'seller';
+  if (pass === CUSTOMER_PASSWORD) return 'customer';
+  return null;
+}
+
+// Finds the row containing "TOTAL" (in the Style No. column, C), wherever
+// it currently sits. This lets new orders always be inserted directly
+// above it, instead of appended after it.
+function findTotalRow_() {
+  var sheet = getSheet_();
+  var lastRow = sheet.getLastRow();
+  var colC = sheet.getRange(1, 3, lastRow, 1).getValues();
+  for (var i = 0; i < colC.length; i++) {
+    if (String(colC[i][0]).trim().toUpperCase() === 'TOTAL') {
+      return i + 1; // convert 0-indexed array position to a real row number
+    }
+  }
+  return null;
+}
+
+// ========== READ DATA (shared logic) ==========
+function fetchOrders_() {
+  var sheet = getSheet_();
+  var headers = getHeaders_(sheet);
+  var lastRow = sheet.getLastRow();
+  
+  if (lastRow < DATA_START_ROW) {
+    return { ok: true, rows: [], headers: headers };
+  }
+
+  var data = sheet.getRange(DATA_START_ROW, 1, lastRow - DATA_START_ROW + 1, headers.length).getValues();
+  var rows = [];
+
+  for (var i = 0; i < data.length; i++) {
+    var r = data[i];
+    var customer = String(r[1] || '').trim();
+    var style = String(r[2] || '').trim();
+    
+    if (!customer || style.toUpperCase() === 'TOTAL') continue;
+
+    var obj = {};
+    for (var j = 0; j < headers.length; j++) {
+      var val = r[j];
+      if (val instanceof Date) {
+        val = Utilities.formatDate(val, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+      }
+      obj[headers[j]] = val;
+    }
+    obj._row = DATA_START_ROW + i;
+    rows.push(obj);
+  }
+  return { ok: true, rows: rows, headers: headers };
+}
+
+// ========== OUTPUT ==========
+// If a "callback" param is present, wrap the response as JSONP (a
+// <script>-tag-loadable function call) instead of raw JSON. This is what
+// lets the hosted website read data without hitting Google's unreliable
+// CORS headers on fetch().
+function output_(obj, callback) {
+  if (callback) {
+    return ContentService
+      .createTextOutput(callback + '(' + JSON.stringify(obj) + ')')
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  return jsonOut_(obj);
+}
+
+// Core logic shared by GET (JSONP) and POST, once inputs are normalized.
+function handleRequest_(pass, action, fields, row, token) {
+  var role = roleForPass_(pass);
+  if (!role) return { ok: false, error: 'Wrong password' };
+
+  if (action === 'auth' || !action) {
+    var result = fetchOrders_();
+    result.role = role;
+    return result;
+  }
+
+  if (action === 'add' || action === 'edit' || action === 'delete' || action === 'undo') {
+    if (role === 'customer') {
+      return { ok: false, error: 'View-only access — ask the manufacturer or seller to make changes.' };
+    }
+    if (action !== 'edit' && role !== 'staff') {
+      return { ok: false, error: 'Only the manufacturer account can add, delete, or undo orders.' };
+    }
+    if (action === 'add') return doAdd_(fields);
+    if (action === 'edit') return doEdit_(row, fields, role);
+    if (action === 'delete') return doDelete_(row);
+    if (action === 'undo') return doUndo_(token);
+  }
+
+  return { ok: false, error: 'Unknown action: ' + action };
+}
+
+// ========== GET (JSONP — used by the website) ==========
+function doGet(e) {
+  var callback = e && e.parameter ? e.parameter.callback : null;
+  try {
+    var pass = e.parameter.pass || '';
+    var action = e.parameter.action || 'auth';
+    var fields = e.parameter.fields ? JSON.parse(e.parameter.fields) : null;
+    var row = e.parameter.row ? parseInt(e.parameter.row, 10) : null;
+    var token = e.parameter.token || null;
+
+    var result = handleRequest_(pass, action, fields, row, token);
+    return output_(result, callback);
+  } catch (err) {
+    return output_({ ok: false, error: String(err) }, callback);
+  }
+}
+
+// ========== POST (kept for backward compatibility) ==========
+function doPost(e) {
+  try {
+    var payload = JSON.parse(e.postData.contents);
+    var result = handleRequest_(payload.pass, payload.action, payload.fields, payload.row, payload.token);
+    return jsonOut_(result);
+  } catch (err) {
+    return jsonOut_({ ok: false, error: String(err) });
+  }
+}
+
+// ========== INSTALLMENTS ==========
+// Payment Log (col X) stores a JSON array of {date, amount} installment
+// records instead of freeform text. Amount Paid is always derived by
+// summing these, so the sheet never gets out of sync with what's logged.
+function parseInstallments_(raw) {
+  if (!raw) return [];
+  try {
+    var arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) return [];
+    var out = [];
+    for (var i = 0; i < arr.length; i++) {
+      var item = arr[i];
+      if (item && !isNaN(parseFloat(item.amount))) {
+        out.push({ date: item.date || '', amount: num_(item.amount) });
+      }
+    }
+    return out;
+  } catch (e) {
+    return []; // legacy freeform text, or malformed — treated as no installments
+  }
+}
+
+function sumInstallments_(list) {
+  var total = 0;
+  for (var i = 0; i < list.length; i++) total += list[i].amount;
+  return total;
+}
+
+// Fields a 'seller' role is allowed to change on edit — everything else on
+// the row (manufacturing details) is preserved from the sheet, no matter
+// what the request contains, so a tampered request still can't touch them.
+var SELLER_EDIT_FIELDS = ['soldTo', 'salePrice', 'dateSold', 'paymentLog', 'memoNo'];
+
+function pickFields_(src, keys) {
+  var out = {};
+  for (var i = 0; i < keys.length; i++) {
+    var k = keys[i];
+    if (src[k] !== undefined) out[k] = src[k];
+  }
+  return out;
+}
+
+// Reads a row straight off the sheet and reshapes it back into the same
+// field shape buildRow_() expects — the inverse of buildRow_. Used so a
+// seller's edit can be merged on top of the real current data instead of
+// whatever the client happened to submit for fields they can't see edit
+// controls for.
+function readOrderFields_(sheet, row) {
+  var vals = sheet.getRange(row, 1, 1, SALE_COLS_COUNT).getValues()[0];
+  function dateStr(v) {
+    if (!v) return '';
+    if (v instanceof Date) return Utilities.formatDate(v, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+    return String(v);
+  }
+  return {
+    customer: vals[1],
+    style: vals[2],
+    date: dateStr(vals[3]),
+    grossWt: vals[4],
+    diaQty: vals[5],
+    inCt: vals[6],
+    colourStone: vals[7],
+    netWt: vals[8],
+    multiplier: vals[9],
+    diamAmount: vals[12],
+    lCharges: vals[13],
+    soldTo: vals[17],
+    salePrice: vals[18],
+    dateSold: dateStr(vals[19]),
+    paymentLog: vals[23],
+    memoNo: vals[24]
+  };
+}
+
+// ========== ROW BUILDER (shared by add + edit) ==========
+// Builds the full A:X value row from the submitted fields in one pass, so
+// the caller can write it with a single setValues() call instead of one
+// call per cell — this is the main speed win for saving.
+function buildRow_(srNo, f) {
+  var netWt = num_(f.netWt);
+  var mult = num_(f.multiplier) || 0.595;
+  var lCharges = num_(f.lCharges);
+  var diamAmount = num_(f.diamAmount);
+
+  var pgWt = netWt * mult;
+  var goldAmount = pgWt * GOLD_RATE;
+  var laborAmount = netWt * lCharges;
+  var subTotal = goldAmount + diamAmount + lCharges + laborAmount;
+  var usd = subTotal / USD_RATE;
+
+  var salePriceStr = (f.salePrice === undefined || f.salePrice === null) ? '' : String(f.salePrice).trim();
+  var hasSale = salePriceStr !== '';
+  var salePrice = hasSale ? num_(f.salePrice) : '';
+
+  var installments = parseInstallments_(f.paymentLog);
+  var amountPaid = hasSale ? sumInstallments_(installments) : '';
+  var balanceDue = hasSale ? (salePrice - (amountPaid || 0)) : '';
+  var paymentStatus = '';
+  if (hasSale) {
+    if (!amountPaid || amountPaid <= 0) paymentStatus = 'Unpaid';
+    else if (amountPaid >= salePrice) paymentStatus = 'Paid';
+    else paymentStatus = 'Partial';
+  }
+
+  return [
+    srNo,
+    f.customer || '',
+    f.style || '',
+    f.date ? new Date(f.date) : '',
+    num_(f.grossWt),
+    num_(f.diaQty),
+    num_(f.inCt),
+    num_(f.colourStone),
+    netWt,
+    mult,
+    pgWt,
+    goldAmount,
+    diamAmount,
+    lCharges,
+    laborAmount,
+    subTotal,
+    usd,
+    f.soldTo || '',
+    salePrice,
+    f.dateSold ? new Date(f.dateSold) : '',
+    amountPaid,
+    balanceDue,
+    paymentStatus,
+    installments.length ? JSON.stringify(installments) : '',
+    f.memoNo || ''
+  ];
+}
+
+// ========== MEMO PAYMENT SYNC ==========
+// When several items are sold together under one memo, payments come in
+// against the memo's total, not against any single item. After a row with
+// a Memo No. is saved, this finds every other row sharing that memo number
+// and overwrites their Amount Paid / Balance Due / Payment Status /
+// Payment Log so all items in the memo always agree — Sale Price stays
+// per-item, but the payment picture is shared across the whole memo.
+// A memo with only one item in it is a no-op (nothing to sync).
+function syncMemoPayments_(sheet, editedRow, memoNo, paymentLogJson) {
+  var key = String(memoNo || '').trim().toLowerCase();
+  if (!key) return;
+
+  var lastRow = sheet.getLastRow();
+  if (lastRow < DATA_START_ROW) return;
+  var numRows = lastRow - DATA_START_ROW + 1;
+
+  // One read covering Style (C), Sale Price (S), Payment Log (X), and Memo
+  // No (Y) for every data row, so finding memo members costs a single
+  // round trip.
+  var styleVals = sheet.getRange(DATA_START_ROW, 3, numRows, 1).getValues();
+  var priceVals = sheet.getRange(DATA_START_ROW, COL_SALE_PRICE, numRows, 1).getValues();
+  var logVals = sheet.getRange(DATA_START_ROW, COL_PAYMENT_LOG, numRows, 1).getValues();
+  var memoVals = sheet.getRange(DATA_START_ROW, COL_MEMO_NO, numRows, 1).getValues();
+
+  var memberRows = [];
+  var memoTotal = 0;
+  var existingLogFromOthers = '';
+  for (var i = 0; i < numRows; i++) {
+    if (String(styleVals[i][0] || '').trim().toUpperCase() === 'TOTAL') continue;
+    if (String(memoVals[i][0] || '').trim().toLowerCase() !== key) continue;
+    var r = DATA_START_ROW + i;
+    memberRows.push(r);
+    memoTotal += num_(priceVals[i][0]);
+    // Remember an existing payment log from a sibling other than the row
+    // being saved right now, in case this save didn't bring its own.
+    if (r !== editedRow && !existingLogFromOthers && String(logVals[i][0] || '').trim()) {
+      existingLogFromOthers = logVals[i][0];
+    }
+  }
+  if (memberRows.length <= 1) return; // solo item under this memo — nothing to sync
+
+  // Guard against silently erasing the memo's payment history: if this
+  // particular save didn't include any installments (e.g. a brand-new
+  // item just linked into an existing memo via its Memo No.), but other
+  // members of the memo already have a recorded payment log, keep that
+  // existing log instead of overwriting everyone with a blank one.
+  var effectiveLogJson = paymentLogJson;
+  if ((!effectiveLogJson || !String(effectiveLogJson).trim()) && existingLogFromOthers) {
+    effectiveLogJson = existingLogFromOthers;
+  }
+
+  var installments = parseInstallments_(effectiveLogJson);
+  var amountPaid = sumInstallments_(installments);
+  var balanceDue = memoTotal - amountPaid;
+  var paymentStatus = amountPaid <= 0 ? 'Unpaid' : (amountPaid >= memoTotal ? 'Paid' : 'Partial');
+  var logStr = installments.length ? JSON.stringify(installments) : '';
+
+  for (var j = 0; j < memberRows.length; j++) {
+    sheet.getRange(memberRows[j], COL_AMOUNT_PAID, 1, 4).setValues([[amountPaid, balanceDue, paymentStatus, logStr]]);
+  }
+}
+
+// ========== ADD ==========
+function doAdd_(f) {
+  var sheet = getSheet_();
+
+  var totalRow = findTotalRow_();
+  if (!totalRow) return { ok: false, error: 'Could not find the TOTAL row' };
+
+  // Sr No based on how many rows currently sit above TOTAL
+  var srNo = totalRow - DATA_START_ROW + 1;
+
+  // Insert a real spreadsheet row directly above TOTAL. This pushes TOTAL
+  // (and its SUM/SUBTOTAL formulas) down by one row and automatically
+  // expands those formula ranges to include the new order — no manual
+  // formula-fixing needed.
+  sheet.insertRowBefore(totalRow);
+  var newRow = totalRow;
+
+  var rowValues = buildRow_(srNo, f);
+  // Single write for the whole row (A:Y), instead of ~20 separate calls.
+  sheet.getRange(newRow, 1, 1, SALE_COLS_COUNT).setValues([rowValues]);
+  syncMemoPayments_(sheet, newRow, f.memoNo, f.paymentLog);
+
+  SpreadsheetApp.flush();
+  return { ok: true, row: newRow };
+}
+
+// ========== EDIT ==========
+function doEdit_(row, f, role) {
+  if (!row) return { ok: false, error: 'Missing row number' };
+
+  var sheet = getSheet_();
+  var srNo = sheet.getRange(row, 1).getValue(); // keep the existing Sr No
+  var oldMemoNo = sheet.getRange(row, COL_MEMO_NO).getValue(); // before this edit
+
+  if (role === 'seller') {
+    // A seller can only change Sold To / Sale Price / Date Sold / payments.
+    // Everything else comes straight off the sheet, not from the request.
+    var existing = readOrderFields_(sheet, row);
+    f = Object.assign({}, existing, pickFields_(f, SELLER_EDIT_FIELDS));
+  }
+
+  var rowValues = buildRow_(srNo, f);
+  // Single write for the whole row, same as add — the client always sends
+  // the full form state, so there's nothing to merge with what's on sheet.
+  sheet.getRange(row, 1, 1, SALE_COLS_COUNT).setValues([rowValues]);
+  syncMemoPayments_(sheet, row, f.memoNo, f.paymentLog);
+
+  // If this item's Memo No. just changed (or was cleared), it has left its
+  // old memo group. That group's remaining members still need their total
+  // recalculated without this item, or they're left showing a stale
+  // balance that still counts a price no longer part of the group.
+  var oldKey = String(oldMemoNo || '').trim().toLowerCase();
+  var newKey = String(f.memoNo || '').trim().toLowerCase();
+  if (oldKey && oldKey !== newKey) {
+    syncMemoPayments_(sheet, row, oldMemoNo, '');
+  }
+
+  SpreadsheetApp.flush();
+  return { ok: true };
+}
+
+// ========== DELETE (with 60-second undo window) ==========
+function doDelete_(delRow) {
+  if (!delRow) return { ok: false, error: 'Missing row number' };
+
+  var sheet = getSheet_();
+  var range = sheet.getRange(delRow, 1, 1, SALE_COLS_COUNT);
+
+  // Snapshot both the display values and any formulas, so undo can restore
+  // the row exactly as it was (formula cells re-get their formula, plain
+  // cells re-get their value).
+  var values = range.getValues()[0];
+  var formulas = range.getFormulas()[0];
+  var oldMemoNo = values[COL_MEMO_NO - 1];
+
+  var token = Utilities.getUuid();
+  CacheService.getScriptCache().put(
+    'undo_' + token,
+    JSON.stringify({ row: delRow, values: values, formulas: formulas }),
+    90 // seconds — a little longer than the 60s the UI offers, as a buffer
+  );
+
+  range.clearContent();
+
+  // This item may have been part of a multi-item memo. The remaining
+  // members still need their combined total recalculated without it —
+  // otherwise they keep showing a balance that counts a price that no
+  // longer exists.
+  if (String(oldMemoNo || '').trim()) {
+    syncMemoPayments_(sheet, delRow, oldMemoNo, '');
+  }
+
+  SpreadsheetApp.flush();
+
+  return { ok: true, undoToken: token };
+}
+
+// ========== UNDO DELETE ==========
+function doUndo_(token) {
+  if (!token) return { ok: false, error: 'Missing undo token' };
+
+  var cache = CacheService.getScriptCache();
+  var raw = cache.get('undo_' + token);
+  if (!raw) return { ok: false, error: 'Undo window has expired' };
+
+  var snapshot = JSON.parse(raw);
+  var sheet = getSheet_();
+  var row = snapshot.row;
+
+  for (var col = 1; col <= SALE_COLS_COUNT; col++) {
+    var formula = snapshot.formulas[col - 1];
+    var value = snapshot.values[col - 1];
+    var cell = sheet.getRange(row, col);
+    if (formula) {
+      cell.setFormula(formula);
+    } else if (value !== '' && value !== null) {
+      cell.setValue(value);
+    }
+  }
+
+  cache.remove('undo_' + token); // one-time use
+
+  // The restored row may belong to a memo group whose total was
+  // recalculated (without this item) while it was deleted. Fold it back
+  // into that group's totals now that it's back.
+  var restoredMemoNo = snapshot.values[COL_MEMO_NO - 1];
+  if (String(restoredMemoNo || '').trim()) {
+    syncMemoPayments_(sheet, row, restoredMemoNo, snapshot.values[COL_PAYMENT_LOG - 1]);
+  }
+
+  SpreadsheetApp.flush();
+
+  return { ok: true, row: row };
+}
+
+function num_(v) {
+  var n = parseFloat(v);
+  return isNaN(n) ? 0 : n;
+}

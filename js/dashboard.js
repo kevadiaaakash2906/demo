@@ -57,7 +57,7 @@
       { key:'netwt', label: 'Net Weight', raw: totalNetWt, fmt: v => fmtNum(v, 2) + ' g', sub: 'total gold weight' },
       { key:'diact', label: 'Diamonds', raw: totalDiaCt, fmt: v => fmtNum(v, 2) + ' ct', sub: 'total carat weight' },
       { key:'sold', label: 'Pieces Sold', raw: soldRows.length, fmt: v => Math.round(v).toLocaleString('en-IN'), sub: `of ${totalOrders} total pieces` },
-      { key:'outstanding', label: 'Outstanding Balance', raw: totalOutstanding, fmt: v => fmtMoney(v), sub: `across ${unpaidOrPartialCount} unpaid/partial` },
+      { key:'outstanding', label: 'Outstanding Balance', raw: totalOutstanding, fmt: v => fmtUSD(v), sub: `across ${unpaidOrPartialCount} unpaid/partial` },
     ];
 
     const grid = $('kpiGrid');
@@ -106,4 +106,3 @@
     $('hstat_stockCount').textContent = stockCount.toLocaleString('en-IN');
     $('hstat_stockCost').textContent = '$' + fmtNum(stockCostUSD, 2);
   }
-

@@ -89,7 +89,7 @@
         <td class="num col-subTotal" style="font-weight:600">${fmtMoney(r['SUB TOTAL'])}</td>
         <td class="num col-usd">${fmtNum(r['$'], 2)}</td>
         <td class="col-memoNo">${getField(r, 'Memo No.') || '—'}</td>
-        <td>${r['Sold To'] ?? '—'}</td>
+        <td class="col-soldTo">${r['Sold To'] ?? '—'}</td>
         <td class="num col-salePrice">${String(getField(r, 'Sale Price') ?? '').trim() === '' ? '—' : fmtUSD(getField(r, 'Sale Price'))}</td>
         <td>${getPaymentBadge(r)}</td>
       </tr>
@@ -220,4 +220,3 @@
       return 0;
     });
   }
-

@@ -5,14 +5,17 @@
 // to openEditForPayment() (in panel.js) to actually record it.
 // ============================================================
 
-  // Builds one result per *payable* memo (deduped) or standalone order.
-  // A memo counts as payable as soon as any item in it has a Sale Price —
-  // Amount Paid / Balance Due / Payment Status are already synced
-  // identically across every item in a memo by the backend, so any one
-  // representative row's values already ARE the memo-wide totals.
+  // Builds one result per *outstanding* memo (deduped) or standalone order —
+  // i.e. something with an actual balance left to collect. A memo counts as
+  // payable as soon as any item in it has a Sale Price — Amount Paid /
+  // Balance Due / Payment Status are already synced identically across
+  // every item in a memo by the backend, so any one representative row's
+  // values already ARE the memo-wide totals. Anything already fully paid
+  // (balance ≤ 0) is skipped, since there's nothing left to receive.
   function buildPayableGroups() {
     const seenMemo = new Set();
     const groups = [];
+    const hasBalance = (row) => (parseFloat(row['Balance Due']) || 0) > 0.005;
 
     ORDERS.forEach(r => {
       const memoKey = String(getField(r, 'Memo No.') || '').trim();
@@ -25,6 +28,7 @@
         const siblings = ORDERS.filter(x => String(getField(x, 'Memo No.') || '').trim().toLowerCase() === lower);
         const priced = siblings.find(x => String(x['Sale Price'] ?? '').trim() !== '');
         if (!priced) return; // nothing in this memo has a price yet — nothing to pay against
+        if (!hasBalance(priced)) return; // memo's already settled in full
 
         groups.push({
           repRow: priced._row,
@@ -38,6 +42,7 @@
         });
       } else {
         if (String(r['Sale Price'] ?? '').trim() === '') return;
+        if (!hasBalance(r)) return; // already paid in full
         groups.push({
           repRow: r._row,
           memoNo: '',
@@ -71,13 +76,14 @@
     const list = $('payResults');
 
     if (!groups.length) {
-      list.innerHTML = `<div class="pay-empty">No matching orders with a price set yet.</div>`;
+      list.innerHTML = `<div class="pay-empty">No outstanding balances match that search.</div>`;
       return;
     }
 
-    // Balances already settled float to the bottom — the button exists to
-    // find who still owes money, not who's already paid up.
-    groups.sort((a, b) => (b.balanceDue > 0) - (a.balanceDue > 0));
+    // Biggest outstanding balance first — everything in this list already
+    // has money owed on it (fully-paid orders are filtered out upstream),
+    // so this just surfaces the largest ones first.
+    groups.sort((a, b) => b.balanceDue - a.balanceDue);
 
     list.innerHTML = groups.map(g => {
       const cls = g.status === 'Paid' ? 'badge-paid' : g.status === 'Partial' ? 'badge-partial' : 'badge-unpaid';

@@ -70,18 +70,22 @@
     return `<span class="badge ${cls}">${status}</span>`;
   }
 
-  // A row is worth showing the quick-pay icon on once a price exists to be
-  // paid against — either its own Sale Price, or (for a memo item that
-  // hasn't been individually priced yet) a sibling in the same memo that
-  // has been priced, since a payment recorded on this row still applies to
-  // the whole memo's balance.
+  // A row is worth showing the quick-pay icon on once there's both (a) a
+  // price to be paid against — either its own Sale Price, or (for a memo
+  // item that hasn't been individually priced yet) a sibling in the same
+  // memo that has been — and (b) an actual balance left. Balance Due is
+  // already synced identically across every item in a memo by the backend,
+  // so checking this row's own value is enough even for an unpriced sibling.
   function isPayable(row) {
-    if (String(row['Sale Price'] ?? '').trim() !== '') return true;
-    const memoKey = String(getField(row, 'Memo No.') || '').trim().toLowerCase();
-    if (!memoKey) return false;
-    return ORDERS.some(x => x._row !== row._row &&
-      String(getField(x, 'Memo No.') || '').trim().toLowerCase() === memoKey &&
-      String(x['Sale Price'] ?? '').trim() !== '');
+    const priced = String(row['Sale Price'] ?? '').trim() !== '' || (() => {
+      const memoKey = String(getField(row, 'Memo No.') || '').trim().toLowerCase();
+      if (!memoKey) return false;
+      return ORDERS.some(x => x._row !== row._row &&
+        String(getField(x, 'Memo No.') || '').trim().toLowerCase() === memoKey &&
+        String(x['Sale Price'] ?? '').trim() !== '');
+    })();
+    if (!priced) return false;
+    return (parseFloat(row['Balance Due']) || 0) > 0.005;
   }
 
   function quickPayBtn(row) {

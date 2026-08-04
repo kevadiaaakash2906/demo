@@ -100,6 +100,8 @@ const USD_RATE = 94;
     const canEditSale = ROLE === 'staff' || ROLE === 'seller';
     const newOrderBtn = $('newOrderBtn');
     if (newOrderBtn) newOrderBtn.style.display = isStaff ? '' : 'none';
+    const receivePaymentBtn = $('receivePaymentBtn');
+    if (receivePaymentBtn) receivePaymentBtn.style.display = canEditSale ? '' : 'none';
     // 'view-only' hides the Save button and dims controls entirely — only
     // applies to pure viewers (customers), since sellers can still save.
     document.body.classList.toggle('view-only', !canEditSale);
@@ -156,7 +158,10 @@ const USD_RATE = 94;
 
   // Keyboard shortcuts
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') requestClosePanel();
+    if (e.key === 'Escape') {
+      if ($('paymentSearchModal').classList.contains('open')) closePaymentSearch();
+      else requestClosePanel();
+    }
     if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
       e.preventDefault();
       $('search').focus();

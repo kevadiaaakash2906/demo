@@ -274,6 +274,21 @@
     openPanel();
   }
 
+  // Opens the normal edit panel for an order, then jumps straight to the
+  // Sale & Payment section and focuses the amount box — the entry point
+  // used by the quick-pay row icon and the "Receive Payment" search modal.
+  // Deliberately reuses openEdit()/renderInstallments()/validateFields()
+  // rather than a separate payment path, so memo syncing, role checks, and
+  // save/undo behavior stay exactly as they already are for every order.
+  function openEditForPayment(rowNum) {
+    openEdit(rowNum);
+    requestAnimationFrame(() => {
+      const divider = document.querySelector('#panel .section-divider');
+      if (divider) divider.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      $('f_instAmount').focus();
+    });
+  }
+
   $('newOrderBtn').addEventListener('click', () => {
     editingRow = null;
     $('panelTitle').textContent = 'New order';

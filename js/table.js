@@ -69,7 +69,38 @@
     const cls = status === 'Paid' ? 'badge-paid' : status === 'Partial' ? 'badge-partial' : 'badge-unpaid';
     return `<span class="badge ${cls}">${status}</span>`;
   }
-   
+
+  // A row is worth showing the quick-pay icon on once a price exists to be
+  // paid against — either its own Sale Price, or (for a memo item that
+  // hasn't been individually priced yet) a sibling in the same memo that
+  // has been priced, since a payment recorded on this row still applies to
+  // the whole memo's balance.
+  function isPayable(row) {
+    if (String(row['Sale Price'] ?? '').trim() !== '') return true;
+    const memoKey = String(getField(row, 'Memo No.') || '').trim().toLowerCase();
+    if (!memoKey) return false;
+    return ORDERS.some(x => x._row !== row._row &&
+      String(getField(x, 'Memo No.') || '').trim().toLowerCase() === memoKey &&
+      String(x['Sale Price'] ?? '').trim() !== '');
+  }
+
+  function quickPayBtn(row) {
+    if (!isPayable(row)) return '';
+    return `<button type="button" class="quick-pay-btn" data-row="${row._row}" title="Receive payment">$</button>`;
+  }
+
+  // Wires the quick-pay icons in whichever container was just rendered
+  // (table body or mobile card list) — stopPropagation so clicking the
+  // icon doesn't also trigger the row/card's own "open full edit" handler.
+  function wireQuickPayButtons(container) {
+    container.querySelectorAll('.quick-pay-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openEditForPayment(parseInt(btn.dataset.row, 10));
+      });
+    });
+  }
+
   function renderTable(rows) {
     const tbody = $('tbody');
     if (!rows.length) {
@@ -91,7 +122,7 @@
         <td class="col-memoNo">${getField(r, 'Memo No.') || '—'}</td>
         <td class="col-soldTo">${r['Sold To'] ?? '—'}</td>
         <td class="num col-salePrice">${String(getField(r, 'Sale Price') ?? '').trim() === '' ? '—' : fmtUSD(getField(r, 'Sale Price'))}</td>
-        <td>${getPaymentBadge(r)}</td>
+        <td class="status-cell">${getPaymentBadge(r)}${quickPayBtn(r)}</td>
       </tr>
     `).join('');
 
@@ -102,6 +133,7 @@
         openEdit(parseInt(tr.dataset.row));
       });
     });
+    wireQuickPayButtons(tbody);
 
     renderCards(rows);
   }
@@ -136,12 +168,14 @@
             <div class="field-item col-memoNo"><div class="k">Memo No.</div><div class="v">${getField(r, 'Memo No.') || '—'}</div></div>
             <div class="field-item"><div class="k">Sold To</div><div class="v">${r['Sold To'] || '—'}</div></div>
             <div class="field-item col-salePrice"><div class="k">Sale Price</div><div class="v">${String(r['Sale Price'] ?? '').trim() === '' ? '—' : fmtUSD(r['Sale Price'])}</div></div>
-            <div class="field-item"><div class="k">Status</div><div class="v">${getPaymentBadge(r)}</div></div>
+            <div class="field-item"><div class="k">Status</div><div class="v">${getPaymentBadge(r)}${quickPayBtn(r)}</div></div>
             <div class="field-item col-balanceDue"><div class="k">Balance Due</div><div class="v">${String(r['Sale Price'] ?? '').trim() === '' ? '—' : fmtUSD(r['Balance Due'])}</div></div>
           </div>
         </div>
       </div>
     `).join('');
+
+    wireQuickPayButtons(list);
 
     list.querySelectorAll('.order-card').forEach(card => {
       const head = card.querySelector('.order-card-head');
@@ -220,3 +254,4 @@
       return 0;
     });
   }
+

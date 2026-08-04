@@ -44,6 +44,7 @@
     <div class="controls">
       <input id="search" placeholder="Search customer, style, memo, buyer, or date…" autocomplete="off">
       <button class="btn secondary" id="refreshBtn">Refresh</button>
+      <button class="btn secondary" id="receivePaymentBtn">Receive Payment</button>
       <button class="btn" id="newOrderBtn">+ New order</button>
     </div>
   </header>
@@ -206,6 +207,19 @@
   </div>
 </div>
 
+<!-- ============ RECEIVE PAYMENT — memo/order lookup ============ -->
+<div id="paymentSearchOverlay"></div>
+<div id="paymentSearchModal">
+  <div class="panel-head">
+    <h2>Receive Payment</h2>
+    <button id="closePaymentSearch">&times;</button>
+  </div>
+  <div class="pay-search-body">
+    <input id="paySearchInput" placeholder="Search memo no., buyer, style, or customer…" autocomplete="off">
+    <div id="payResults" class="pay-results"></div>
+  </div>
+</div>
+
 <div id="screenFx"></div>
 <div id="toast"></div>
 <div id="undoToast">
@@ -227,5 +241,6 @@
 <script src="js/table.js"></script>
 <script src="js/filters.js"></script>
 <script src="js/panel.js"></script>
+<script src="js/payments.js"></script>
 </body>
 </html>

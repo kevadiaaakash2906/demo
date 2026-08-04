@@ -85,7 +85,10 @@ const USD_RATE = 94;
       renderResults(applyFilter());
       showToast(`Welcome. ${ORDERS.length} orders loaded.`);
     } catch (err) {
-      $('loginError').textContent = 'Could not reach the sheet. Check the Apps Script URL and your connection.';
+      // jsonp() already retried a couple of times internally before this
+      // ever fires, so a real error here means it's worth a targeted
+      // message rather than a generic "check your connection."
+      $('loginError').textContent = err.userMessage || 'Could not reach the sheet. Check the Apps Script URL and your connection.';
       $('loginBtn').textContent = 'Unlock';
     }
   }
@@ -150,7 +153,7 @@ const USD_RATE = 94;
         showToast('Refresh failed', 'bad');
       }
     } catch (err) {
-      renderErrorState('Check your connection and try again.');
+      renderErrorState(err.userMessage || 'Check your connection and try again.');
       showToast('Refresh failed', 'bad');
     }
   }

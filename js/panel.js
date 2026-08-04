@@ -44,7 +44,7 @@
           showToast(data.error || 'Could not undo — window may have expired', 'bad');
         }
       } catch (err) {
-        showToast('Network error — could not undo', 'bad');
+        showToast(err.userMessage || 'Network error — could not undo', 'bad');
       }
     };
   }
@@ -494,7 +494,7 @@
     } catch (err) {
       $('saveBtn').textContent = 'Save';
       $('saveBtn').disabled = false;
-      $('saveMsg').textContent = 'Network error — could not save.';
+      $('saveMsg').textContent = err.userMessage || 'Network error — could not save.';
       $('saveMsg').className = 'bad';
     }
   });
@@ -551,7 +551,7 @@
         $('deleteBtn').classList.remove('holding');
       }
     } catch (err) {
-      $('saveMsg').textContent = 'Network error — could not delete.';
+      $('saveMsg').textContent = err.userMessage || 'Network error — could not delete.';
       $('saveMsg').className = 'bad';
       $('deleteText').textContent = 'Delete';
       $('deleteBtn').classList.remove('holding');

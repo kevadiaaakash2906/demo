@@ -96,7 +96,7 @@
     container.querySelectorAll('.quick-pay-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        openEditForPayment(parseInt(btn.dataset.row, 10));
+        openEditForPayment(btn.dataset.row);
       });
     });
   }
@@ -131,7 +131,7 @@
       tr.addEventListener('click', () => {
         tbody.querySelectorAll('tr').forEach(r => r.classList.remove('selected'));
         tr.classList.add('selected');
-        openEdit(parseInt(tr.dataset.row));
+        openEdit(tr.dataset.row);
       });
     });
     wireQuickPayButtons(tbody);

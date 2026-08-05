@@ -160,19 +160,20 @@
   table{ width:100%; table-layout:fixed; border-collapse:separate; border-spacing:0; font-size:13px; }
   col{ width: 8.3333%; } /* 12 columns sharing the table equally by default */
 /* Add this — creates a solid stacking context for the entire header */
-thead {
-  position: relative;
-  z-index: 5;
+thead th{
+  text-align:left; padding:12px 14px;
+  background: var(--surface);        /* solid background */
+  color: var(--text-dim); font-weight:500; font-size:11px; text-transform:uppercase;
+  letter-spacing:0.6px; border-bottom:1px solid var(--line);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  cursor:pointer; user-select:none; transition: color 0.15s, box-shadow 0.2s ease;
+  position: sticky; top: var(--header-h);
+  z-index: 100;                      /* was 5 — too low */
+  box-shadow: 0 1px 0 var(--line);
 }
-  thead th{
-    text-align:left; padding:12px 14px; background: var(--surface);
-    color: var(--text-dim); font-weight:500; font-size:11px; text-transform:uppercase;
-    letter-spacing:0.6px; border-bottom:1px solid var(--line);
-    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-    cursor:pointer; user-select:none; transition: color 0.15s, box-shadow 0.2s ease;
-    position: sticky; top: var(--header-h); z-index: 5;
-    box-shadow: 0 1px 0 var(--line);
-  }
+thead.is-stuck th{
+  box-shadow: 0 1px 0 var(--line), 0 6px 12px -6px rgba(0,0,0,0.45);
+}
   thead.is-stuck th{ box-shadow: 0 1px 0 var(--line), 0 6px 12px -6px rgba(0,0,0,0.45); }
   thead th:first-child{ border-top-left-radius:4px; }
   thead th:last-child{ border-top-right-radius:4px; }

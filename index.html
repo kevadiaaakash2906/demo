@@ -87,6 +87,7 @@
           <col class="col-style">
           <col class="col-date">
           <col class="col-grossWt">
+          <col class="col-netWt">
           <col class="col-ctWt">
           <col class="col-diaCt">
           <col class="col-subTotal">
@@ -103,6 +104,7 @@
             <th data-key="style">Style No.</th>
             <th data-key="date">Date</th>
             <th class="num col-grossWt" data-key="grossWt">Gross Wt</th>
+            <th class="num col-netWt" data-key="netWt">Net Wt</th>
             <th class="num col-ctWt" data-key="carat">Carat</th>
             <th class="num col-diaCt" data-key="inCt">diamond ct</th>
             <th class="num col-subTotal" data-key="subTotal">Sub Total</th>
@@ -114,7 +116,7 @@
           </tr>
         </thead>
         <tbody id="tbody">
-          <tr class="skel-row"><td colspan="13"><span class="skel" style="width:100%">Loading…</span></td></tr>
+          <tr class="skel-row"><td colspan="14"><span class="skel" style="width:100%">Loading…</span></td></tr>
         </tbody>
       </table>
     </div>
@@ -174,14 +176,14 @@
     </div>
     <div class="field"><label>Sold To (Buyer)</label><input id="f_soldTo" placeholder="e.g. Priya Shah"></div>
     <div class="field-row">
-      <div class="field"><label id="lbl_salePrice">Sale Price (₹)</label><input id="f_salePrice" type="number" step="1" placeholder="0"><div class="field-error" id="err_f_salePrice"></div></div>
+      <div class="field"><label id="lbl_salePrice">Sale Price ($)</label><input id="f_salePrice" type="number" step="1" placeholder="0"><div class="field-error" id="err_f_salePrice"></div></div>
       <div class="field"><label>Date Sold</label><input id="f_dateSold" type="date"></div>
     </div>
     <div class="field">
       <label>Installments <span id="instScopeLabel"></span></label>
       <div id="installmentsList" class="installments-list"></div>
       <div class="field-row installment-add-row">
-        <div class="field"><input id="f_instAmount" type="number" step="1" min="0" placeholder="Amount ₹"></div>
+        <div class="field"><input id="f_instAmount" type="number" step="1" min="0" placeholder="Amount $"></div>
         <div class="field"><input id="f_instDate" type="date"></div>
       </div>
       <button class="btn secondary small" id="addInstallmentBtn" type="button" style="width:100%">+ Add installment</button>
@@ -227,13 +229,6 @@
   <button id="undoBtn">Undo</button>
 </div>
 
-<!--
-  Load order matters here: these are plain classic scripts (no bundler,
-  no <script type="module">), so they all share one global scope and run
-  top-to-bottom. utils/api must load first since every other file calls
-  their helpers ($ , jsonp, fmtMoney, ...); app.js sets up shared state
-  and config that dashboard/table/filters/panel all read from.
--->
 <script src="js/utils.js"></script>
 <script src="js/api.js"></script>
 <script src="js/app.js"></script>

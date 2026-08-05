@@ -196,6 +196,16 @@ thead {
   tbody tr:last-child td:first-child{ border-bottom-left-radius:4px; }
   tbody tr:last-child td:last-child{ border-bottom-right-radius:4px; }
   tbody tr.selected{ background: var(--gold-glow); }
+/* Zebra striping */
+tbody tr:nth-child(even) {
+  background: rgba(255,255,255,0.02);
+}
+tbody tr:nth-child(even):hover {
+  background: var(--surface);
+}
+tbody tr:nth-child(even).selected {
+  background: var(--gold-glow);
+}
   .num{ font-family:'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; text-align:right; }
   .style-tag{
     font-family:'IBM Plex Mono', monospace; font-size:12px; color: var(--gold);

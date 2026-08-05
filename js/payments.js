@@ -1,17 +1,7 @@
 // ============================================================
 // payments.js — the topbar "Receive Payment" search modal.
-// Lets you find an order/memo by memo no., buyer, style, or
-// customer without scrolling through the table, then hands off
-// to openEditForPayment() (in panel.js) to actually record it.
 // ============================================================
 
-  // Builds one result per *outstanding* memo (deduped) or standalone order —
-  // i.e. something with an actual balance left to collect. A memo counts as
-  // payable as soon as any item in it has a Sale Price — Amount Paid /
-  // Balance Due / Payment Status are already synced identically across
-  // every item in a memo by the backend, so any one representative row's
-  // values already ARE the memo-wide totals. Anything already fully paid
-  // (balance ≤ 0) is skipped, since there's nothing left to receive.
   function buildPayableGroups() {
     const seenMemo = new Set();
     const groups = [];
@@ -27,11 +17,11 @@
 
         const siblings = ORDERS.filter(x => String(getField(x, 'Memo No.') || '').trim().toLowerCase() === lower);
         const priced = siblings.find(x => String(x['Sale Price'] ?? '').trim() !== '');
-        if (!priced) return; // nothing in this memo has a price yet — nothing to pay against
-        if (!hasBalance(priced)) return; // memo's already settled in full
+        if (!priced) return;
+        if (!hasBalance(priced)) return;
 
         groups.push({
-          repRow: priced._row,
+          repId: priced._row,
           memoNo: memoKey,
           buyer: priced['Sold To'] || '',
           customer: priced['CUSTOMER '] ?? priced['CUSTOMER'] ?? '',
@@ -42,9 +32,9 @@
         });
       } else {
         if (String(r['Sale Price'] ?? '').trim() === '') return;
-        if (!hasBalance(r)) return; // already paid in full
+        if (!hasBalance(r)) return;
         groups.push({
-          repRow: r._row,
+          repId: r._row,
           memoNo: '',
           buyer: r['Sold To'] || '',
           customer: r['CUSTOMER '] ?? r['CUSTOMER'] ?? '',
@@ -80,15 +70,12 @@
       return;
     }
 
-    // Biggest outstanding balance first — everything in this list already
-    // has money owed on it (fully-paid orders are filtered out upstream),
-    // so this just surfaces the largest ones first.
     groups.sort((a, b) => b.balanceDue - a.balanceDue);
 
     list.innerHTML = groups.map(g => {
       const cls = g.status === 'Paid' ? 'badge-paid' : g.status === 'Partial' ? 'badge-partial' : 'badge-unpaid';
       return `
-        <div class="pay-result" data-row="${g.repRow}">
+        <div class="pay-result" data-row="${g.repId}">
           <div class="pay-result-main">
             <div class="pay-result-buyer">${g.buyer || 'No buyer set'}</div>
             <div class="pay-result-sub">${getCustomerBadge(g.customer)} · ${g.styles.join(', ')}${g.memoNo ? ' · Memo ' + g.memoNo : ''}</div>
@@ -104,7 +91,7 @@
     list.querySelectorAll('.pay-result').forEach(el => {
       el.addEventListener('click', () => {
         closePaymentSearch();
-        openEditForPayment(parseInt(el.dataset.row, 10));
+        openEditForPayment(el.dataset.row);
       });
     });
   }

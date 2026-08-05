@@ -115,7 +115,10 @@ export async function syncMemoPayments(memoNo, paymentLog, amountPaid, balanceDu
   });
   await batch.commit();
 }
-
+export async function restoreOrder(id, data) {
+  await setDoc(doc(db, 'orders', id), data);
+  return { ok: true };
+}
 // ---------- MIGRATION (one-time use) ----------
 export async function migrateOrders(ordersArray) {
   const batch = writeBatch(db);

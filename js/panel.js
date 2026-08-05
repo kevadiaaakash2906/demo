@@ -4,12 +4,18 @@
 // save, and hold-to-delete (+ undo)
 // ============================================================
 
+  async function getFirebaseAPI() {
+    const mod = await import('./firebase.js');
+    return mod;
+  }
+
   // ============ UNDO DELETE (60-second window) ============
   let undoTimer = null;
   let undoCountdownTimer = null;
+  let lastDeletedOrder = null; // { id, data }
 
-  function showUndoToast(token) {
-    if (!token) { showToast('Order deleted'); return; }
+  function showUndoToast(docId) {
+    if (!docId) { showToast('Order deleted'); return; }
 
     clearTimeout(undoTimer);
     clearInterval(undoCountdownTimer);
@@ -29,22 +35,22 @@
     undoTimer = setTimeout(() => {
       toast.classList.remove('show');
       clearInterval(undoCountdownTimer);
+      lastDeletedOrder = null;
     }, 60000);
 
     $('undoBtn').onclick = async () => {
       clearTimeout(undoTimer);
       clearInterval(undoCountdownTimer);
       toast.classList.remove('show');
+      if (!lastDeletedOrder) return;
       try {
-        const data = await jsonp({ pass: PASS, action: 'undo', token: token });
-        if (data.ok) {
-          showToast('Order restored');
-          await refreshOrders();
-        } else {
-          showToast(data.error || 'Could not undo — window may have expired', 'bad');
-        }
+        const { restoreOrder } = await getFirebaseAPI();
+        await restoreOrder(lastDeletedOrder.id, lastDeletedOrder.data);
+        lastDeletedOrder = null;
+        showToast('Order restored');
+        await loadOrders();
       } catch (err) {
-        showToast(err.userMessage || 'Network error — could not undo', 'bad');
+        showToast(err.message || 'Could not undo — window may have expired', 'bad');
       }
     };
   }
@@ -59,7 +65,7 @@
     const pgWt = netWt * multiplier;
     const goldAmount = pgWt * GOLD_RATE_PER_10G;
     const laborAmount = netWt * lCharges;
-    const subTotal = goldAmount + diamAmount + lCharges + laborAmount;
+    const subTotal = goldAmount + diamAmount + laborAmount;
     const usd = subTotal / USD_RATE;
 
     return { pgWt, goldAmount, laborAmount, subTotal, usd };
@@ -75,14 +81,11 @@
     $('prev_usd').textContent = '$' + fmtNum(comp.usd, 2);
 
     const sale = computeSale(fields);
-    const fmtPay = ROLE === 'seller' ? fmtUSD : fmtMoney;
+    const fmtPay = fmtUSD;
     $('prev_amountPaid').textContent = sale.amountPaid > 0 ? fmtPay(sale.amountPaid) : '—';
     $('prev_balanceDue').textContent = sale.salePrice === null ? '—' : fmtPay(sale.balanceDue);
     $('prev_paymentStatus').textContent = sale.status || '—';
 
-    // Memo grouping: show the other items sharing this memo number, and
-    // switch the preview/labels over to memo-wide totals once there's more
-    // than one item involved.
     const siblings = getMemoSiblings(fields.memoNo, editingRow);
     const summaryEl = $('memoSummary');
     const instLabel = $('instScopeLabel');
@@ -92,7 +95,7 @@
       summaryEl.textContent = `Also in this memo: ${names} — ${siblings.length + 1} item(s) total.`;
       instLabel.textContent = '(applies to the whole memo)';
       $('row_memoTotal').style.display = '';
-      $('prev_memoTotal').textContent = (ROLE === 'seller' ? fmtUSD : fmtMoney)(sale.memoTotal);
+      $('prev_memoTotal').textContent = fmtUSD(sale.memoTotal);
     } else {
       summaryEl.style.display = 'none';
       instLabel.textContent = '';
@@ -100,19 +103,12 @@
     }
   }
 
-  // Finds other orders sharing the same Memo No. (case/whitespace-insensitive),
-  // excluding the row currently open in the panel.
   function getMemoSiblings(memoNo, excludeRow) {
     const key = String(memoNo || '').trim().toLowerCase();
     if (!key) return [];
     return ORDERS.filter(r => r._row !== excludeRow && String(getField(r, 'Memo No.') ?? '').trim().toLowerCase() === key);
   }
 
-  // Mirrors the backend's Amount Paid / Balance Due / Payment Status logic,
-  // purely for the live preview — the sheet is still the source of truth
-  // once saved. Amount Paid is always the sum of the installment list. When
-  // this item shares a Memo No. with others, the balance/status are judged
-  // against the combined memo total rather than just this item's price.
   function computeSale(fields) {
     const paid = currentInstallments.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
     const priceStr = String(fields.salePrice ?? '').trim();
@@ -133,7 +129,7 @@
     if (!currentInstallments.length) {
       list.innerHTML = `<div class="installments-empty">No payments recorded yet.</div>`;
     } else {
-      const fmtInst = ROLE === 'seller' ? fmtUSD : fmtMoney;
+      const fmtInst = fmtUSD;
       list.innerHTML = currentInstallments.map((inst, i) => `
         <div class="installment-item">
           <span class="inst-date">${inst.date ? fmtDate(inst.date) : '—'}</span>
@@ -186,10 +182,6 @@
     document.querySelectorAll('tbody tr').forEach(r => r.classList.remove('selected'));
   }
 
-  // Warns before discarding a form the person has actually started typing
-  // into, so an accidental tap on the backdrop or X doesn't silently lose
-  // their work. Only wired to the user-facing close controls — internal
-  // calls to closePanelFn() after a successful save/delete skip this.
   let formDirty = false;
   document.querySelectorAll('#panel .field input, #panel .field textarea').forEach(inp => {
     inp.addEventListener('input', () => { formDirty = true; });
@@ -203,10 +195,10 @@
   $('closePanel').addEventListener('click', requestClosePanel);
   $('overlay').addEventListener('click', requestClosePanel);
 
-  function openEdit(rowNum) {
-    const order = ORDERS.find(r => r._row === rowNum);
+  function openEdit(rowId) {
+    const order = ORDERS.find(r => r._row === rowId);
     if (!order) return;
-    editingRow = rowNum;
+    editingRow = rowId;
     const isStaff = ROLE === 'staff';
     const isSeller = ROLE === 'seller';
     const canEditSale = isStaff || isSeller;
@@ -227,11 +219,6 @@
     $('f_dateSold').value = order['Date Sold'] ? String(order['Date Sold']).split('T')[0] : '';
     $('f_memoNo').value = getField(order, 'Memo No.') ?? '';
 
-    // Load installments from the structured Payment Log JSON. If the sheet
-    // has an older freeform note there instead (or nothing), fall back to
-    // seeding one installment from the existing Amount Paid total, so a
-    // previously-recorded payment isn't lost the first time this order is
-    // reopened under the new installment tracking.
     let loadedInstallments = [];
     const rawLog = order['Payment Log'];
     if (rawLog) {
@@ -242,7 +229,7 @@
             .filter(x => x && !isNaN(parseFloat(x.amount)))
             .map(x => ({ date: x.date || '', amount: parseFloat(x.amount) }));
         }
-      } catch (e) { /* legacy freeform note — ignored, handled by the fallback below */ }
+      } catch (e) { /* legacy freeform note */ }
     }
     if (!loadedInstallments.length) {
       const existingPaid = parseFloat(order['Amount Paid']);
@@ -256,10 +243,8 @@
     $('err_f_installment').textContent = '';
     renderInstallments();
 
-    // Manufacturing details: only the manufacturer (staff) can edit these.
     const manufacturingIds = ['f_customer','f_style','f_date','f_grossWt','f_netWt','f_diaQty','f_inCt','f_colourStone','f_multiplier','f_diamAmount','f_lCharges'];
     manufacturingIds.forEach(id => { $(id).readOnly = !isStaff; });
-    // Sale & payment details: the manufacturer AND the seller can edit these.
     const saleIds = ['f_memoNo','f_soldTo','f_salePrice','f_dateSold','f_instAmount','f_instDate'];
     saleIds.forEach(id => { $(id).readOnly = !canEditSale; });
     $('addInstallmentBtn').style.display = canEditSale ? '' : 'none';
@@ -267,21 +252,14 @@
     $('deleteText').textContent = 'Delete';
     $('deleteBtn').classList.remove('holding');
     $('deleteProgress').style.width = '0%';
-    // Currency labels: seller works in USD, staff in INR
-    $('lbl_salePrice').textContent = isSeller ? 'Sale Price ($)' : 'Sale Price (₹)';
-    $('f_instAmount').placeholder = isSeller ? 'Amount $' : 'Amount ₹';
+    $('lbl_salePrice').textContent = 'Sale Price ($)';
+    $('f_instAmount').placeholder = 'Amount $';
     updatePreview();
     openPanel();
   }
 
-  // Opens the normal edit panel for an order, then jumps straight to the
-  // Sale & Payment section and focuses the amount box — the entry point
-  // used by the quick-pay row icon and the "Receive Payment" search modal.
-  // Deliberately reuses openEdit()/renderInstallments()/validateFields()
-  // rather than a separate payment path, so memo syncing, role checks, and
-  // save/undo behavior stay exactly as they already are for every order.
-  function openEditForPayment(rowNum) {
-    openEdit(rowNum);
+  function openEditForPayment(rowId) {
+    openEdit(rowId);
     requestAnimationFrame(() => {
       const divider = document.querySelector('#panel .section-divider');
       if (divider) divider.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -300,8 +278,8 @@
     $('err_f_installment').textContent = '';
     renderInstallments();
     $('deleteBtn').style.display = 'none';
-    $('lbl_salePrice').textContent = ROLE === 'seller' ? 'Sale Price ($)' : 'Sale Price (₹)';
-    $('f_instAmount').placeholder = ROLE === 'seller' ? 'Amount $' : 'Amount ₹';
+    $('lbl_salePrice').textContent = 'Sale Price ($)';
+    $('f_instAmount').placeholder = 'Amount $';
     updatePreview();
     openPanel();
   });
@@ -309,11 +287,7 @@
   ['f_netWt','f_multiplier','f_diamAmount','f_lCharges','f_salePrice','f_memoNo'].forEach(id => {
     $(id).addEventListener('input', updatePreview);
   });
-  // Auto-fill buyer + existing payment history when memo number matches
-  // an existing order. Without this, a brand-new item linked to an
-  // existing memo would start "blank" and — since the backend treats the
-  // group's payment log as shared — could look like the memo has never
-  // been paid even though sibling items already have recorded payments.
+
   $('f_memoNo').addEventListener('input', () => {
     const memoVal = $('f_memoNo').value.trim();
     if (!memoVal) return;
@@ -341,6 +315,7 @@
       }
     }
   });
+
   function collectFields() {
     return {
       customer: $('f_customer').value.trim(),
@@ -382,8 +357,6 @@
     $('err_f_installment').textContent = '';
   }
 
-  // Live-clear a field's error as soon as the person edits it, rather than
-  // making them hit Save again just to see if it's fixed.
   ['f_customer','f_style','f_grossWt','f_netWt','f_diaQty','f_inCt','f_colourStone','f_multiplier','f_diamAmount','f_lCharges','f_salePrice']
     .forEach(id => $(id).addEventListener('input', () => setFieldError(id, '')));
 
@@ -395,12 +368,10 @@
     if (!fields.customer) fail('f_customer', 'Customer is required.');
     if (!fields.style) fail('f_style', 'Style No. is required.');
 
-    // Net Wt is required and must be a real positive number — everything
-    // downstream (gold amount, sub total, $) is derived from it.
-    if (!String(fields.netWt).trim()) {
-      fail('f_netWt', 'Net Wt is required.');
-    } else if (isNaN(parseFloat(fields.netWt)) || parseFloat(fields.netWt) <= 0) {
-      fail('f_netWt', 'Net Wt must be a positive number.');
+    if (String(fields.netWt).trim() !== '') {
+      if (isNaN(parseFloat(fields.netWt)) || parseFloat(fields.netWt) < 0) {
+        fail('f_netWt', 'Net Wt must be a positive number.');
+      }
     }
 
     if (String(fields.grossWt).trim() !== '') {
@@ -425,8 +396,6 @@
       if (isNaN(m) || m <= 0) fail('f_multiplier', 'Multiplier must be a positive number.');
     }
 
-    // Sale & payment fields are optional (a piece may not be sold yet), but
-    // if provided, they need to hold together.
     const priceStr = String(fields.salePrice).trim();
     if (priceStr !== '') {
       const price = parseFloat(priceStr);
@@ -459,17 +428,12 @@
 
     const computed = computeOrder(fields);
     const payload = {
-      pass: PASS,
-      action: editingRow ? 'edit' : 'add',
-      row: editingRow,
-      fields: {
-        ...fields,
-        pgWt: computed.pgWt,
-        goldAmount: computed.goldAmount,
-        laborAmount: computed.laborAmount,
-        subTotal: computed.subTotal,
-        usd: computed.usd
-      }
+      ...fields,
+      pgWt: computed.pgWt,
+      goldAmount: computed.goldAmount,
+      laborAmount: computed.laborAmount,
+      subTotal: computed.subTotal,
+      usd: computed.usd
     };
 
     $('saveMsg').textContent = 'Saving…';
@@ -478,26 +442,106 @@
     $('saveBtn').disabled = true;
 
     try {
-      const data = await jsonp(payload);
+      const { addOrder, updateOrder, syncMemoPayments } = await getFirebaseAPI();
+      let result;
+      let docId;
+
+      if (editingRow) {
+        result = await updateOrder(editingRow, payload);
+        docId = editingRow;
+      } else {
+        result = await addOrder(payload);
+        docId = result.id;
+      }
+
       $('saveBtn').textContent = 'Save';
       $('saveBtn').disabled = false;
-      if (!data.ok) {
-        $('saveMsg').textContent = data.error || 'Could not save.';
+
+      if (!result.ok) {
+        $('saveMsg').textContent = 'Could not save.';
         $('saveMsg').className = 'bad';
         return;
       }
+
+      // Optimistic local update so UI feels instant
+      const savedOrder = buildLocalOrder(fields, computed, docId, result.srNo);
+      if (editingRow) {
+        const idx = ORDERS.findIndex(r => r._row === editingRow);
+        if (idx !== -1) ORDERS[idx] = savedOrder;
+      } else {
+        ORDERS.push(savedOrder);
+      }
+
+      // Sync memo payments in background
+      if (fields.memoNo) {
+        const sale = computeSale(fields);
+        syncMemoPayments(fields.memoNo, fields.paymentLog, sale.amountPaid, sale.balanceDue, sale.status)
+          .catch(() => {});
+      }
+
+      renderKPIs();
+      renderHeaderStats();
+      populateCustomerFilter();
+      renderResults(applyFilter());
+
       $('saveMsg').textContent = 'Saved successfully.';
       $('saveMsg').className = 'good';
-      if (payload.action === 'add') playScreenFx('add');
-      await refreshOrders();
-      setTimeout(closePanelFn, 600);
+      if (!editingRow) playScreenFx('add');
+
+      setTimeout(closePanelFn, 300);
+
+      // Silent background refresh after 2s
+      setTimeout(() => loadOrders().catch(() => {}), 2000);
+
     } catch (err) {
       $('saveBtn').textContent = 'Save';
       $('saveBtn').disabled = false;
-      $('saveMsg').textContent = err.userMessage || 'Network error — could not save.';
+      $('saveMsg').textContent = err.message || 'Network error — could not save.';
       $('saveMsg').className = 'bad';
     }
   });
+
+  // Build a full order object locally for optimistic updates
+  function buildLocalOrder(fields, computed, docId, srNo) {
+    const isEdit = !!editingRow;
+    const existing = isEdit ? ORDERS.find(r => r._row === editingRow) : null;
+    const finalSr = srNo || (existing ? existing['Sr. No.'] : (Math.max(0, ...ORDERS.map(r => parseInt(r['Sr. No.']) || 0)) + 1));
+
+    const salePrice = parseFloat(fields.salePrice) || 0;
+    const hasSale = String(fields.salePrice).trim() !== '' && salePrice > 0;
+    const paid = currentInstallments.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
+
+    return {
+      _row: docId,
+      _id: docId,
+      'Sr. No.': finalSr,
+      'CUSTOMER ': fields.customer,
+      'CUSTOMER': fields.customer,
+      'Style No.': fields.style,
+      'Date': fields.date,
+      'Gross Wt': fields.grossWt,
+      'Net Wt': fields.netWt,
+      'Dia Qty': fields.diaQty,
+      'IN CT': fields.inCt,
+      'COLOUR STONE': fields.colourStone,
+      'Multiplier': fields.multiplier,
+      'Pg Wt': computed.pgWt,
+      'Gold Amount': computed.goldAmount,
+      'Diam Amount': fields.diamAmount,
+      'L CHARGES': fields.lCharges,
+      'Labor Amount': computed.laborAmount,
+      'SUB TOTAL': computed.subTotal,
+      '$': computed.usd,
+      'Sold To': fields.soldTo,
+      'Sale Price': hasSale ? salePrice : '',
+      'Date Sold': fields.dateSold,
+      'Amount Paid': paid,
+      'Balance Due': hasSale ? (salePrice - paid) : '',
+      'Payment Status': hasSale ? (paid <= 0 ? 'Unpaid' : (paid >= salePrice ? 'Paid' : 'Partial')) : '',
+      'Payment Log': fields.paymentLog,
+      'Memo No.': fields.memoNo
+    };
+  }
 
   // ============ DELETE (Hold 3s) ============
   $('deleteBtn').addEventListener('mousedown', startDeleteHold);
@@ -511,7 +555,7 @@
     if (editingRow === null) return;
     $('deleteBtn').classList.add('holding');
     $('deleteProgress').style.width = '0%';
-    const duration = 300; // ms — same total hold time as before
+    const duration = 300;
     const start = performance.now();
     function tick(now) {
       const progress = Math.min(((now - start) / duration) * 100, 100);
@@ -538,23 +582,29 @@
   async function executeDelete() {
     $('deleteText').textContent = 'Deleting…';
     try {
-      const data = await jsonp({ pass: PASS, action: 'delete', row: editingRow });
-      if (data.ok) {
-        playScreenFx('delete');
-        showUndoToast(data.undoToken);
-        await refreshOrders();
-        closePanelFn();
-      } else {
-        $('saveMsg').textContent = data.error || 'Could not delete.';
-        $('saveMsg').className = 'bad';
-        $('deleteText').textContent = 'Delete';
-        $('deleteBtn').classList.remove('holding');
-      }
+      const { deleteOrder } = await getFirebaseAPI();
+      const order = ORDERS.find(r => r._row === editingRow);
+      if (!order) throw new Error('Order not found');
+
+      // Store for undo
+      lastDeletedOrder = { id: editingRow, data: { ...order } };
+
+      await deleteOrder(editingRow);
+      playScreenFx('delete');
+      showUndoToast(editingRow);
+
+      // Optimistic remove
+      ORDERS = ORDERS.filter(r => r._row !== editingRow);
+      renderKPIs();
+      renderHeaderStats();
+      populateCustomerFilter();
+      renderResults(applyFilter());
+
+      closePanelFn();
     } catch (err) {
-      $('saveMsg').textContent = err.userMessage || 'Network error — could not delete.';
+      $('saveMsg').textContent = err.message || 'Could not delete.';
       $('saveMsg').className = 'bad';
       $('deleteText').textContent = 'Delete';
       $('deleteBtn').classList.remove('holding');
     }
   }
-

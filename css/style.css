@@ -1,4 +1,4 @@
-  :root{
+:root{
     --bg: #1E1B18;
     --surface: #262220;
     --surface-raised: #2E2925;
@@ -21,6 +21,8 @@
     color: var(--text);
     font-family: 'IBM Plex Sans', sans-serif;
     -webkit-font-smoothing: antialiased;
+    overscroll-behavior-y: none;
+    -webkit-overflow-scrolling: touch;
   }
   @media (prefers-reduced-motion: reduce){
     *, *::before, *::after{
@@ -156,37 +158,38 @@
   .kpi-value{ font-family:'IBM Plex Mono', monospace; font-size:20px; font-weight:500; color:var(--gold); }
   .kpi-sub{ font-size:11.5px; color:var(--text-dim); margin-top:4px; }
 
-  .table-wrap{ border:1px solid var(--line); border-radius:4px; overflow:visible; }
+  .table-wrap{
+    border:1px solid var(--line); border-radius:4px; overflow:visible;
+    isolation: isolate;
+  }
   table{ width:100%; table-layout:fixed; border-collapse:separate; border-spacing:0; font-size:13px; }
-  col{ width: 8.3333%; } /* 12 columns sharing the table equally by default */
-/* Add this — creates a solid stacking context for the entire header */
-thead th{
-  text-align:left; padding:12px 14px;
-  background: var(--surface);        /* solid background */
-  color: var(--text-dim); font-weight:500; font-size:11px; text-transform:uppercase;
-  letter-spacing:0.6px; border-bottom:1px solid var(--line);
-  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-  cursor:pointer; user-select:none; transition: color 0.15s, box-shadow 0.2s ease;
-  position: sticky; top: var(--header-h);
-  z-index: 100;                      /* was 5 — too low */
-  box-shadow: 0 1px 0 var(--line);
-}
-thead.is-stuck th{
-  box-shadow: 0 1px 0 var(--line), 0 6px 12px -6px rgba(0,0,0,0.45);
-}
-  thead.is-stuck th{ box-shadow: 0 1px 0 var(--line), 0 6px 12px -6px rgba(0,0,0,0.45); }
+  col{ width: 8.3333%; }
+
+  thead th{
+    text-align:left; padding:12px 14px;
+    background: var(--surface);
+    color: var(--text-dim); font-weight:500; font-size:11px; text-transform:uppercase;
+    letter-spacing:0.6px; border-bottom:1px solid var(--line);
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    cursor:pointer; user-select:none; transition: color 0.15s, box-shadow 0.2s ease;
+    position: sticky; top: var(--header-h);
+    box-shadow: 0 1px 0 var(--line);
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+  }
+  thead.is-stuck th{
+    box-shadow: 0 1px 0 var(--line), 0 6px 12px -6px rgba(0,0,0,0.45);
+  }
   thead th:first-child{ border-top-left-radius:4px; }
   thead th:last-child{ border-top-right-radius:4px; }
   thead th:hover{ color: var(--gold); }
   thead th.sort-asc::after{ content:' ▲'; color:var(--gold); font-size:9px; }
   thead th.sort-desc::after{ content:' ▼'; color:var(--gold); font-size:9px; }
+
   tbody td{
     padding:11px 14px; border-bottom:1px solid var(--line);
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
   }
-  /* Buyer names can run long — wrap them instead of cropping with an
-     ellipsis. Row height just grows to fit since the table uses
-     table-layout:fixed, so neighboring columns stay unaffected. */
   tbody td.col-soldTo{
     overflow:visible; text-overflow:clip; white-space:normal;
     word-break:break-word; line-height:1.4;
@@ -197,22 +200,23 @@ thead.is-stuck th{
   tbody tr:last-child td:first-child{ border-bottom-left-radius:4px; }
   tbody tr:last-child td:last-child{ border-bottom-right-radius:4px; }
   tbody tr.selected{ background: var(--gold-glow); }
-/* Zebra striping */
-tbody tr:nth-child(even) {
-  background: rgba(255,255,255,0.02);
-}
-tbody tr:nth-child(even):hover {
-  background: var(--surface);
-}
-tbody tr:nth-child(even).selected {
-  background: var(--gold-glow);
-}
-/* Status border */
-tbody tr { border-left: 3px solid transparent; }
-tbody tr.paid-row    { border-left-color: var(--good); }
-tbody tr.partial-row { border-left-color: var(--gold); }
-tbody tr.unpaid-row  { border-left-color: var(--bad); }
-tbody tr.notsold-row { border-left-color: var(--text-dim); }
+
+  tbody tr:nth-child(even) {
+    background: rgba(255,255,255,0.02);
+  }
+  tbody tr:nth-child(even):hover {
+    background: var(--surface);
+  }
+  tbody tr:nth-child(even).selected {
+    background: var(--gold-glow);
+  }
+
+  tbody tr { border-left: 3px solid transparent; }
+  tbody tr.paid-row    { border-left-color: var(--good); }
+  tbody tr.partial-row { border-left-color: var(--gold); }
+  tbody tr.unpaid-row  { border-left-color: var(--bad); }
+  tbody tr.notsold-row { border-left-color: var(--text-dim); }
+
   .num{ font-family:'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; text-align:right; }
   .style-tag{
     font-family:'IBM Plex Mono', monospace; font-size:12px; color: var(--gold);
@@ -251,7 +255,6 @@ tbody tr.notsold-row { border-left-color: var(--text-dim); }
   }
   .quick-pay-btn:hover{ background: var(--gold); color:#20190F; animation: wiggle 0.4s ease; }
 
-  /* ---- Receive Payment search modal ---- */
   #paymentSearchOverlay{
     display:none; position:fixed; inset:0; background: rgba(10,9,7,0.6);
     z-index:22; backdrop-filter: blur(3px);
@@ -359,23 +362,17 @@ tbody tr.notsold-row { border-left-color: var(--text-dim); }
   body.view-only .field input, body.view-only .field textarea{ opacity:0.65; cursor:not-allowed; }
   body.view-only .quick-pay-btn, body.view-only #receivePaymentBtn{ display:none; }
 
-  /* ---- Role-based column visibility ----
-     staff (manufacturer, Arpan): INR pricing — hides $ and Memo No.
-     seller (based in USA): USD pricing + carat weight — hides the INR
-     manufacturing weight/amount columns entirely.
-     customer: unchanged, sees the same columns as staff (minus edit rights,
-     handled separately by .view-only above).
-     Hiding is done via visibility:collapse on the <col> element (not
-     display:none on cells) so the remaining columns stretch to fill the
-     freed space and stay evenly spaced, instead of leaving a gap. */
-  col.col-ctWt, col.col-salePrice, col.col-diaCt{ visibility:collapse; } /* hidden by default */
+  col.col-ctWt, col.col-salePrice, col.col-diaCt, col.col-netWt{ visibility:collapse; }
   body.role-staff col.col-usd, body.role-staff col.col-memoNo{ visibility:collapse; }
   body.role-seller col.col-subTotal{ visibility:collapse; }
   body.role-seller col.col-grossWt, body.role-seller col.col-ctWt, body.role-seller col.col-salePrice, body.role-seller col.col-diaCt{ visibility:visible; }
-  body.role-staff col.col-salePrice, body.role-staff col.col-diaCt{ visibility:visible; }
-  body.role-seller .col-balanceDue{ display:none; } /* mobile card field, unrelated to <col> */
+  body.role-staff col.col-netWt, body.role-staff col.col-salePrice{ visibility:visible; }
+  body.role-seller .col-balanceDue{ display:none; }
   body.role-seller .order-card-grid .col-ctWt{ display:block; }
   body.role-seller .order-card-grid .col-diaCt{ display:block; }
+  .order-card-grid .col-netWt{ display: none; }
+  body.role-staff .order-card-grid .col-netWt{ display: block; }
+  body.role-staff .order-card-grid .col-diaCt{ display: none; }
 
   .panel-foot{
     padding:18px 24px; border-top:1px solid var(--line); display:flex; gap:10px;
@@ -518,13 +515,22 @@ tbody tr.notsold-row { border-left-color: var(--text-dim); }
   }
 
   @media (max-width: 768px){
-    header.topbar{ padding:14px 16px; }
+    header.topbar{ 
+      padding:14px 16px; 
+      position: fixed;
+      top: 0; left: 0; right: 0;
+    }
+    #app{ padding-top: 120px; }
     .header-stats{ order:99; width:100%; justify-content:space-between; gap:12px; padding:2px 0 0; }
     main{ padding:16px; }
     .kpi-grid{ grid-template-columns: repeat(2, 1fr); }
     #panel{ width:100vw; max-width:100vw; }
     .table-wrap{ display:none; }
-    .card-list{ display:block; }
+    .card-list{ 
+      display:block; 
+      touch-action: pan-y;
+      overscroll-behavior: contain;
+    }
     .filter-bar{ gap:10px; }
     .filter-group select, .filter-group input{ min-width:0; flex:1; }
     .rate-note{ margin-left:0; order:99; width:100%; }

@@ -4,9 +4,15 @@
 // save, and hold-to-delete (+ undo)
 // ============================================================
 
-  async function getFirebaseAPI() {
-    const mod = await import('./firebase.js');
-    return mod;
+  // All Firebase functions are exposed on window by firebase.js
+  function getFirebaseAPI() {
+    return Promise.resolve({
+      addOrder: window.addOrder,
+      updateOrder: window.updateOrder,
+      deleteOrder: window.deleteOrder,
+      syncMemoPayments: window.syncMemoPayments,
+      restoreOrder: window.restoreOrder
+    });
   }
 
   // ============ UNDO DELETE (60-second window) ============
@@ -427,13 +433,35 @@
     }
 
     const computed = computeOrder(fields);
+    const sale = computeSale(fields);
+
+    // Build payload using the exact sheet-header keys the UI expects
     const payload = {
-      ...fields,
-      pgWt: computed.pgWt,
-      goldAmount: computed.goldAmount,
-      laborAmount: computed.laborAmount,
-      subTotal: computed.subTotal,
-      usd: computed.usd
+      'CUSTOMER ': fields.customer,
+      'CUSTOMER': fields.customer,
+      'Style No.': fields.style,
+      'Date': fields.date,
+      'Gross Wt': fields.grossWt,
+      'Net Wt': fields.netWt,
+      'Dia Qty': fields.diaQty,
+      'IN CT': fields.inCt,
+      'COLOUR STONE': fields.colourStone,
+      'Multiplier': fields.multiplier,
+      'Diam Amount': fields.diamAmount,
+      'L CHARGES': fields.lCharges,
+      'Sold To': fields.soldTo,
+      'Sale Price': fields.salePrice,
+      'Date Sold': fields.dateSold,
+      'Payment Log': fields.paymentLog,
+      'Memo No.': fields.memoNo,
+      'Pg Wt': computed.pgWt,
+      'Gold Amount': computed.goldAmount,
+      'Labor Amount': computed.laborAmount,
+      'SUB TOTAL': computed.subTotal,
+      '$': computed.usd,
+      'Amount Paid': sale.amountPaid,
+      'Balance Due': sale.balanceDue,
+      'Payment Status': sale.status
     };
 
     $('saveMsg').textContent = 'Saving…';
@@ -474,7 +502,6 @@
 
       // Sync memo payments in background
       if (fields.memoNo) {
-        const sale = computeSale(fields);
         syncMemoPayments(fields.memoNo, fields.paymentLog, sale.amountPaid, sale.balanceDue, sale.status)
           .catch(() => {});
       }
@@ -507,9 +534,7 @@
     const existing = isEdit ? ORDERS.find(r => r._row === editingRow) : null;
     const finalSr = srNo || (existing ? existing['Sr. No.'] : (Math.max(0, ...ORDERS.map(r => parseInt(r['Sr. No.']) || 0)) + 1));
 
-    const salePrice = parseFloat(fields.salePrice) || 0;
-    const hasSale = String(fields.salePrice).trim() !== '' && salePrice > 0;
-    const paid = currentInstallments.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
+    const sale = computeSale(fields);
 
     return {
       _row: docId,
@@ -533,11 +558,11 @@
       'SUB TOTAL': computed.subTotal,
       '$': computed.usd,
       'Sold To': fields.soldTo,
-      'Sale Price': hasSale ? salePrice : '',
+      'Sale Price': fields.salePrice,
       'Date Sold': fields.dateSold,
-      'Amount Paid': paid,
-      'Balance Due': hasSale ? (salePrice - paid) : '',
-      'Payment Status': hasSale ? (paid <= 0 ? 'Unpaid' : (paid >= salePrice ? 'Paid' : 'Partial')) : '',
+      'Amount Paid': sale.amountPaid,
+      'Balance Due': sale.balanceDue,
+      'Payment Status': sale.status,
       'Payment Log': fields.paymentLog,
       'Memo No.': fields.memoNo
     };

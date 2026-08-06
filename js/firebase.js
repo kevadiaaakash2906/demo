@@ -1,6 +1,10 @@
 // ============================================================
 // firebase.js — Firebase Auth + Firestore backend
 // Replaces api.js and the entire Google Apps Script backend
+//
+// SECURITY NOTE: The Firebase config below is hardcoded for this
+// deployment. If you make this repo public, move these values to
+// environment variables or a separate config file that is git-ignored.
 // ============================================================
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -41,52 +45,53 @@ const EMAIL_TO_ROLE = {
 };
 
 // ---------- AUTH ----------
-export async function login(pass) {
+async function login(pass) {
   const cred = PASS_MAP[pass];
   if (!cred) throw new Error('Wrong password');
   const userCred = await signInWithEmailAndPassword(auth, cred.email, pass);
   return { ok: true, role: cred.role };
 }
 
-export function logout() { return signOut(auth); }
+function logout() { return signOut(auth); }
 
-export function onAuthChange(cb) { return onAuthStateChanged(auth, cb); }
+function onAuthChange(cb) { return onAuthStateChanged(auth, cb); }
 
 // ---------- ORDERS ----------
 const ordersCol = collection(db, 'orders');
 
-export async function fetchOrders() {
-  const snap = await getDocs(query(ordersCol, orderBy('srNo', 'asc')));
+async function fetchOrders() {
+  const snap = await getDocs(query(ordersCol, orderBy('Sr. No.', 'asc')));
   const rows = [];
   snap.forEach(d => {
     const data = d.data();
+    // Use _row as the canonical row identifier (matches old sheet row numbers)
+    const row = { _id: d.id, _row: d.id, ...data };
     // Convert Firestore Timestamps to strings for your existing UI
-    const row = { _id: d.id, ...data };
-    if (row.date && row.date.toDate) row.date = row.date.toDate().toISOString().split('T')[0];
-    if (row.dateSold && row.dateSold.toDate) row.dateSold = row.dateSold.toDate().toISOString().split('T')[0];
+    if (row['Date'] && row['Date'].toDate) row['Date'] = row['Date'].toDate().toISOString().split('T')[0];
+    if (row['Date Sold'] && row['Date Sold'].toDate) row['Date Sold'] = row['Date Sold'].toDate().toISOString().split('T')[0];
     if (row.createdAt && row.createdAt.toDate) row.createdAt = row.createdAt.toDate().toISOString();
     rows.push(row);
   });
   return { ok: true, rows };
 }
 
-export async function addOrder(fields) {
+async function addOrder(fields) {
   // Compute next Sr. No. locally to match your old behavior
-  const snap = await getDocs(query(ordersCol, orderBy('srNo', 'desc')));
+  const snap = await getDocs(query(ordersCol, orderBy('Sr. No.', 'desc')));
   let nextSr = 1;
   if (!snap.empty) {
-    nextSr = (snap.docs[0].data().srNo || 0) + 1;
+    nextSr = (snap.docs[0].data()['Sr. No.'] || 0) + 1;
   }
   const docRef = await addDoc(ordersCol, {
     ...fields,
-    srNo: nextSr,
+    'Sr. No.': nextSr,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp()
   });
   return { ok: true, id: docRef.id, srNo: nextSr };
 }
 
-export async function updateOrder(id, fields) {
+async function updateOrder(id, fields) {
   await updateDoc(doc(db, 'orders', id), {
     ...fields,
     updatedAt: serverTimestamp()
@@ -94,7 +99,7 @@ export async function updateOrder(id, fields) {
   return { ok: true };
 }
 
-export async function deleteOrder(id) {
+async function deleteOrder(id) {
   await deleteDoc(doc(db, 'orders', id));
   return { ok: true };
 }
@@ -102,25 +107,30 @@ export async function deleteOrder(id) {
 // ---------- MEMO SYNC ----------
 // Firestore doesn't need manual memo sync like Sheets did.
 // Instead, we query by memoNo and update all matching docs.
-export async function syncMemoPayments(memoNo, paymentLog, amountPaid, balanceDue, paymentStatus) {
+async function syncMemoPayments(memoNo, paymentLog, amountPaid, balanceDue, paymentStatus) {
   if (!memoNo) return;
-  const q = query(ordersCol, where('memoNo', '==', memoNo));
+  const q = query(ordersCol, where('Memo No.', '==', memoNo));
   const snap = await getDocs(q);
   const batch = writeBatch(db);
   snap.forEach(d => {
     batch.update(doc(db, 'orders', d.id), {
-      paymentLog, amountPaid, balanceDue, paymentStatus,
+      'Payment Log': paymentLog,
+      'Amount Paid': amountPaid,
+      'Balance Due': balanceDue,
+      'Payment Status': paymentStatus,
       updatedAt: serverTimestamp()
     });
   });
   await batch.commit();
 }
-export async function restoreOrder(id, data) {
+
+async function restoreOrder(id, data) {
   await setDoc(doc(db, 'orders', id), data);
   return { ok: true };
 }
+
 // ---------- MIGRATION (one-time use) ----------
-export async function migrateOrders(ordersArray) {
+async function migrateOrders(ordersArray) {
   const batch = writeBatch(db);
   ordersArray.forEach((o, i) => {
     const ref = doc(ordersCol, `order_${i + 1}`);
@@ -129,3 +139,10 @@ export async function migrateOrders(ordersArray) {
   await batch.commit();
   console.log('Migrated', ordersArray.length, 'orders');
 }
+
+// Expose to window for deferred regular scripts
+Object.assign(window, {
+  login, logout, onAuthChange,
+  fetchOrders, addOrder, updateOrder, deleteOrder,
+  syncMemoPayments, restoreOrder, migrateOrders
+});

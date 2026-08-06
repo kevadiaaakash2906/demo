@@ -3,7 +3,8 @@
 // and the refresh/reload flow. Loaded after utils.js and firebase.js.
 // ============================================================
 
-import { login, fetchOrders } from './firebase.js';
+// NOTE: utils.js and firebase.js are loaded as modules before this script
+// and expose all their exports on window.  We use those globals here.
 
 // ---------- Configure this ----------
 const GOLD_RATE_PER_10G = 16000;
@@ -11,14 +12,16 @@ const USD_RATE = 94;
 // -------------------------------------
 
 // ============ APP STATE ============
-let PASS = '';
-let ROLE = 'staff';
-let ORDERS = [];
-let editingRow = null;
-let sortKey = null;
-let sortDir = 'asc';
-let deleteHoldRAF = null;
-let currentInstallments = []; // [{date, amount}] for the order currently open in the panel
+// Use var (not let) so these are attached to window and visible to other
+// deferred scripts (dashboard.js, filters.js, panel.js, etc.)
+var PASS = '';
+var ROLE = 'staff';
+var ORDERS = [];
+var editingRow = null;
+var sortKey = null;
+var sortDir = 'asc';
+var deleteHoldRAF = null;
+var currentInstallments = []; // [{date, amount}] for the order currently open in the panel
 
 $('rateNote').textContent = `Gold: ₹${GOLD_RATE_PER_10G.toLocaleString('en-IN')}/10g · $1 = ₹${USD_RATE} (fixed rates)`;
 
@@ -61,7 +64,7 @@ async function doLogin() {
   $('loginBtn').textContent = 'Checking…';
 
   try {
-    const data = await login(pass);
+    const data = await window.login(pass);
     PASS = pass;
     ROLE = data.role || 'staff';
     await loadOrders();
@@ -125,13 +128,9 @@ function equalizeColumnWidths() {
 async function loadOrders() {
   renderSkeleton();
   try {
-    const data = await fetchOrders();
-    ORDERS = (data.rows || []).filter(r => r.styleNo && String(r.styleNo).trim() !== '');
-    ORDERS.forEach(r => {
-      if (r.date && typeof r.date === 'number') {
-        r.date = excelDateToJSDate(r.date);
-      }
-    });
+    const data = await window.fetchOrders();
+    ORDERS = (data.rows || []).filter(r => r['Style No.'] && String(r['Style No.']).trim() !== '');
+    // Firestore returns ISO date strings already — no Excel serial conversion needed
     renderKPIs();
     renderHeaderStats();
     populateCustomerFilter();
@@ -149,7 +148,7 @@ $('refreshBtn').addEventListener('click', loadOrders);
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     if ($('paymentSearchModal').classList.contains('open')) closePaymentSearch();
-    else requestClosePanel();
+    else if (typeof requestClosePanel === 'function') requestClosePanel();
   }
   if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
     e.preventDefault();

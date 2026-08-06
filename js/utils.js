@@ -9,7 +9,7 @@
     n = parseFloat(n) || 0;
     return '₹' + n.toLocaleString('en-IN', { maximumFractionDigits: 2 });
   }
-    function fmtUSD(n) {
+  function fmtUSD(n) {
     n = parseFloat(n) || 0;
     return '$' + n.toLocaleString('en-IN', { maximumFractionDigits: 2 });
   }
@@ -83,3 +83,8 @@
     t.classList.add('show');
     setTimeout(() => t.classList.remove('show'), 3000);
   }
+
+  // Expose everything to window so deferred regular scripts can access them
+  Object.assign(window, {
+    $, fmtMoney, fmtUSD, fmtNum, gramsToCarats, getField, fmtDate, excelDateToJSDate, playScreenFx, showToast
+  });

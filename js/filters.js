@@ -72,7 +72,8 @@
 
   // ============ PAGINATION ============
   const PAGE_SIZE = 25;
-  let currentPage = 1;
+  // Use var so app.js can reset it during loadOrders()
+  var currentPage = 1;
 
   // The single entry point for showing a result set: pages it, renders the
   // table/cards for just that page, and updates the pagination controls.
@@ -103,4 +104,3 @@
     $('prevPageBtn').addEventListener('click', () => { currentPage--; renderResults(applyFilter()); });
     $('nextPageBtn').addEventListener('click', () => { currentPage++; renderResults(applyFilter()); });
   }
-

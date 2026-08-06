@@ -1,10 +1,8 @@
 // ============================================================
 // firebase.js — Firebase Auth + Firestore backend
-// Replaces api.js and the entire Google Apps Script backend
+// Also syncs every change to Google Sheets via webhook
 //
-// SECURITY NOTE: The Firebase config below is hardcoded for this
-// deployment. If you make this repo public, move these values to
-// environment variables or a separate config file that is git-ignored.
+// SECURITY NOTE: Move config to env vars if repo becomes public.
 // ============================================================
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -12,8 +10,8 @@ import {
   getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
-  getFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc,
-  query, serverTimestamp, writeBatch, setDoc, where
+  getFirestore, collection, doc, getDoc, getDocs, addDoc, setDoc, deleteDoc,
+  query, serverTimestamp, writeBatch, where
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -30,6 +28,24 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+// ============ GOOGLE SHEETS SYNC ============
+const SHEET_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbwWydlibeqUiMK1-LGG4cev4fXwyURuIqWZW2Ps0fSMOHodMG-371LVjZRgx_T8OmrYtg/exec';
+const SHEET_SECRET = 'vinere-sync-2026';
+
+async function syncToSheet(data) {
+  if (!SHEET_WEBHOOK_URL) return;
+  try {
+    const url = `${SHEET_WEBHOOK_URL}?secret=${encodeURIComponent(SHEET_SECRET)}`;
+    await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+  } catch (err) {
+    console.warn('Sheet sync failed:', err.message);
+  }
+}
+
 // Map your existing passwords to Firebase Auth emails
 const PASS_MAP = {
   'Arp&diam4265': { email: 'staff@vinere.local', role: 'staff' },
@@ -37,7 +53,6 @@ const PASS_MAP = {
   'qwertyuiop':   { email: 'customer@vinere.local', role: 'customer' }
 };
 
-// Reverse lookup for display
 const EMAIL_TO_ROLE = {
   'staff@vinere.local': 'staff',
   'seller@vinere.local': 'seller',
@@ -60,27 +75,21 @@ function onAuthChange(cb) { return onAuthStateChanged(auth, cb); }
 const ordersCol = collection(db, 'orders');
 
 async function fetchOrders() {
-  // NOTE: We do NOT use Firestore orderBy here because field names like
-  // 'Sr. No.' contain dots/spaces which Firestore interprets as path
-  // separators. Instead we fetch all docs and sort in JS.
   const snap = await getDocs(ordersCol);
   const rows = [];
   snap.forEach(d => {
     const data = d.data();
     const row = { _id: d.id, _row: d.id, ...data };
-    // Convert Firestore Timestamps to strings for your existing UI
     if (row['Date'] && row['Date'].toDate) row['Date'] = row['Date'].toDate().toISOString().split('T')[0];
     if (row['Date Sold'] && row['Date Sold'].toDate) row['Date Sold'] = row['Date Sold'].toDate().toISOString().split('T')[0];
     if (row.createdAt && row.createdAt.toDate) row.createdAt = row.createdAt.toDate().toISOString();
     rows.push(row);
   });
-  // Sort by Sr. No. in JavaScript (avoids Firestore FieldPath issues)
   rows.sort((a, b) => (parseInt(a['Sr. No.']) || 0) - (parseInt(b['Sr. No.']) || 0));
   return { ok: true, rows };
 }
 
 async function addOrder(fields) {
-  // Compute next Sr. No. locally
   const snap = await getDocs(ordersCol);
   let nextSr = 1;
   snap.forEach(d => {
@@ -93,14 +102,19 @@ async function addOrder(fields) {
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp()
   });
+  syncToSheet({ ...fields, 'Sr. No.': nextSr });
   return { ok: true, id: docRef.id, srNo: nextSr };
 }
 
 async function updateOrder(id, fields) {
-  await updateDoc(doc(db, 'orders', id), {
+  // NOTE: We use setDoc with merge:true instead of updateDoc because
+  // updateDoc treats dots in field names (like "Style No.") as path
+  // separators. setDoc with merge treats them as literal keys.
+  await setDoc(doc(db, 'orders', id), {
     ...fields,
     updatedAt: serverTimestamp()
-  });
+  }, { merge: true });
+  syncToSheet(fields);
   return { ok: true };
 }
 
@@ -116,13 +130,14 @@ async function syncMemoPayments(memoNo, paymentLog, amountPaid, balanceDue, paym
   const snap = await getDocs(q);
   const batch = writeBatch(db);
   snap.forEach(d => {
-    batch.update(doc(db, 'orders', d.id), {
+    // Same fix: use set with merge instead of update
+    batch.set(doc(db, 'orders', d.id), {
       'Payment Log': paymentLog,
       'Amount Paid': amountPaid,
       'Balance Due': balanceDue,
       'Payment Status': paymentStatus,
       updatedAt: serverTimestamp()
-    });
+    }, { merge: true });
   });
   await batch.commit();
 }
@@ -132,7 +147,6 @@ async function restoreOrder(id, data) {
   return { ok: true };
 }
 
-// ---------- MIGRATION (one-time use) ----------
 async function migrateOrders(ordersArray) {
   const batch = writeBatch(db);
   ordersArray.forEach((o, i) => {
@@ -143,7 +157,7 @@ async function migrateOrders(ordersArray) {
   console.log('Migrated', ordersArray.length, 'orders');
 }
 
-// Expose to window for deferred regular scripts
+// Expose to window
 Object.assign(window, {
   login, logout, onAuthChange,
   fetchOrders, addOrder, updateOrder, deleteOrder,

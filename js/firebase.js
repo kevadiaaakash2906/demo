@@ -1,7 +1,6 @@
 // ============================================================
 // firebase.js — Firebase Auth + Firestore backend + Google Sheets sync
-//
-// SECURITY NOTE: Move config to env vars if repo becomes public.
+// Uses no-cors mode to bypass CORS entirely
 // ============================================================
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -28,35 +27,29 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 // ============ GOOGLE SHEETS SYNC ============
-const SHEET_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbzLVuDufc4Apuu15bG7oO_cFAYxyklFz5KDJEZuDu3WyDcumZZSb8eybommZalSvELYdQ/exec';
+// NOTE: This URL must be updated after every new Apps Script deployment
+const SHEET_WEBHOOK_URL = 'PASTE_NEW_URL_HERE';
 const SHEET_SECRET = 'vinere-sync-2026';
 
 async function syncToSheet(data) {
-  if (!SHEET_WEBHOOK_URL) {
-    console.warn('[SheetSync] No webhook URL configured');
+  if (!SHEET_WEBHOOK_URL || SHEET_WEBHOOK_URL === 'PASTE_NEW_URL_HERE') {
+    console.warn('[SheetSync] Webhook URL not set');
     return;
   }
   try {
-    const url = `${SHEET_WEBHOOK_URL}?secret=${encodeURIComponent(SHEET_SECRET)}`;
-    console.log('[SheetSync] Sending to webhook:', url);
-    // Use text/plain to avoid CORS preflight (browser won't send OPTIONS)
-    const response = await fetch(url, {
+    const url = SHEET_WEBHOOK_URL + '?secret=' + encodeURIComponent(SHEET_SECRET);
+    console.log('[SheetSync] Sending to Sheet...');
+    // no-cors mode: request goes through, browser ignores response
+    // The Sheet still updates even though we cannot read the response
+    await fetch(url, {
       method: 'POST',
+      mode: 'no-cors',
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify(data)
     });
-    const text = await response.text();
-    console.log('[SheetSync] Response:', text);
-    try {
-      const json = JSON.parse(text);
-      if (!json.ok) {
-        console.error('[SheetSync] Webhook error:', json.error);
-      }
-    } catch (e) {
-      console.warn('[SheetSync] Non-JSON response:', text);
-    }
+    console.log('[SheetSync] Sent (check your Sheet in 2 seconds)');
   } catch (err) {
-    console.error('[SheetSync] Fetch failed:', err.message);
+    console.error('[SheetSync] Error:', err.message);
   }
 }
 

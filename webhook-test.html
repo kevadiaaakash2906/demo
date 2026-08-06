@@ -15,186 +15,22 @@
 </head>
 <body>
 
-<h1>🔧 Webhook Test</h1>
+<h1>Webhook Test</h1>
 <p>Tests if your Apps Script webhook is reachable and working.</p>
 <button id="sendBtn">Send Test Order</button>
 <div id="result">Click the button to test...</div>
 
 <script>
-const WEBHOOK_URL = '// ============================================================
-// firebase.js — Firebase Auth + Firestore backend
-// Also syncs every change to Google Sheets via webhook
-//
-// SECURITY NOTE: Move config to env vars if repo becomes public.
-// ============================================================
+var WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbyTN-ovpOKz629yxD_xCDa5sOcXHGofZYlZqW5tc_q3KaVaBnsiOUkKW-JDuj4CsW8huw/exec";
+var SECRET = "vinere-sync-2026";
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import {
-  getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import {
-  getFirestore, collection, doc, getDoc, getDocs, addDoc, setDoc, deleteDoc,
-  query, serverTimestamp, writeBatch, where
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyC3GlUHfz6Zfd1o5eymGcY_jkyz4MuVfls",
-  authDomain: "vinereledger-b29be.firebaseapp.com",
-  projectId: "vinereledger-b29be",
-  storageBucket: "vinereledger-b29be.firebasestorage.app",
-  messagingSenderId: "701394930039",
-  appId: "1:701394930039:web:456e7ae9c61fc92402b972",
-  measurementId: "G-HQN3J4LGXE"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-// ============ GOOGLE SHEETS SYNC ============
-const SHEET_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbyTN-ovpOKz629yxD_xCDa5sOcXHGofZYlZqW5tc_q3KaVaBnsiOUkKW-JDuj4CsW8huw/exec';
-const SHEET_SECRET = 'vinere-sync-2026';
-
-async function syncToSheet(data) {
-  if (!SHEET_WEBHOOK_URL) return;
-  try {
-    const url = `${SHEET_WEBHOOK_URL}?secret=${encodeURIComponent(SHEET_SECRET)}`;
-    await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-  } catch (err) {
-    console.warn('Sheet sync failed:', err.message);
-  }
-}
-
-// Map your existing passwords to Firebase Auth emails
-const PASS_MAP = {
-  'Arp&diam4265': { email: 'staff@vinere.local', role: 'staff' },
-  'Het&ke4265':   { email: 'seller@vinere.local', role: 'seller' },
-  'qwertyuiop':   { email: 'customer@vinere.local', role: 'customer' }
-};
-
-const EMAIL_TO_ROLE = {
-  'staff@vinere.local': 'staff',
-  'seller@vinere.local': 'seller',
-  'customer@vinere.local': 'customer'
-};
-
-// ---------- AUTH ----------
-async function login(pass) {
-  const cred = PASS_MAP[pass];
-  if (!cred) throw new Error('Wrong password');
-  const userCred = await signInWithEmailAndPassword(auth, cred.email, pass);
-  return { ok: true, role: cred.role };
-}
-
-function logout() { return signOut(auth); }
-
-function onAuthChange(cb) { return onAuthStateChanged(auth, cb); }
-
-// ---------- ORDERS ----------
-const ordersCol = collection(db, 'orders');
-
-async function fetchOrders() {
-  const snap = await getDocs(ordersCol);
-  const rows = [];
-  snap.forEach(d => {
-    const data = d.data();
-    const row = { _id: d.id, _row: d.id, ...data };
-    if (row['Date'] && row['Date'].toDate) row['Date'] = row['Date'].toDate().toISOString().split('T')[0];
-    if (row['Date Sold'] && row['Date Sold'].toDate) row['Date Sold'] = row['Date Sold'].toDate().toISOString().split('T')[0];
-    if (row.createdAt && row.createdAt.toDate) row.createdAt = row.createdAt.toDate().toISOString();
-    rows.push(row);
-  });
-  rows.sort((a, b) => (parseInt(a['Sr. No.']) || 0) - (parseInt(b['Sr. No.']) || 0));
-  return { ok: true, rows };
-}
-
-async function addOrder(fields) {
-  const snap = await getDocs(ordersCol);
-  let nextSr = 1;
-  snap.forEach(d => {
-    const sr = parseInt(d.data()['Sr. No.']);
-    if (!isNaN(sr) && sr >= nextSr) nextSr = sr + 1;
-  });
-  const docRef = await addDoc(ordersCol, {
-    ...fields,
-    'Sr. No.': nextSr,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp()
-  });
-  syncToSheet({ ...fields, 'Sr. No.': nextSr });
-  return { ok: true, id: docRef.id, srNo: nextSr };
-}
-
-async function updateOrder(id, fields) {
-  // NOTE: We use setDoc with merge:true instead of updateDoc because
-  // updateDoc treats dots in field names (like "Style No.") as path
-  // separators. setDoc with merge treats them as literal keys.
-  await setDoc(doc(db, 'orders', id), {
-    ...fields,
-    updatedAt: serverTimestamp()
-  }, { merge: true });
-  syncToSheet(fields);
-  return { ok: true };
-}
-
-async function deleteOrder(id) {
-  await deleteDoc(doc(db, 'orders', id));
-  return { ok: true };
-}
-
-// ---------- MEMO SYNC ----------
-async function syncMemoPayments(memoNo, paymentLog, amountPaid, balanceDue, paymentStatus) {
-  if (!memoNo) return;
-  const q = query(ordersCol, where('Memo No.', '==', memoNo));
-  const snap = await getDocs(q);
-  const batch = writeBatch(db);
-  snap.forEach(d => {
-    // Same fix: use set with merge instead of update
-    batch.set(doc(db, 'orders', d.id), {
-      'Payment Log': paymentLog,
-      'Amount Paid': amountPaid,
-      'Balance Due': balanceDue,
-      'Payment Status': paymentStatus,
-      updatedAt: serverTimestamp()
-    }, { merge: true });
-  });
-  await batch.commit();
-}
-
-async function restoreOrder(id, data) {
-  await setDoc(doc(db, 'orders', id), data);
-  return { ok: true };
-}
-
-async function migrateOrders(ordersArray) {
-  const batch = writeBatch(db);
-  ordersArray.forEach((o, i) => {
-    const ref = doc(ordersCol, `order_${i + 1}`);
-    batch.set(ref, { ...o, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
-  });
-  await batch.commit();
-  console.log('Migrated', ordersArray.length, 'orders');
-}
-
-// Expose to window
-Object.assign(window, {
-  login, logout, onAuthChange,
-  fetchOrders, addOrder, updateOrder, deleteOrder,
-  syncMemoPayments, restoreOrder, migrateOrders
-});;
-const SECRET = 'vinere-sync-2026';
-
-const testOrder = {
+var testOrder = {
   "Sr. No.": 999,
   "CUSTOMER ": "TEST",
   "CUSTOMER": "TEST",
   "Style No.": "TEST-001",
   "Date": "2026-08-06",
-  "Gross Wt": 5.0,
+  "Gross Wt": 5,
   "Dia Qty": 10,
   "IN CT": 2.5,
   "COLOUR STONE": 0,
@@ -208,47 +44,43 @@ const testOrder = {
   "Amount Paid": 50,
   "Balance Due": 50,
   "Payment Status": "Partial",
-  "Payment Log": "[{\"date\":\"2026-08-06\",\"amount\":50}]",
+  "Payment Log": "[]",
   "Memo No.": ""
 };
 
-document.getElementById('sendBtn').addEventListener('click', async () => {
-  const resultEl = document.getElementById('result');
-  resultEl.textContent = 'Sending...';
+document.getElementById("sendBtn").addEventListener("click", function() {
+  var resultEl = document.getElementById("result");
+  resultEl.textContent = "Sending...";
 
-  try {
-    const url = `${WEBHOOK_URL}?secret=${encodeURIComponent(SECRET)}`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(testOrder)
-    });
+  var url = WEBHOOK_URL + "?secret=" + encodeURIComponent(SECRET);
 
-    const text = await response.text();
-    resultEl.textContent = `Status: ${response.status} ${response.statusText}
-
-Response:
-${text}`;
-
+  fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(testOrder)
+  })
+  .then(function(response) { return response.text(); })
+  .then(function(text) {
+    resultEl.textContent = "Status: " + text;
     try {
-      const json = JSON.parse(text);
+      var json = JSON.parse(text);
       if (json.ok) {
-        resultEl.textContent += '
+        resultEl.textContent += "
 
-✅ SUCCESS — Check your Google Sheet for row ' + json.row;
+SUCCESS - Check your Sheet for row " + json.row;
       } else {
-        resultEl.textContent += '
+        resultEl.textContent += "
 
-❌ ERROR: ' + json.error;
+ERROR: " + json.error;
       }
     } catch(e) {}
+  })
+  .catch(function(err) {
+    resultEl.textContent = "FETCH FAILED:
+" + err.message + "
 
-  } catch (err) {
-    resultEl.textContent = '❌ FETCH FAILED:
-' + err.message + '
-
-This usually means CORS is blocked or the URL is wrong.';
-  }
+This usually means CORS is blocked or the URL is wrong.";
+  });
 });
 </script>
 

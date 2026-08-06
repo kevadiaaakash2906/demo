@@ -28,7 +28,7 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 // ============ GOOGLE SHEETS SYNC ============
-const SHEET_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbzK1NWX43ajytVAoYejS8P1lD1V0j8lo4k4-nFHscRfnTK-a7Fr2hV9WW_6mX-ufzymyA/exec';
+const SHEET_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbzLVuDufc4Apuu15bG7oO_cFAYxyklFz5KDJEZuDu3WyDcumZZSb8eybommZalSvELYdQ/exec';
 const SHEET_SECRET = 'vinere-sync-2026';
 
 async function syncToSheet(data) {
@@ -39,9 +39,10 @@ async function syncToSheet(data) {
   try {
     const url = `${SHEET_WEBHOOK_URL}?secret=${encodeURIComponent(SHEET_SECRET)}`;
     console.log('[SheetSync] Sending to webhook:', url);
+    // Use text/plain to avoid CORS preflight (browser won't send OPTIONS)
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify(data)
     });
     const text = await response.text();

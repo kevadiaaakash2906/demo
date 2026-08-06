@@ -1,3 +1,9 @@
+/*
+  VINÉRE Ledger Styles
+  Dark theme, responsive table + cards, sticky header, role-based columns.
+  No changes required for the Firebase backend migration.
+*/
+
 :root{
     --bg: #1E1B18;
     --surface: #262220;

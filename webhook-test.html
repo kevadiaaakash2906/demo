@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Webhook Test</title>
+<style>
+  :root{ --bg:#1E1B18; --surface:#262220; --line:#3B342E; --gold:#B8935A; --text:#EDE7DD; --text-dim:#A69C8D; --good:#7A9B7E; --bad:#C0705A; }
+  body{ margin:0; padding:40px 24px; background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui,sans-serif; max-width:600px; margin:0 auto; }
+  h1{ color:var(--gold); font-size:22px; }
+  button{ padding:12px 24px; border-radius:4px; border:1px solid var(--gold); background:var(--gold); color:#20190F; font-weight:600; font-size:15px; cursor:pointer; }
+  #result{ background:#0d0b09; border:1px solid var(--line); border-radius:4px; padding:16px; font-family:'IBM Plex Mono',monospace; font-size:12px; white-space:pre-wrap; margin-top:16px; min-height:100px; }
+</style>
+</head>
+<body>
+
+<h1>🔧 Webhook Test</h1>
+<p>Tests if your Apps Script webhook is reachable and working.</p>
+<button id="sendBtn">Send Test Order</button>
+<div id="result">Click the button to test...</div>
+
+<script>
+const WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbwWydlibeqUiMK1-LGG4cev4fXwyURuIqWZW2Ps0fSMOHodMG-371LVjZRgx_T8OmrYtg/exec';
+const SECRET = 'vinere-sync-2026';
+
+const testOrder = {
+  "Sr. No.": 999,
+  "CUSTOMER ": "TEST",
+  "CUSTOMER": "TEST",
+  "Style No.": "TEST-001",
+  "Date": "2026-08-06",
+  "Gross Wt": 5.0,
+  "Dia Qty": 10,
+  "IN CT": 2.5,
+  "COLOUR STONE": 0,
+  "Net Wt": 4.2,
+  "Multiplier": 0.595,
+  "Diam Amount": 5000,
+  "L CHARGES": 900,
+  "Sold To": "Test Buyer",
+  "Sale Price": 100,
+  "Date Sold": "2026-08-06",
+  "Amount Paid": 50,
+  "Balance Due": 50,
+  "Payment Status": "Partial",
+  "Payment Log": "[{\"date\":\"2026-08-06\",\"amount\":50}]",
+  "Memo No.": ""
+};
+
+document.getElementById('sendBtn').addEventListener('click', async () => {
+  const resultEl = document.getElementById('result');
+  resultEl.textContent = 'Sending...';
+
+  try {
+    const url = `${WEBHOOK_URL}?secret=${encodeURIComponent(SECRET)}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(testOrder)
+    });
+
+    const text = await response.text();
+    resultEl.textContent = `Status: ${response.status} ${response.statusText}
+
+Response:
+${text}`;
+
+    try {
+      const json = JSON.parse(text);
+      if (json.ok) {
+        resultEl.textContent += '
+
+✅ SUCCESS — Check your Google Sheet for row ' + json.row;
+      } else {
+        resultEl.textContent += '
+
+❌ ERROR: ' + json.error;
+      }
+    } catch(e) {}
+
+  } catch (err) {
+    resultEl.textContent = '❌ FETCH FAILED:
+' + err.message + '
+
+This usually means CORS is blocked or the URL is wrong.';
+  }
+});
+</script>
+
+</body>
+</html>

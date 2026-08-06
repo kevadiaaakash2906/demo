@@ -1,6 +1,5 @@
 // ============================================================
-// firebase.js — Firebase Auth + Firestore backend
-// Also syncs every change to Google Sheets via webhook
+// firebase.js — Firebase Auth + Firestore backend + Google Sheets sync
 //
 // SECURITY NOTE: Move config to env vars if repo becomes public.
 // ============================================================
@@ -33,16 +32,30 @@ const SHEET_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbyTN-ovpOKz62
 const SHEET_SECRET = 'vinere-sync-2026';
 
 async function syncToSheet(data) {
-  if (!SHEET_WEBHOOK_URL) return;
+  if (!SHEET_WEBHOOK_URL) {
+    console.warn('[SheetSync] No webhook URL configured');
+    return;
+  }
   try {
     const url = `${SHEET_WEBHOOK_URL}?secret=${encodeURIComponent(SHEET_SECRET)}`;
-    await fetch(url, {
+    console.log('[SheetSync] Sending to webhook:', url);
+    const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
+    const text = await response.text();
+    console.log('[SheetSync] Response:', text);
+    try {
+      const json = JSON.parse(text);
+      if (!json.ok) {
+        console.error('[SheetSync] Webhook error:', json.error);
+      }
+    } catch (e) {
+      console.warn('[SheetSync] Non-JSON response:', text);
+    }
   } catch (err) {
-    console.warn('Sheet sync failed:', err.message);
+    console.error('[SheetSync] Fetch failed:', err.message);
   }
 }
 
@@ -107,9 +120,6 @@ async function addOrder(fields) {
 }
 
 async function updateOrder(id, fields) {
-  // NOTE: We use setDoc with merge:true instead of updateDoc because
-  // updateDoc treats dots in field names (like "Style No.") as path
-  // separators. setDoc with merge treats them as literal keys.
   await setDoc(doc(db, 'orders', id), {
     ...fields,
     updatedAt: serverTimestamp()
@@ -130,7 +140,6 @@ async function syncMemoPayments(memoNo, paymentLog, amountPaid, balanceDue, paym
   const snap = await getDocs(q);
   const batch = writeBatch(db);
   snap.forEach(d => {
-    // Same fix: use set with merge instead of update
     batch.set(doc(db, 'orders', d.id), {
       'Payment Log': paymentLog,
       'Amount Paid': amountPaid,

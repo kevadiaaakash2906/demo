@@ -44,7 +44,7 @@
     $('tbody').innerHTML = `<tr><td colspan="14">${errorHtml}</td></tr>`;
     $('cardList').innerHTML = errorHtml;
     $('paginationBar').innerHTML = '';
-    const bind = (el) => el && el.addEventListener('click', refreshOrders);
+    const bind = (el) => el && el.addEventListener('click', loadOrders);
     bind(document.querySelector('#tbody #retryLoadBtn'));
     bind(document.querySelector('#cardList #retryLoadBtn'));
   }

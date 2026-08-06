@@ -13,7 +13,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
   getFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc,
-  query, orderBy, serverTimestamp, writeBatch, setDoc, where
+  query, serverTimestamp, writeBatch, setDoc, where
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -60,11 +60,13 @@ function onAuthChange(cb) { return onAuthStateChanged(auth, cb); }
 const ordersCol = collection(db, 'orders');
 
 async function fetchOrders() {
-  const snap = await getDocs(query(ordersCol, orderBy('Sr. No.', 'asc')));
+  // NOTE: We do NOT use Firestore orderBy here because field names like
+  // 'Sr. No.' contain dots/spaces which Firestore interprets as path
+  // separators. Instead we fetch all docs and sort in JS.
+  const snap = await getDocs(ordersCol);
   const rows = [];
   snap.forEach(d => {
     const data = d.data();
-    // Use _row as the canonical row identifier (matches old sheet row numbers)
     const row = { _id: d.id, _row: d.id, ...data };
     // Convert Firestore Timestamps to strings for your existing UI
     if (row['Date'] && row['Date'].toDate) row['Date'] = row['Date'].toDate().toISOString().split('T')[0];
@@ -72,16 +74,19 @@ async function fetchOrders() {
     if (row.createdAt && row.createdAt.toDate) row.createdAt = row.createdAt.toDate().toISOString();
     rows.push(row);
   });
+  // Sort by Sr. No. in JavaScript (avoids Firestore FieldPath issues)
+  rows.sort((a, b) => (parseInt(a['Sr. No.']) || 0) - (parseInt(b['Sr. No.']) || 0));
   return { ok: true, rows };
 }
 
 async function addOrder(fields) {
-  // Compute next Sr. No. locally to match your old behavior
-  const snap = await getDocs(query(ordersCol, orderBy('Sr. No.', 'desc')));
+  // Compute next Sr. No. locally
+  const snap = await getDocs(ordersCol);
   let nextSr = 1;
-  if (!snap.empty) {
-    nextSr = (snap.docs[0].data()['Sr. No.'] || 0) + 1;
-  }
+  snap.forEach(d => {
+    const sr = parseInt(d.data()['Sr. No.']);
+    if (!isNaN(sr) && sr >= nextSr) nextSr = sr + 1;
+  });
   const docRef = await addDoc(ordersCol, {
     ...fields,
     'Sr. No.': nextSr,
@@ -105,8 +110,6 @@ async function deleteOrder(id) {
 }
 
 // ---------- MEMO SYNC ----------
-// Firestore doesn't need manual memo sync like Sheets did.
-// Instead, we query by memoNo and update all matching docs.
 async function syncMemoPayments(memoNo, paymentLog, amountPaid, balanceDue, paymentStatus) {
   if (!memoNo) return;
   const q = query(ordersCol, where('Memo No.', '==', memoNo));

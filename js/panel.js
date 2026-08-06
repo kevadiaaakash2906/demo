@@ -580,7 +580,7 @@
     if (editingRow === null) return;
     $('deleteBtn').classList.add('holding');
     $('deleteProgress').style.width = '0%';
-    const duration = 300;
+    const duration = 3000;
     const start = performance.now();
     function tick(now) {
       const progress = Math.min(((now - start) / duration) * 100, 100);

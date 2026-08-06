@@ -28,7 +28,7 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 // ============ GOOGLE SHEETS SYNC ============
-const SHEET_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbyTN-ovpOKz629yxD_xCDa5sOcXHGofZYlZqW5tc_q3KaVaBnsiOUkKW-JDuj4CsW8huw/exec';
+const SHEET_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbyAc7Uv7nqiK8jOElvldxfgivxVmSlhcsbecFj3JEy3hGUqDhz_nmmCdiWqlUYdgzAk2A/exec';
 const SHEET_SECRET = 'vinere-sync-2026';
 
 async function syncToSheet(data) {

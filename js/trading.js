@@ -18,8 +18,6 @@ const SHEET_KEYS = {
   paymentLog: 'Payment Log',
   notes: 'Notes'
 };
-// If your sheet uses different headers, change the values above.
-// Example: if your sheet column E is "Buy Price", change purchasePrice: 'Buy Price'
 // ===========================================================================
 
 let TRADING = [];
@@ -147,18 +145,19 @@ function openEditTrade(rowId) {
   if (!trade) return;
   editingTrade = rowId;
   const canEdit = ROLE === 'staff' || ROLE === 'seller';
-  $('tradePanelTitle').textContent = `${canEdit ? 'Edit' : 'View'} — ${trade[SHEET_KEYS.item] ?? ''}`;
-  $('t_item').value = trade[SHEET_KEYS.item] ?? '';
-  $('t_vendor').value = trade[SHEET_KEYS.vendor] ?? '';
-  $('t_date').value = trade[SHEET_KEYS.date] ? String(trade[SHEET_KEYS.date]).split('T')[0] : '';
-  $('t_purchasePrice').value = trade[SHEET_KEYS.purchasePrice] ?? '';
-  $('t_salePrice').value = trade[SHEET_KEYS.salePrice] ?? '';
-  $('t_dateSold').value = trade[SHEET_KEYS.dateSold] ? String(trade[SHEET_KEYS.dateSold]).split('T')[0] : '';
-  $('t_soldTo').value = trade[SHEET_KEYS.soldTo] ?? '';
-  $('t_notes').value = trade[SHEET_KEYS.notes] ?? '';
+  const K = SHEET_KEYS;
+  $('tradePanelTitle').textContent = `${canEdit ? 'Edit' : 'View'} — ${trade[K.item] ?? ''}`;
+  $('t_item').value = trade[K.item] ?? '';
+  $('t_vendor').value = trade[K.vendor] ?? '';
+  $('t_date').value = trade[K.date] ? String(trade[K.date]).split('T')[0] : '';
+  $('t_purchasePrice').value = trade[K.purchasePrice] ?? '';
+  $('t_salePrice').value = trade[K.salePrice] ?? '';
+  $('t_dateSold').value = trade[K.dateSold] ? String(trade[K.dateSold]).split('T')[0] : '';
+  $('t_soldTo').value = trade[K.soldTo] ?? '';
+  $('t_notes').value = trade[K.notes] ?? '';
 
   let loaded = [];
-  const rawLog = trade[SHEET_KEYS.paymentLog];
+  const rawLog = trade[K.paymentLog];
   if (rawLog) {
     try {
       const parsed = JSON.parse(rawLog);
@@ -169,9 +168,9 @@ function openEditTrade(rowId) {
     } catch (e) {}
   }
   if (!loaded.length) {
-    const existingPaid = parseFloat(trade[SHEET_KEYS.amountPaid]);
+    const existingPaid = parseFloat(trade[K.amountPaid]);
     if (existingPaid > 0) {
-      loaded = [{ date: trade[SHEET_KEYS.dateSold] ? String(trade[SHEET_KEYS.dateSold]).split('T')[0] : '', amount: existingPaid }];
+      loaded = [{ date: trade[K.dateSold] ? String(trade[K.dateSold]).split('T')[0] : '', amount: existingPaid }];
     }
   }
   currentTradeInstallments = loaded;
@@ -352,7 +351,7 @@ $('saveTradeBtn').addEventListener('click', async () => {
   }
 });
 
-// ==================== DELETE (Hold 3s) ====================
+// ==================== DELETE ====================
 $('deleteTradeBtn').addEventListener('mousedown', startTradeDeleteHold);
 $('deleteTradeBtn').addEventListener('touchstart', startTradeDeleteHold);
 $('deleteTradeBtn').addEventListener('mouseup', cancelTradeDeleteHold);
@@ -386,8 +385,9 @@ async function executeTradeDelete() {
     const { deleteTrading } = await getTradingAPI();
     const trade = TRADING.find(r => r._row === editingTrade);
     if (!trade) throw new Error('Trade not found');
+    const K = SHEET_KEYS;
     lastDeletedTrade = { id: editingTrade, data: { ...trade }, collection: 'trading' };
-    await deleteTrading(editingTrade, trade[SHEET_KEYS.srNo]);
+    await deleteTrading(editingTrade, trade[K.srNo]);
     playScreenFx('delete');
     showTradeUndoToast(editingTrade);
 
@@ -448,7 +448,8 @@ async function loadTrading() {
   renderTradeSkeleton();
   try {
     const data = await window.fetchTrading();
-    TRADING = (data.rows || []).filter(r => r[SHEET_KEYS.item] && String(r[SHEET_KEYS.item]).trim() !== '');
+    const K = SHEET_KEYS;
+    TRADING = (data.rows || []).filter(r => r[K.item] && String(r[K.item]).trim() !== '');
     renderTradingKPIs();
     tradeCurrentPage = 1;
     renderTradingResults(applyTradingFilter());
@@ -495,26 +496,29 @@ function renderTradeErrorState(msg) {
 }
 
 function getTradeStatusClass(r) {
-  const price = String(r[SHEET_KEYS.salePrice] ?? '').trim();
+  const K = SHEET_KEYS;
+  const price = String(r[K.salePrice] ?? '').trim();
   if (price === '') return 'notsold-row';
-  const status = String(r[SHEET_KEYS.paymentStatus] ?? '').trim() || 'Unpaid';
+  const status = String(r[K.paymentStatus] ?? '').trim() || 'Unpaid';
   if (status === 'Paid') return 'paid-row';
   if (status === 'Partial') return 'partial-row';
   return 'unpaid-row';
 }
 
 function getTradePaymentBadge(row) {
-  const price = String(row[SHEET_KEYS.salePrice] ?? '').trim();
+  const K = SHEET_KEYS;
+  const price = String(row[K.salePrice] ?? '').trim();
   if (price === '') return '<span class="badge badge-notsold">Not sold</span>';
-  const status = String(row[SHEET_KEYS.paymentStatus] ?? '').trim() || 'Unpaid';
+  const status = String(row[K.paymentStatus] ?? '').trim() || 'Unpaid';
   const cls = status === 'Paid' ? 'badge-paid' : status === 'Partial' ? 'badge-partial' : 'badge-unpaid';
   return `<span class="badge ${cls}">${status}</span>`;
 }
 
 function isTradePayable(row) {
-  const priced = String(row[SHEET_KEYS.salePrice] ?? '').trim() !== '';
+  const K = SHEET_KEYS;
+  const priced = String(row[K.salePrice] ?? '').trim() !== '';
   if (!priced) return false;
-  return (parseFloat(row[SHEET_KEYS.balanceDue]) || 0) > 0.005;
+  return (parseFloat(row[K.balanceDue]) || 0) > 0.005;
 }
 
 function quickTradePayBtn(row) {
@@ -709,7 +713,7 @@ function applyTradingFilter() {
 }
 
 // ==================== PAGINATION ====================
-const TRADE_PAGE_SIZE = 50;
+const TRADE_PAGE_SIZE = 25;
 
 function renderTradingResults(rows) {
   const totalPages = Math.max(1, Math.ceil(rows.length / TRADE_PAGE_SIZE));

@@ -215,3 +215,6 @@ Object.assign(window, {
   fetchTrading, addTrading, updateTrading, deleteTrading,
   syncMemoPayments, restoreOrder, migrateOrders
 });
+// TEMPORARY: expose for one-time migration
+import { writeBatch, doc, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+Object.assign(window, { db, writeBatch, doc, collection, serverTimestamp });

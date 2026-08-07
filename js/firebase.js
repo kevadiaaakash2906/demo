@@ -28,7 +28,7 @@ const db = getFirestore(app);
 
 // ============ GOOGLE SHEETS SYNC ============
 // NOTE: This URL must be updated after every new Apps Script deployment
-const SHEET_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbxFFCca9gOW8hCPlqv1L6durwdKeIDq4eft9s4kyuIrro80XEFpQVKAyukeOIBU0NbBlA/exec';
+const SHEET_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbwUzBAvSqW3BnC0Zpvju-YAm0oW7_NJ-i6RLsHM83qe-e84koma7d4xzVk3vT3AMTvkSA/exec';
 const SHEET_SECRET = 'vinere-sync-2026';
 
 async function syncToSheet(data) {
@@ -122,11 +122,13 @@ async function updateOrder(id, fields) {
   return { ok: true };
 }
 
-async function deleteOrder(id) {
+async function deleteOrder(id, srNo) {
   await deleteDoc(doc(db, 'orders', id));
+  if (srNo) {
+    syncToSheet({ 'Sr. No.': srNo, _action: 'delete' });
+  }
   return { ok: true };
 }
-
 // ---------- MEMO SYNC ----------
 async function syncMemoPayments(memoNo, paymentLog, amountPaid, balanceDue, paymentStatus) {
   if (!memoNo) return;

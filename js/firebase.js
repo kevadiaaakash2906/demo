@@ -28,7 +28,7 @@ const db = getFirestore(app);
 
 // ============ GOOGLE SHEETS SYNC ============
 // NOTE: This URL must be updated after every new Apps Script deployment
-const SHEET_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbwUzBAvSqW3BnC0Zpvju-YAm0oW7_NJ-i6RLsHM83qe-e84koma7d4xzVk3vT3AMTvkSA/exec';
+const SHEET_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbx-Z4qb9pH6mKgb7gsyvg9ZV-ICLC1_K2INKNP0H-i4NDLHaoFrvEo-2wj9exuLQwUBXQ/exec';
 const SHEET_SECRET = 'vinere-sync-2026';
 
 async function syncToSheet(data) {
@@ -80,6 +80,7 @@ function onAuthChange(cb) { return onAuthStateChanged(auth, cb); }
 
 // ---------- ORDERS ----------
 const ordersCol = collection(db, 'orders');
+const tradingCol = collection(db, 'trading');
 
 async function fetchOrders() {
   const snap = await getDocs(ordersCol);
@@ -125,7 +126,7 @@ async function updateOrder(id, fields) {
 async function deleteOrder(id, srNo) {
   await deleteDoc(doc(db, 'orders', id));
   if (srNo) {
-    syncToSheet({ 'Sr. No.': srNo, _action: 'delete' });
+    syncToSheet({ 'Sr. No.': srNo, _collection: 'orders', _action: 'delete' });
   }
   return { ok: true };
 }
@@ -161,10 +162,58 @@ async function migrateOrders(ordersArray) {
   await batch.commit();
   console.log('Migrated', ordersArray.length, 'orders');
 }
+// ---------- TRADING ----------
+async function fetchTrading() {
+  const snap = await getDocs(tradingCol);
+  const rows = [];
+  snap.forEach(d => {
+    const data = d.data();
+    const row = { _id: d.id, _row: d.id, ...data };
+    if (row['Date'] && row['Date'].toDate) row['Date'] = row['Date'].toDate().toISOString().split('T')[0];
+    if (row['Date Sold'] && row['Date Sold'].toDate) row['Date Sold'] = row['Date Sold'].toDate().toISOString().split('T')[0];
+    rows.push(row);
+  });
+  rows.sort((a, b) => (parseInt(a['Sr. No.']) || 0) - (parseInt(b['Sr. No.']) || 0));
+  return { ok: true, rows };
+}
 
+async function addTrading(fields) {
+  const snap = await getDocs(tradingCol);
+  let nextSr = 1;
+  snap.forEach(d => {
+    const sr = parseInt(d.data()['Sr. No.']);
+    if (!isNaN(sr) && sr >= nextSr) nextSr = sr + 1;
+  });
+  const docRef = await addDoc(tradingCol, {
+    ...fields,
+    'Sr. No.': nextSr,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
+  });
+  syncToSheet({ ...fields, 'Sr. No.': nextSr, _collection: 'trading' });
+  return { ok: true, id: docRef.id, srNo: nextSr };
+}
+
+async function updateTrading(id, fields) {
+  await setDoc(doc(db, 'trading', id), {
+    ...fields,
+    updatedAt: serverTimestamp()
+  }, { merge: true });
+  syncToSheet({ ...fields, _collection: 'trading' });
+  return { ok: true };
+}
+
+async function deleteTrading(id, srNo) {
+  await deleteDoc(doc(db, 'trading', id));
+  if (srNo) {
+    syncToSheet({ 'Sr. No.': srNo, _collection: 'trading', _action: 'delete' });
+  }
+  return { ok: true };
+}
 // Expose to window
 Object.assign(window, {
   login, logout, onAuthChange,
   fetchOrders, addOrder, updateOrder, deleteOrder,
+  fetchTrading, addTrading, updateTrading, deleteTrading,
   syncMemoPayments, restoreOrder, migrateOrders
 });

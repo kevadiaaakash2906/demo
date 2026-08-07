@@ -1,6 +1,5 @@
 // ============================================================
-// firebase.js — Firebase Auth + Firestore backend + Google Sheets sync
-// Uses no-cors mode to bypass CORS entirely
+// firebase.js — Firebase Auth + Firestore + Google Sheets sync
 // ============================================================
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -27,8 +26,7 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 // ============ GOOGLE SHEETS SYNC ============
-// NOTE: This URL must be updated after every new Apps Script deployment
-const SHEET_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbx-Z4qb9pH6mKgb7gsyvg9ZV-ICLC1_K2INKNP0H-i4NDLHaoFrvEo-2wj9exuLQwUBXQ/exec';
+const SHEET_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbzULRby6IQ7jRTE10PtwfjaNaoVx0Z753YaBiVBzPBQuBfYs-BEGDTLpmErOP-m0KsC9g/exec';
 const SHEET_SECRET = 'vinere-sync-2026';
 
 async function syncToSheet(data) {
@@ -39,8 +37,6 @@ async function syncToSheet(data) {
   try {
     const url = SHEET_WEBHOOK_URL + '?secret=' + encodeURIComponent(SHEET_SECRET);
     console.log('[SheetSync] Sending to Sheet...');
-    // no-cors mode: request goes through, browser ignores response
-    // The Sheet still updates even though we cannot read the response
     await fetch(url, {
       method: 'POST',
       mode: 'no-cors',
@@ -53,7 +49,7 @@ async function syncToSheet(data) {
   }
 }
 
-// Map your existing passwords to Firebase Auth emails
+// ============ AUTH ============
 const PASS_MAP = {
   'Arp&diam4265': { email: 'staff@vinere.local', role: 'staff' },
   'Het&ke4265':   { email: 'seller@vinere.local', role: 'seller' },
@@ -66,7 +62,6 @@ const EMAIL_TO_ROLE = {
   'customer@vinere.local': 'customer'
 };
 
-// ---------- AUTH ----------
 async function login(pass) {
   const cred = PASS_MAP[pass];
   if (!cred) throw new Error('Wrong password');
@@ -75,12 +70,10 @@ async function login(pass) {
 }
 
 function logout() { return signOut(auth); }
-
 function onAuthChange(cb) { return onAuthStateChanged(auth, cb); }
 
-// ---------- ORDERS ----------
+// ============ ORDERS ============
 const ordersCol = collection(db, 'orders');
-const tradingCol = collection(db, 'trading');
 
 async function fetchOrders() {
   const snap = await getDocs(ordersCol);
@@ -110,7 +103,7 @@ async function addOrder(fields) {
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp()
   });
-  syncToSheet({ ...fields, 'Sr. No.': nextSr });
+  syncToSheet({ ...fields, 'Sr. No.': nextSr, _collection: 'orders' });
   return { ok: true, id: docRef.id, srNo: nextSr };
 }
 
@@ -119,7 +112,7 @@ async function updateOrder(id, fields) {
     ...fields,
     updatedAt: serverTimestamp()
   }, { merge: true });
-  syncToSheet(fields);
+  syncToSheet({ ...fields, _collection: 'orders' });
   return { ok: true };
 }
 
@@ -130,39 +123,10 @@ async function deleteOrder(id, srNo) {
   }
   return { ok: true };
 }
-// ---------- MEMO SYNC ----------
-async function syncMemoPayments(memoNo, paymentLog, amountPaid, balanceDue, paymentStatus) {
-  if (!memoNo) return;
-  const q = query(ordersCol, where('Memo No.', '==', memoNo));
-  const snap = await getDocs(q);
-  const batch = writeBatch(db);
-  snap.forEach(d => {
-    batch.set(doc(db, 'orders', d.id), {
-      'Payment Log': paymentLog,
-      'Amount Paid': amountPaid,
-      'Balance Due': balanceDue,
-      'Payment Status': paymentStatus,
-      updatedAt: serverTimestamp()
-    }, { merge: true });
-  });
-  await batch.commit();
-}
 
-async function restoreOrder(id, data) {
-  await setDoc(doc(db, 'orders', id), data);
-  return { ok: true };
-}
+// ============ TRADING ============
+const tradingCol = collection(db, 'trading');
 
-async function migrateOrders(ordersArray) {
-  const batch = writeBatch(db);
-  ordersArray.forEach((o, i) => {
-    const ref = doc(ordersCol, `order_${i + 1}`);
-    batch.set(ref, { ...o, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
-  });
-  await batch.commit();
-  console.log('Migrated', ordersArray.length, 'orders');
-}
-// ---------- TRADING ----------
 async function fetchTrading() {
   const snap = await getDocs(tradingCol);
   const rows = [];
@@ -210,6 +174,40 @@ async function deleteTrading(id, srNo) {
   }
   return { ok: true };
 }
+
+// ============ MEMO SYNC & RESTORE ============
+async function syncMemoPayments(memoNo, paymentLog, amountPaid, balanceDue, paymentStatus) {
+  if (!memoNo) return;
+  const q = query(ordersCol, where('Memo No.', '==', memoNo));
+  const snap = await getDocs(q);
+  const batch = writeBatch(db);
+  snap.forEach(d => {
+    batch.set(doc(db, 'orders', d.id), {
+      'Payment Log': paymentLog,
+      'Amount Paid': amountPaid,
+      'Balance Due': balanceDue,
+      'Payment Status': paymentStatus,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+  });
+  await batch.commit();
+}
+
+async function restoreOrder(id, data) {
+  await setDoc(doc(db, 'orders', id), data);
+  return { ok: true };
+}
+
+async function migrateOrders(ordersArray) {
+  const batch = writeBatch(db);
+  ordersArray.forEach((o, i) => {
+    const ref = doc(ordersCol, `order_${i + 1}`);
+    batch.set(ref, { ...o, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+  });
+  await batch.commit();
+  console.log('Migrated', ordersArray.length, 'orders');
+}
+
 // Expose to window
 Object.assign(window, {
   login, logout, onAuthChange,

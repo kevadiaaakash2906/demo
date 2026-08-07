@@ -143,13 +143,29 @@ function applyRoleRestrictions() {
 // visible for the current role, so the table always fills the full
 // width no matter how many columns that role happens to see.
 function equalizeColumnWidths() {
-  const cols = document.querySelectorAll('.table-wrap col');
+  const table = document.getElementById('ordersTable');
+  if (!table) return;
+  const cols = table.querySelectorAll('colgroup col');
   if (!cols.length) return;
-  const visibleCols = Array.from(cols).filter(col => getComputedStyle(col).visibility !== 'collapse');
-  if (!visibleCols.length) return;
-  const widthPct = (100 / visibleCols.length) + '%';
-  cols.forEach(col => {
-    col.style.width = getComputedStyle(col).visibility !== 'collapse' ? widthPct : '0%';
+
+  // Base widths matching the inline styles above
+  const baseWidths = [5, 7, 10, 8, 6, 6, 6, 6, 9, 6, 7, 9, 7, 8];
+
+  const visibleIndices = [];
+  cols.forEach((col, i) => {
+    if (getComputedStyle(col).visibility === 'collapse') {
+      col.style.width = '0%';
+    } else {
+      visibleIndices.push(i);
+    }
+  });
+
+  if (!visibleIndices.length) return;
+
+  const visibleTotal = visibleIndices.reduce((sum, i) => sum + baseWidths[i], 0);
+  visibleIndices.forEach(i => {
+    const proportional = (baseWidths[i] / visibleTotal) * 100;
+    cols[i].style.width = proportional + '%';
   });
 }
 

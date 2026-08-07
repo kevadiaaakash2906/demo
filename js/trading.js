@@ -2,6 +2,26 @@
 // trading.js — Trading module: buy/sell tracking, P/L, payments
 // ============================================================
 
+// ============ CONFIG: Match these to your Trading sheet headers ============
+const SHEET_KEYS = {
+  srNo: 'Sr. No.',
+  date: 'Date',
+  item: 'Item',
+  vendor: 'Vendor',
+  purchasePrice: 'Purchase Price',
+  salePrice: 'Sale Price',
+  dateSold: 'Date Sold',
+  soldTo: 'Sold To',
+  amountPaid: 'Amount Paid',
+  balanceDue: 'Balance Due',
+  paymentStatus: 'Payment Status',
+  paymentLog: 'Payment Log',
+  notes: 'Notes'
+};
+// If your sheet uses different headers, change the values above.
+// Example: if your sheet column E is "Buy Price", change purchasePrice: 'Buy Price'
+// ===========================================================================
+
 let TRADING = [];
 let editingTrade = null;
 let currentTradeInstallments = [];
@@ -127,18 +147,18 @@ function openEditTrade(rowId) {
   if (!trade) return;
   editingTrade = rowId;
   const canEdit = ROLE === 'staff' || ROLE === 'seller';
-  $('tradePanelTitle').textContent = `${canEdit ? 'Edit' : 'View'} — ${trade['Item'] ?? ''}`;
-  $('t_item').value = trade['Item'] ?? '';
-  $('t_vendor').value = trade['Vendor'] ?? '';
-  $('t_date').value = trade['Date'] ? String(trade['Date']).split('T')[0] : '';
-  $('t_purchasePrice').value = trade['Purchase Price'] ?? '';
-  $('t_salePrice').value = trade['Sale Price'] ?? '';
-  $('t_dateSold').value = trade['Date Sold'] ? String(trade['Date Sold']).split('T')[0] : '';
-  $('t_soldTo').value = trade['Sold To'] ?? '';
-  $('t_notes').value = trade['Notes'] ?? '';
+  $('tradePanelTitle').textContent = `${canEdit ? 'Edit' : 'View'} — ${trade[SHEET_KEYS.item] ?? ''}`;
+  $('t_item').value = trade[SHEET_KEYS.item] ?? '';
+  $('t_vendor').value = trade[SHEET_KEYS.vendor] ?? '';
+  $('t_date').value = trade[SHEET_KEYS.date] ? String(trade[SHEET_KEYS.date]).split('T')[0] : '';
+  $('t_purchasePrice').value = trade[SHEET_KEYS.purchasePrice] ?? '';
+  $('t_salePrice').value = trade[SHEET_KEYS.salePrice] ?? '';
+  $('t_dateSold').value = trade[SHEET_KEYS.dateSold] ? String(trade[SHEET_KEYS.dateSold]).split('T')[0] : '';
+  $('t_soldTo').value = trade[SHEET_KEYS.soldTo] ?? '';
+  $('t_notes').value = trade[SHEET_KEYS.notes] ?? '';
 
   let loaded = [];
-  const rawLog = trade['Payment Log'];
+  const rawLog = trade[SHEET_KEYS.paymentLog];
   if (rawLog) {
     try {
       const parsed = JSON.parse(rawLog);
@@ -149,9 +169,9 @@ function openEditTrade(rowId) {
     } catch (e) {}
   }
   if (!loaded.length) {
-    const existingPaid = parseFloat(trade['Amount Paid']);
+    const existingPaid = parseFloat(trade[SHEET_KEYS.amountPaid]);
     if (existingPaid > 0) {
-      loaded = [{ date: trade['Date Sold'] ? String(trade['Date Sold']).split('T')[0] : '', amount: existingPaid }];
+      loaded = [{ date: trade[SHEET_KEYS.dateSold] ? String(trade[SHEET_KEYS.dateSold]).split('T')[0] : '', amount: existingPaid }];
     }
   }
   currentTradeInstallments = loaded;
@@ -261,20 +281,21 @@ $('saveTradeBtn').addEventListener('click', async () => {
   }
 
   const comp = computeTrade(fields);
+  const K = SHEET_KEYS;
   const payload = {
-    'Sr. No.': editingTrade ? TRADING.find(r => r._row === editingTrade)?.['Sr. No.'] : undefined,
-    'Date': fields.date,
-    'Item': fields.item,
-    'Vendor': fields.vendor,
-    'Purchase Price': fields.purchasePrice,
-    'Sale Price': fields.salePrice,
-    'Date Sold': fields.dateSold,
-    'Sold To': fields.soldTo,
-    'Amount Paid': comp.paid,
-    'Balance Due': comp.balance,
-    'Payment Status': comp.status,
-    'Payment Log': fields.paymentLog,
-    'Notes': fields.notes
+    [K.srNo]: editingTrade ? TRADING.find(r => r._row === editingTrade)?.[K.srNo] : undefined,
+    [K.date]: fields.date,
+    [K.item]: fields.item,
+    [K.vendor]: fields.vendor,
+    [K.purchasePrice]: fields.purchasePrice,
+    [K.salePrice]: fields.salePrice,
+    [K.dateSold]: fields.dateSold,
+    [K.soldTo]: fields.soldTo,
+    [K.amountPaid]: comp.paid,
+    [K.balanceDue]: comp.balance,
+    [K.paymentStatus]: comp.status,
+    [K.paymentLog]: fields.paymentLog,
+    [K.notes]: fields.notes
   };
 
   $('tradeSaveMsg').textContent = 'Saving…';
@@ -305,7 +326,7 @@ $('saveTradeBtn').addEventListener('click', async () => {
 
     const saved = {
       _row: docId, _id: docId,
-      'Sr. No.': result.srNo || payload['Sr. No.'] || (Math.max(0, ...TRADING.map(r => parseInt(r['Sr. No.']) || 0)) + 1),
+      [K.srNo]: result.srNo || payload[K.srNo] || (Math.max(0, ...TRADING.map(r => parseInt(r[K.srNo]) || 0)) + 1),
       ...payload
     };
     if (editingTrade) {
@@ -366,7 +387,7 @@ async function executeTradeDelete() {
     const trade = TRADING.find(r => r._row === editingTrade);
     if (!trade) throw new Error('Trade not found');
     lastDeletedTrade = { id: editingTrade, data: { ...trade }, collection: 'trading' };
-    await deleteTrading(editingTrade, trade['Sr. No.']);
+    await deleteTrading(editingTrade, trade[SHEET_KEYS.srNo]);
     playScreenFx('delete');
     showTradeUndoToast(editingTrade);
 
@@ -427,7 +448,7 @@ async function loadTrading() {
   renderTradeSkeleton();
   try {
     const data = await window.fetchTrading();
-    TRADING = (data.rows || []).filter(r => r['Item'] && String(r['Item']).trim() !== '');
+    TRADING = (data.rows || []).filter(r => r[SHEET_KEYS.item] && String(r[SHEET_KEYS.item]).trim() !== '');
     renderTradingKPIs();
     tradeCurrentPage = 1;
     renderTradingResults(applyTradingFilter());
@@ -474,26 +495,26 @@ function renderTradeErrorState(msg) {
 }
 
 function getTradeStatusClass(r) {
-  const price = String(r['Sale Price'] ?? '').trim();
+  const price = String(r[SHEET_KEYS.salePrice] ?? '').trim();
   if (price === '') return 'notsold-row';
-  const status = String(r['Payment Status'] ?? '').trim() || 'Unpaid';
+  const status = String(r[SHEET_KEYS.paymentStatus] ?? '').trim() || 'Unpaid';
   if (status === 'Paid') return 'paid-row';
   if (status === 'Partial') return 'partial-row';
   return 'unpaid-row';
 }
 
 function getTradePaymentBadge(row) {
-  const price = String(row['Sale Price'] ?? '').trim();
+  const price = String(row[SHEET_KEYS.salePrice] ?? '').trim();
   if (price === '') return '<span class="badge badge-notsold">Not sold</span>';
-  const status = String(row['Payment Status'] ?? '').trim() || 'Unpaid';
+  const status = String(row[SHEET_KEYS.paymentStatus] ?? '').trim() || 'Unpaid';
   const cls = status === 'Paid' ? 'badge-paid' : status === 'Partial' ? 'badge-partial' : 'badge-unpaid';
   return `<span class="badge ${cls}">${status}</span>`;
 }
 
 function isTradePayable(row) {
-  const priced = String(row['Sale Price'] ?? '').trim() !== '';
+  const priced = String(row[SHEET_KEYS.salePrice] ?? '').trim() !== '';
   if (!priced) return false;
-  return (parseFloat(row['Balance Due']) || 0) > 0.005;
+  return (parseFloat(row[SHEET_KEYS.balanceDue]) || 0) > 0.005;
 }
 
 function quickTradePayBtn(row) {
@@ -517,29 +538,29 @@ function wireTradeQuickPay(container) {
 
 function renderTradingTable(rows) {
   const tbody = $('tradeTbody');
+  const K = SHEET_KEYS;
   if (!rows.length) {
     tbody.innerHTML = `<tr><td colspan="12"><div class="empty-state"><h3>No trades found</h3><p>Try a different search, or add a new trade.</p></div></td></tr>`;
     renderTradeCards(rows);
     return;
   }
   tbody.innerHTML = rows.map(r => {
-    const profit = parseFloat(r['Sale Price']) - parseFloat(r['Purchase Price']);
-    const profitStr = String(r['Sale Price'] ?? '').trim() !== '' && String(r['Purchase Price'] ?? '').trim() !== ''
-      ? (profit >= 0 ? '+$' : '−$') + fmtNum(Math.abs(profit), 2)
-      : '—';
-    const profitColor = profit >= 0 ? 'style="color:var(--good)"' : 'style="color:var(--bad)"';
+    const profit = parseFloat(r[K.salePrice]) - parseFloat(r[K.purchasePrice]);
+    const hasBoth = String(r[K.salePrice] ?? '').trim() !== '' && String(r[K.purchasePrice] ?? '').trim() !== '';
+    const profitStr = hasBoth ? (profit >= 0 ? '+$' : '−$') + fmtNum(Math.abs(profit), 2) : '—';
+    const profitColor = hasBoth ? (profit >= 0 ? 'style="color:var(--good)"' : 'style="color:var(--bad)"') : '';
     return `
       <tr data-trow="${r._row}" class="${getTradeStatusClass(r)}">
-        <td class="num">${r['Sr. No.'] ?? ''}</td>
-        <td>${fmtDate(r['Date'])}</td>
-        <td><span class="style-tag">${r['Item'] ?? ''}</span></td>
-        <td>${r['Vendor'] ?? '—'}</td>
-        <td class="num">${fmtUSD(r['Purchase Price'])}</td>
-        <td class="num">${String(r['Sale Price'] ?? '').trim() === '' ? '—' : fmtUSD(r['Sale Price'])}</td>
-        <td>${fmtDate(r['Date Sold'])}</td>
-        <td>${r['Sold To'] ?? '—'}</td>
-        <td class="num">${fmtUSD(r['Amount Paid'])}</td>
-        <td class="num">${String(r['Sale Price'] ?? '').trim() === '' ? '—' : fmtUSD(r['Balance Due'])}</td>
+        <td class="num">${r[K.srNo] ?? ''}</td>
+        <td>${fmtDate(r[K.date])}</td>
+        <td><span class="style-tag">${r[K.item] ?? ''}</span></td>
+        <td>${r[K.vendor] ?? '—'}</td>
+        <td class="num">${fmtUSD(r[K.purchasePrice])}</td>
+        <td class="num">${String(r[K.salePrice] ?? '').trim() === '' ? '—' : fmtUSD(r[K.salePrice])}</td>
+        <td>${fmtDate(r[K.dateSold])}</td>
+        <td>${r[K.soldTo] ?? '—'}</td>
+        <td class="num">${fmtUSD(r[K.amountPaid])}</td>
+        <td class="num">${String(r[K.salePrice] ?? '').trim() === '' ? '—' : fmtUSD(r[K.balanceDue])}</td>
         <td class="status-cell">${getTradePaymentBadge(r)}${quickTradePayBtn(r)}</td>
         <td class="num" ${profitColor}>${profitStr}</td>
       </tr>
@@ -559,38 +580,38 @@ function renderTradingTable(rows) {
 
 function renderTradeCards(rows) {
   const list = $('tradeCardList');
+  const K = SHEET_KEYS;
   if (!rows.length) {
     list.innerHTML = `<div class="empty-state"><h3>No trades found</h3><p>Try a different search, or add a new trade.</p></div>`;
     return;
   }
   list.innerHTML = rows.map(r => {
-    const profit = parseFloat(r['Sale Price']) - parseFloat(r['Purchase Price']);
-    const profitStr = String(r['Sale Price'] ?? '').trim() !== '' && String(r['Purchase Price'] ?? '').trim() !== ''
-      ? (profit >= 0 ? '+$' : '−$') + fmtNum(Math.abs(profit), 2)
-      : '—';
+    const profit = parseFloat(r[K.salePrice]) - parseFloat(r[K.purchasePrice]);
+    const hasBoth = String(r[K.salePrice] ?? '').trim() !== '' && String(r[K.purchasePrice] ?? '').trim() !== '';
+    const profitStr = hasBoth ? (profit >= 0 ? '+$' : '−$') + fmtNum(Math.abs(profit), 2) : '—';
     return `
       <div class="order-card ${getTradeStatusClass(r)}" data-trow="${r._row}">
         <div class="order-card-head">
           <div class="head-main">
             <div class="head-top">
-              <span class="head-sr">#${r['Sr. No.'] ?? ''}</span>
-              <span class="style-tag">${r['Item'] ?? ''}</span>
+              <span class="head-sr">#${r[K.srNo] ?? ''}</span>
+              <span class="style-tag">${r[K.item] ?? ''}</span>
             </div>
-            <span class="head-sub">${r['Vendor'] ?? '—'} · ${fmtDate(r['Date'])}</span>
+            <span class="head-sub">${r[K.vendor] ?? '—'} · ${fmtDate(r[K.date])}</span>
           </div>
           <div class="head-total">${profitStr}</div>
           <svg class="order-card-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
         </div>
         <div class="order-card-body">
           <div class="order-card-grid">
-            <div class="field-item"><div class="k">Purchase</div><div class="v">${fmtUSD(r['Purchase Price'])}</div></div>
-            <div class="field-item"><div class="k">Sale</div><div class="v">${String(r['Sale Price'] ?? '').trim() === '' ? '—' : fmtUSD(r['Sale Price'])}</div></div>
-            <div class="field-item"><div class="k">Date Sold</div><div class="v">${fmtDate(r['Date Sold'])}</div></div>
-            <div class="field-item"><div class="k">Sold To</div><div class="v">${r['Sold To'] || '—'}</div></div>
-            <div class="field-item"><div class="k">Paid</div><div class="v">${fmtUSD(r['Amount Paid'])}</div></div>
-            <div class="field-item"><div class="k">Balance</div><div class="v">${String(r['Sale Price'] ?? '').trim() === '' ? '—' : fmtUSD(r['Balance Due'])}</div></div>
+            <div class="field-item"><div class="k">Purchase</div><div class="v">${fmtUSD(r[K.purchasePrice])}</div></div>
+            <div class="field-item"><div class="k">Sale</div><div class="v">${String(r[K.salePrice] ?? '').trim() === '' ? '—' : fmtUSD(r[K.salePrice])}</div></div>
+            <div class="field-item"><div class="k">Date Sold</div><div class="v">${fmtDate(r[K.dateSold])}</div></div>
+            <div class="field-item"><div class="k">Sold To</div><div class="v">${r[K.soldTo] || '—'}</div></div>
+            <div class="field-item"><div class="k">Paid</div><div class="v">${fmtUSD(r[K.amountPaid])}</div></div>
+            <div class="field-item"><div class="k">Balance</div><div class="v">${String(r[K.salePrice] ?? '').trim() === '' ? '—' : fmtUSD(r[K.balanceDue])}</div></div>
             <div class="field-item"><div class="k">Status</div><div class="v">${getTradePaymentBadge(r)}${quickTradePayBtn(r)}</div></div>
-            <div class="field-item"><div class="k">P/L</div><div class="v" style="color:${profit >= 0 ? 'var(--good)' : 'var(--bad)'}">${profitStr}</div></div>
+            <div class="field-item"><div class="k">P/L</div><div class="v" style="color:${hasBoth ? (profit >= 0 ? 'var(--good)' : 'var(--bad)') : 'inherit'}">${profitStr}</div></div>
           </div>
         </div>
       </div>
@@ -649,11 +670,12 @@ document.querySelectorAll('#tradingTable thead th[data-tkey]').forEach(th => {
 
 function sortTradingRows(rows) {
   if (!tradeSortKey) return rows;
+  const K = SHEET_KEYS;
   const map = {
-    sr: 'Sr. No.', date: 'Date', item: 'Item', vendor: 'Vendor',
-    purchase: 'Purchase Price', sale: 'Sale Price', dateSold: 'Date Sold',
-    soldTo: 'Sold To', paid: 'Amount Paid', balance: 'Balance Due',
-    status: 'Payment Status', profit: 'Sale Price'
+    sr: K.srNo, date: K.date, item: K.item, vendor: K.vendor,
+    purchase: K.purchasePrice, sale: K.salePrice, dateSold: K.dateSold,
+    soldTo: K.soldTo, paid: K.amountPaid, balance: K.balanceDue,
+    status: K.paymentStatus, profit: K.salePrice
   };
   const col = map[tradeSortKey];
   return [...rows].sort((a, b) => {
@@ -673,13 +695,14 @@ function sortTradingRows(rows) {
 // ==================== SEARCH & FILTER ====================
 function applyTradingFilter() {
   const q = $('search').value.trim().toLowerCase();
+  const K = SHEET_KEYS;
   let filtered = TRADING;
   if (q) {
     filtered = filtered.filter(r =>
-      String(r['Item'] ?? '').toLowerCase().includes(q) ||
-      String(r['Vendor'] ?? '').toLowerCase().includes(q) ||
-      String(r['Date'] ?? '').includes(q) ||
-      String(r['Sold To'] ?? '').toLowerCase().includes(q)
+      String(r[K.item] ?? '').toLowerCase().includes(q) ||
+      String(r[K.vendor] ?? '').toLowerCase().includes(q) ||
+      String(r[K.date] ?? '').includes(q) ||
+      String(r[K.soldTo] ?? '').toLowerCase().includes(q)
     );
   }
   return sortTradingRows(filtered);
@@ -719,13 +742,14 @@ function renderTradePagination(total, start, pageCount) {
 
 // ==================== KPIs ====================
 function renderTradingKPIs() {
+  const K = SHEET_KEYS;
   const totalTrades = TRADING.length;
-  const totalInvested = TRADING.reduce((s, r) => s + (parseFloat(r['Purchase Price']) || 0), 0);
-  const soldTrades = TRADING.filter(r => String(r['Sale Price'] ?? '').trim() !== '');
-  const totalSales = soldTrades.reduce((s, r) => s + (parseFloat(r['Sale Price']) || 0), 0);
-  const totalProfit = soldTrades.reduce((s, r) => s + ((parseFloat(r['Sale Price']) || 0) - (parseFloat(r['Purchase Price']) || 0)), 0);
-  const totalPaid = TRADING.reduce((s, r) => s + (parseFloat(r['Amount Paid']) || 0), 0);
-  const totalOutstanding = TRADING.reduce((s, r) => s + (parseFloat(r['Balance Due']) || 0), 0);
+  const totalInvested = TRADING.reduce((s, r) => s + (parseFloat(r[K.purchasePrice]) || 0), 0);
+  const soldTrades = TRADING.filter(r => String(r[K.salePrice] ?? '').trim() !== '');
+  const totalSales = soldTrades.reduce((s, r) => s + (parseFloat(r[K.salePrice]) || 0), 0);
+  const totalProfit = soldTrades.reduce((s, r) => s + ((parseFloat(r[K.salePrice]) || 0) - (parseFloat(r[K.purchasePrice]) || 0)), 0);
+  const totalPaid = TRADING.reduce((s, r) => s + (parseFloat(r[K.amountPaid]) || 0), 0);
+  const totalOutstanding = TRADING.reduce((s, r) => s + (parseFloat(r[K.balanceDue]) || 0), 0);
 
   const kpis = [
     { label: 'Total Trades', value: totalTrades.toLocaleString('en-IN'), sub: 'buy & sell records' },
@@ -777,7 +801,6 @@ function switchView(view) {
 }
 
 // ==================== INIT ====================
-// Listen for search on trading view
 let tradeSearchDebounceTimer = null;
 $('search').addEventListener('input', () => {
   clearTimeout(tradeSearchDebounceTimer);
@@ -789,7 +812,6 @@ $('search').addEventListener('input', () => {
   }, 150);
 });
 
-// Keyboard: Escape closes trade panel
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && $('tradePanel').classList.contains('open')) {
     requestCloseTradePanel();

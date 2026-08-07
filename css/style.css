@@ -557,3 +557,14 @@
   display:flex; flex-direction:column;
 }
 #tradePanel.open{ transform: translateX(0); }
+#deleteTradeBtn{
+  background:transparent; border:1px solid var(--bad); color: var(--bad);
+  flex:0 0 auto; padding:13px 16px; position:relative; overflow:hidden;
+  border-radius:3px; font-weight:600; font-size:15px; cursor:pointer;
+}
+#deleteTradeBtn:hover{ background: rgba(192,112,90,0.12); }
+#deleteTradeBtn.holding{ background: var(--bad); color: var(--bg); }
+#deleteTradeProgress{
+  position:absolute; left:0; top:0; height:100%; width:0%;
+  background: rgba(255,255,255,0.25);
+}

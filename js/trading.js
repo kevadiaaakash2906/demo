@@ -709,7 +709,7 @@ function applyTradingFilter() {
 }
 
 // ==================== PAGINATION ====================
-const TRADE_PAGE_SIZE = 25;
+const TRADE_PAGE_SIZE = 50;
 
 function renderTradingResults(rows) {
   const totalPages = Math.max(1, Math.ceil(rows.length / TRADE_PAGE_SIZE));

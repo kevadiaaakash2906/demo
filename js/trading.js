@@ -182,7 +182,7 @@ function openEditTrade(rowId) {
   const allIds = ['t_item','t_vendor','t_date','t_purchasePrice','t_salePrice','t_dateSold','t_soldTo','t_notes','t_instAmount','t_instDate'];
   allIds.forEach(id => { $(id).readOnly = !canEdit; });
   $('addTradeInstallmentBtn').style.display = canEdit ? '' : 'none';
-  $('deleteTradeBtn').style.display = ROLE === 'staff' ? 'inline-block' : 'none';
+  $('deleteTradeBtn').style.display = (ROLE === 'staff' || ROLE === 'seller') ? 'inline-block' : 'none';
   $('deleteTradeText').textContent = 'Delete';
   $('deleteTradeBtn').classList.remove('holding');
   $('deleteTradeProgress').style.width = '0%';

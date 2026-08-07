@@ -28,7 +28,7 @@ const db = getFirestore(app);
 
 // ============ GOOGLE SHEETS SYNC ============
 // NOTE: This URL must be updated after every new Apps Script deployment
-const SHEET_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbzULRby6IQ7jRTE10PtwfjaNaoVx0Z753YaBiVBzPBQuBfYs-BEGDTLpmErOP-m0KsC9g/exec';
+const SHEET_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbxFFCca9gOW8hCPlqv1L6durwdKeIDq4eft9s4kyuIrro80XEFpQVKAyukeOIBU0NbBlA/exec';
 const SHEET_SECRET = 'vinere-sync-2026';
 
 async function syncToSheet(data) {

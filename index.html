@@ -26,6 +26,10 @@
     <div class="titles">
       <div class="mark">VINÉRE<span class="dot">·</span>Ledger</div>
       <div class="sub">Orders Delivered</div>
+      <div class="view-toggle">
+        <button class="btn secondary small active" id="ordersViewBtn">Orders</button>
+        <button class="btn secondary small" id="tradingViewBtn">Trading</button>
+      </div>
     </div>
     <div class="header-stats" id="headerStats">
       <div class="hstat">
@@ -46,88 +50,122 @@
       <button class="btn secondary" id="refreshBtn">Refresh</button>
       <button class="btn secondary" id="receivePaymentBtn">Receive Payment</button>
       <button class="btn" id="newOrderBtn">+ New order</button>
+      <button class="btn" id="newTradeBtn" style="display:none;">+ New trade</button>
     </div>
   </header>
 
   <main>
-    <div class="filter-bar">
-      <div class="filter-group">
-        <label>Customer</label>
-        <select id="filterCustomer"><option value="">All customers</option></select>
+    <!-- ORDERS VIEW -->
+    <div id="ordersView">
+      <div class="filter-bar">
+        <div class="filter-group">
+          <label>Customer</label>
+          <select id="filterCustomer"><option value="">All customers</option></select>
+        </div>
+        <div class="filter-group">
+          <label>From</label>
+          <input type="date" id="filterDateFrom">
+        </div>
+        <div class="filter-group">
+          <label>To</label>
+          <input type="date" id="filterDateTo">
+        </div>
+        <div class="filter-group">
+          <label>Sale Status</label>
+          <select id="filterSaleStatus">
+            <option value="">All items</option>
+            <option value="Not Sold">Not sold</option>
+            <option value="Unpaid">Unpaid</option>
+            <option value="Partial">Partial</option>
+            <option value="Paid">Paid</option>
+          </select>
+        </div>
+        <button class="btn secondary small" id="clearFiltersBtn">Clear filters</button>
+        <span class="rate-note" id="rateNote"></span>
       </div>
-      <div class="filter-group">
-        <label>From</label>
-        <input type="date" id="filterDateFrom">
+
+      <div class="kpi-grid" id="kpiGrid"></div>
+
+      <div class="table-wrap">
+        <table id="ordersTable">
+          <colgroup>
+            <col class="col-sr">
+            <col class="col-customer">
+            <col class="col-style">
+            <col class="col-date">
+            <col class="col-grossWt">
+            <col class="col-netWt">
+            <col class="col-ctWt">
+            <col class="col-diaCt">
+            <col class="col-subTotal">
+            <col class="col-usd">
+            <col class="col-memoNo">
+            <col class="col-soldTo">
+            <col class="col-salePrice">
+            <col class="col-paymentStatus">
+          </colgroup>
+          <thead>
+            <tr>
+              <th class="num" data-key="sr">Sr.</th>
+              <th data-key="customer">Customer</th>
+              <th data-key="style">Style No.</th>
+              <th data-key="date">Date</th>
+              <th class="num col-grossWt" data-key="grossWt">Gross Wt</th>
+              <th class="num col-netWt" data-key="netWt">Net Wt</th>
+              <th class="num col-ctWt" data-key="carat">Carat</th>
+              <th class="num col-diaCt" data-key="inCt">diamond ct</th>
+              <th class="num col-subTotal" data-key="subTotal">Sub Total</th>
+              <th class="num col-usd" data-key="usd">$</th>
+              <th class="col-memoNo" data-key="memoNo">Memo No.</th>
+              <th data-key="soldTo">Sold To</th>
+              <th class="num col-salePrice" data-key="salePrice">Sale Price</th>
+              <th data-key="paymentStatus">Status</th>
+            </tr>
+          </thead>
+          <tbody id="tbody">
+            <tr class="skel-row"><td colspan="14"><span class="skel" style="width:100%">Loading…</span></td></tr>
+          </tbody>
+        </table>
+
+        <table id="tradingTable" style="display:none;">
+          <colgroup>
+            <col style="width:6%"><col style="width:10%"><col style="width:16%">
+            <col style="width:12%"><col style="width:10%"><col style="width:10%">
+            <col style="width:10%"><col style="width:12%"><col style="width:10%">
+            <col style="width:10%"><col style="width:8%"><col style="width:10%">
+          </colgroup>
+          <thead>
+            <tr>
+              <th class="num" data-tkey="sr">Sr.</th>
+              <th data-tkey="date">Date</th>
+              <th data-tkey="item">Item</th>
+              <th data-tkey="vendor">Vendor</th>
+              <th class="num" data-tkey="purchase">Purchase $</th>
+              <th class="num" data-tkey="sale">Sale $</th>
+              <th data-tkey="dateSold">Date Sold</th>
+              <th data-tkey="soldTo">Sold To</th>
+              <th class="num" data-tkey="paid">Paid</th>
+              <th class="num" data-tkey="balance">Balance</th>
+              <th data-tkey="status">Status</th>
+              <th class="num" data-tkey="profit">P/L</th>
+            </tr>
+          </thead>
+          <tbody id="tradeTbody">
+            <tr class="skel-row"><td colspan="12"><span class="skel" style="width:100%">Loading…</span></td></tr>
+          </tbody>
+        </table>
       </div>
-      <div class="filter-group">
-        <label>To</label>
-        <input type="date" id="filterDateTo">
-      </div>
-      <div class="filter-group">
-        <label>Sale Status</label>
-        <select id="filterSaleStatus">
-          <option value="">All items</option>
-          <option value="Not Sold">Not sold</option>
-          <option value="Unpaid">Unpaid</option>
-          <option value="Partial">Partial</option>
-          <option value="Paid">Paid</option>
-        </select>
-      </div>
-      <button class="btn secondary small" id="clearFiltersBtn">Clear filters</button>
-      <span class="rate-note" id="rateNote"></span>
+
+      <div class="card-list" id="cardList"></div>
+      <div class="card-list" id="tradeCardList" style="display:none;"></div>
+
+      <div class="pagination-bar" id="paginationBar"></div>
+      <div class="pagination-bar" id="tradePaginationBar" style="display:none;"></div>
     </div>
-
-    <div class="kpi-grid" id="kpiGrid"></div>
-
-    <div class="table-wrap">
-      <table>
-        <colgroup>
-          <col class="col-sr">
-          <col class="col-customer">
-          <col class="col-style">
-          <col class="col-date">
-          <col class="col-grossWt">
-          <col class="col-netWt">
-          <col class="col-ctWt">
-          <col class="col-diaCt">
-          <col class="col-subTotal">
-          <col class="col-usd">
-          <col class="col-memoNo">
-          <col class="col-soldTo">
-          <col class="col-salePrice">
-          <col class="col-paymentStatus">
-        </colgroup>
-        <thead>
-          <tr>
-            <th class="num" data-key="sr">Sr.</th>
-            <th data-key="customer">Customer</th>
-            <th data-key="style">Style No.</th>
-            <th data-key="date">Date</th>
-            <th class="num col-grossWt" data-key="grossWt">Gross Wt</th>
-            <th class="num col-netWt" data-key="netWt">Net Wt</th>
-            <th class="num col-ctWt" data-key="carat">Carat</th>
-            <th class="num col-diaCt" data-key="inCt">diamond ct</th>
-            <th class="num col-subTotal" data-key="subTotal">Sub Total</th>
-            <th class="num col-usd" data-key="usd">$</th>
-            <th class="col-memoNo" data-key="memoNo">Memo No.</th>
-            <th data-key="soldTo">Sold To</th>
-            <th class="num col-salePrice" data-key="salePrice">Sale Price</th>
-            <th data-key="paymentStatus">Status</th>
-          </tr>
-        </thead>
-        <tbody id="tbody">
-          <tr class="skel-row"><td colspan="14"><span class="skel" style="width:100%">Loading…</span></td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div class="card-list" id="cardList"></div>
-
-    <div class="pagination-bar" id="paginationBar"></div>
   </main>
 </div>
 
-<!-- ============ EDIT / ADD PANEL ============ -->
+<!-- ============ EDIT / ADD PANEL (Orders) ============ -->
 <div id="overlay"></div>
 <div id="panel">
   <div class="panel-head">
@@ -209,6 +247,62 @@
   </div>
 </div>
 
+<!-- ============ TRADING PANEL ============ -->
+<div id="tradeOverlay" style="display:none;position:fixed;inset:0;background:rgba(10,9,7,0.6);z-index:20;backdrop-filter:blur(3px);"></div>
+<div id="tradePanel" style="position:fixed;top:0;right:0;height:100vh;width:460px;max-width:94vw;background:var(--surface-raised);border-left:1px solid var(--line);z-index:21;transform:translateX(100%);transition:transform 0.3s cubic-bezier(0.16,1,0.3,1);display:flex;flex-direction:column;">
+  <div class="panel-head">
+    <h2 id="tradePanelTitle">New Trade</h2>
+    <button id="closeTradePanel">&times;</button>
+  </div>
+  <div class="panel-body">
+    <div class="field-row">
+      <div class="field"><label>Item *</label><input id="t_item" placeholder="e.g. Diamond Bracelet"><div class="field-error" id="err_t_item"></div></div>
+      <div class="field"><label>Vendor *</label><input id="t_vendor" placeholder="e.g. Rakesh Jewellers"><div class="field-error" id="err_t_vendor"></div></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Date</label><input id="t_date" type="date"></div>
+      <div class="field"><label>Purchase Price ($) *</label><input id="t_purchasePrice" type="number" step="1" placeholder="0"><div class="field-error" id="err_t_purchasePrice"></div></div>
+    </div>
+
+    <div class="section-divider">Sale &amp; Payment</div>
+
+    <div class="field-row">
+      <div class="field"><label>Sale Price ($)</label><input id="t_salePrice" type="number" step="1" placeholder="0"><div class="field-error" id="err_t_salePrice"></div></div>
+      <div class="field"><label>Date Sold</label><input id="t_dateSold" type="date"></div>
+    </div>
+    <div class="field"><label>Sold To</label><input id="t_soldTo" placeholder="e.g. Priya Shah"></div>
+
+    <div class="field">
+      <label>Installments</label>
+      <div id="tradeInstallmentsList" class="installments-list"></div>
+      <div class="field-row installment-add-row">
+        <div class="field"><input id="t_instAmount" type="number" step="1" min="0" placeholder="Amount $"></div>
+        <div class="field"><input id="t_instDate" type="date"></div>
+      </div>
+      <button class="btn secondary small" id="addTradeInstallmentBtn" type="button" style="width:100%">+ Add installment</button>
+      <div class="field-error" id="err_t_installment"></div>
+    </div>
+
+    <div class="computed-preview">
+      <h4>Trading Preview</h4>
+      <div class="computed-row"><span class="label">Profit / Loss</span><span class="value" id="t_prev_profit" style="color:var(--text-dim)">—</span></div>
+      <div class="computed-row"><span class="label">Amount Paid</span><span class="value" id="t_prev_amountPaid">—</span></div>
+      <div class="computed-row"><span class="label">Balance Due</span><span class="value" id="t_prev_balanceDue">—</span></div>
+      <div class="computed-row"><span class="label">Payment Status</span><span class="value" id="t_prev_paymentStatus">—</span></div>
+    </div>
+
+    <div class="field"><label>Notes</label><input id="t_notes" placeholder="Any notes…"></div>
+    <div id="tradeSaveMsg"></div>
+  </div>
+  <div class="panel-foot">
+    <button id="deleteTradeBtn" style="display:none;">
+      <span id="deleteTradeProgress"></span>
+      <span id="deleteTradeText">Delete</span>
+    </button>
+    <button class="btn" id="saveTradeBtn" style="flex:1;">Save</button>
+  </div>
+</div>
+
 <!-- ============ RECEIVE PAYMENT — memo/order lookup ============ -->
 <div id="paymentSearchOverlay"></div>
 <div id="paymentSearchModal">
@@ -240,5 +334,6 @@
 <script src="js/filters.js" defer></script>
 <script src="js/panel.js" defer></script>
 <script src="js/payments.js" defer></script>
+<script src="js/trading.js" defer></script>
 </body>
 </html>

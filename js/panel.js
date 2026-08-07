@@ -614,7 +614,7 @@
       // Store for undo
       lastDeletedOrder = { id: editingRow, data: { ...order } };
 
-      await deleteOrder(editingRow);
+     await deleteOrder(editingRow, order['Sr. No.']);
       playScreenFx('delete');
       showUndoToast(editingRow);
 

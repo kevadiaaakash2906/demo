@@ -85,6 +85,7 @@
       </div>
 
       <div class="kpi-grid" id="kpiGrid"></div>
+      <div class="kpi-grid" id="tradeKpiGrid" style="display:none;"></div>
 
       <div class="table-wrap">
         <table id="ordersTable">
@@ -165,7 +166,7 @@
   </main>
 </div>
 
-<!-- ============ EDIT / ADD PANEL (Orders) ============ -->
+<!-- ============ ORDERS PANEL ============ -->
 <div id="overlay"></div>
 <div id="panel">
   <div class="panel-head">
@@ -303,7 +304,7 @@
   </div>
 </div>
 
-<!-- ============ RECEIVE PAYMENT — memo/order lookup ============ -->
+<!-- ============ RECEIVE PAYMENT ============ -->
 <div id="paymentSearchOverlay"></div>
 <div id="paymentSearchModal">
   <div class="panel-head">
@@ -323,11 +324,11 @@
   <button id="undoBtn">Undo</button>
 </div>
 
-<!-- Firebase SDK modules (set window globals) -->
+<!-- Firebase SDK modules -->
 <script type="module" src="js/utils.js"></script>
 <script type="module" src="js/firebase.js"></script>
 
-<!-- App modules — deferred so Firebase/utils globals are ready -->
+<!-- App modules -->
 <script src="js/app.js" defer></script>
 <script src="js/dashboard.js" defer></script>
 <script src="js/table.js" defer></script>

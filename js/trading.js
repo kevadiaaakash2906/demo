@@ -12,7 +12,7 @@ const SHEET_KEYS = {
   salePrice: 'Sale Price',
   dateSold: 'Date Sold',
   soldTo: 'Sold To',
-  amountPaid: 'sale Price',
+  amountPaid: 'Amount Paid',
   balanceDue: 'Balance Due',
   paymentStatus: 'Payment Status',
   paymentLog: 'Payment Log',

@@ -22,6 +22,36 @@ var sortKey = null;
 var sortDir = 'asc';
 var deleteHoldRAF = null;
 var currentInstallments = []; // [{date, amount}] for the order currently open in the panel
+// ============ SHEET KEY MAPPINGS ============
+// Change these if your Google Sheet headers ever change
+var ORDERS_KEYS = {
+  srNo: 'Sr. No.',
+  customer: 'CUSTOMER ',
+  customerAlt: 'CUSTOMER',
+  styleNo: 'Style No.',
+  date: 'Date',
+  grossWt: 'Gross Wt',
+  diaQty: 'Dia Qty',
+  inCt: 'IN CT',
+  colourStone: 'COLOUR STONE',
+  netWt: 'Net Wt',
+  multiplier: 'Multiplier',
+  pgWt: 'Pg Wt',
+  goldAmount: 'Gold Amount',
+  diamAmount: 'Diam Amount',
+  lCharges: 'L CHARGES',
+  laborAmount: 'Labor Amount',
+  subTotal: 'SUB TOTAL',
+  usd: '$',
+  soldTo: 'Sold To',
+  salePrice: 'Sale Price',
+  dateSold: 'Date Sold',
+  amountPaid: 'Amount Paid',
+  balanceDue: 'Balance Due',
+  paymentStatus: 'Payment Status',
+  paymentLog: 'Payment Log',
+  memoNo: 'Memo No.'
+};
 
 $('rateNote').textContent = `Gold: ₹${GOLD_RATE_PER_10G.toLocaleString('en-IN')}/10g · $1 = ₹${USD_RATE} (fixed rates)`;
 

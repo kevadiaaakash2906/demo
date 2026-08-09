@@ -3,12 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#1E1B18">
 <title>VINÉRE Ledger — Orders</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
+<base target="_blank">
+<base target="_blank">
 </head>
 <body>
+
 
 <!-- ============ LOGIN ============ -->
 <div id="login">
@@ -23,64 +27,39 @@
 <!-- ============ APP ============ -->
 <div id="app">
   <header class="topbar">
-    <div class="titles">
+    <div class="topbar-left">
       <div class="mark">VINÉRE<span class="dot">·</span>Ledger</div>
-      <div class="sub">Orders Delivered</div>
       <div class="view-toggle">
         <button class="btn secondary small active" id="ordersViewBtn">Orders</button>
         <button class="btn secondary small" id="tradingViewBtn">Trading</button>
       </div>
     </div>
     <div class="header-stats" id="headerStats">
-      <div class="hstat">
-        <span class="hstat-label">Profit / Loss</span>
-        <span class="hstat-value" id="hstat_pl">—</span>
-      </div>
-      <div class="hstat">
-        <span class="hstat-label">Remaining Stock</span>
-        <span class="hstat-value" id="hstat_stockCount">—</span>
-      </div>
-      <div class="hstat">
-        <span class="hstat-label">Stock Cost</span>
-        <span class="hstat-value" id="hstat_stockCost">—</span>
-      </div>
+      <div class="hstat" id="hstat_1_wrap"><span class="hstat-label" id="hstat_1_label">Profit / Loss</span><span class="hstat-value" id="hstat_1">—</span></div>
+      <div class="hstat" id="hstat_2_wrap"><span class="hstat-label" id="hstat_2_label">Remaining Stock</span><span class="hstat-value" id="hstat_2">—</span></div>
+      <div class="hstat" id="hstat_3_wrap"><span class="hstat-label" id="hstat_3_label">Stock Cost</span><span class="hstat-value" id="hstat_3">—</span></div>
     </div>
-    <div class="controls">
-      <input id="search" placeholder="Search customer, style, memo, buyer, or date…" autocomplete="off">
-      <button class="btn secondary" id="refreshBtn">Refresh</button>
-      <button class="btn secondary" id="receivePaymentBtn">Receive Payment</button>
-      <button class="btn" id="newOrderBtn">+ New order</button>
-      <button class="btn" id="newTradeBtn" style="display:none;">+ New trade</button>
+    <div class="topbar-right">
+      <div class="search-wrap">
+        <input id="search" placeholder="Search…" autocomplete="off">
+        <button id="searchClear" class="search-clear" title="Clear search">&times;</button>
+        <span id="resultCount" class="result-count"></span>
+      </div>
+      <button class="btn secondary small" id="refreshBtn" title="Refresh">↻</button>
+      <button class="btn secondary small" id="receivePaymentBtn">Payment</button>
+      <button class="btn small" id="newOrderBtn">+ Order</button>
+      <button class="btn small" id="newTradeBtn" style="display:none;">+ Trade</button>
     </div>
   </header>
 
   <main>
-    <!-- ORDERS VIEW -->
     <div id="ordersView">
-      <div class="filter-bar">
-        <div class="filter-group">
-          <label>Customer</label>
-          <select id="filterCustomer"><option value="">All customers</option></select>
-        </div>
-        <div class="filter-group">
-          <label>From</label>
-          <input type="date" id="filterDateFrom">
-        </div>
-        <div class="filter-group">
-          <label>To</label>
-          <input type="date" id="filterDateTo">
-        </div>
-        <div class="filter-group">
-          <label>Sale Status</label>
-          <select id="filterSaleStatus">
-            <option value="">All items</option>
-            <option value="Not Sold">Not sold</option>
-            <option value="Unpaid">Unpaid</option>
-            <option value="Partial">Partial</option>
-            <option value="Paid">Paid</option>
-          </select>
-        </div>
-        <button class="btn secondary small" id="clearFiltersBtn">Clear filters</button>
+      <div class="filter-bar compact">
+        <select id="filterCustomer"><option value="">All customers</option></select>
+        <input type="date" id="filterDateFrom" placeholder="From">
+        <input type="date" id="filterDateTo" placeholder="To">
+        <select id="filterSaleStatus"><option value="">All status</option><option value="Not Sold">Not sold</option><option value="Unpaid">Unpaid</option><option value="Partial">Partial</option><option value="Paid">Paid</option></select>
+        <button class="btn secondary small" id="clearFiltersBtn">Clear</button>
         <span class="rate-note" id="rateNote"></span>
       </div>
 
@@ -90,41 +69,21 @@
       <div class="table-wrap">
         <table id="ordersTable">
           <colgroup>
-  <col class="col-sr" style="width:5%">
-  <col class="col-customer" style="width:7%">
-  <col class="col-style" style="width:10%">
-  <col class="col-date" style="width:8%">
-  <col class="col-grossWt" style="width:6%">
-  <col class="col-netWt" style="width:6%">
-  <col class="col-ctWt" style="width:6%">
-  <col class="col-diaCt" style="width:6%">
-  <col class="col-subTotal" style="width:9%">
-  <col class="col-usd" style="width:6%">
-  <col class="col-memoNo" style="width:7%">
-  <col class="col-soldTo" style="width:9%">
-  <col class="col-salePrice" style="width:7%">
-  <col class="col-paymentStatus" style="width:8%">
-</colgroup>>
-          <thead>
-            <tr>
-              <th class="num" data-key="sr">Sr.</th>
-              <th data-key="customer">Customer</th>
-              <th data-key="style">Style No.</th>
-              <th data-key="date">Date</th>
-              <th class="num col-grossWt" data-key="grossWt">Gross Wt</th>
-              <th class="num col-netWt" data-key="netWt">Net Wt</th>
-              <th class="num col-ctWt" data-key="carat">Carat</th>
-              <th class="num col-diaCt" data-key="inCt">diamond ct</th>
-              <th class="num col-subTotal" data-key="subTotal">Sub Total</th>
-              <th class="num col-usd" data-key="usd">$</th>
-              <th class="col-memoNo" data-key="memoNo">Memo No.</th>
-              <th data-key="soldTo">Sold To</th>
-              <th class="num col-salePrice" data-key="salePrice">Sale Price</th>
-              <th data-key="paymentStatus">Status</th>
-            </tr>
-          </thead>
+            <col style="width:5%"><col style="width:7%"><col style="width:10%"><col style="width:8%">
+            <col style="width:6%"><col style="width:6%"><col style="width:6%">
+            <col style="width:10%"><col style="width:6%"><col style="width:7%"><col style="width:10%">
+            <col style="width:8%"><col style="width:11%">
+          </colgroup>
+          <thead><tr>
+            <th class="num">Sr.</th><th>Customer</th><th>Style No.</th><th>Date</th>
+            <th class="num">Gross Wt</th><th class="num">Net Wt</th><th class="num">Carat</th>
+            <th class="num">Sub Total</th><th class="num">$</th><th>Memo No.</th><th>Sold To</th>
+            <th class="num">Sale Price</th><th>Status</th>
+          </tr></thead>
           <tbody id="tbody">
-            <tr class="skel-row"><td colspan="14"><span class="skel" style="width:100%">Loading…</span></td></tr>
+            <tr class="skeleton-row"><td colspan="13"><div class="skeleton-cell" style="width:100%"></div></td></tr>
+            <tr class="skeleton-row"><td colspan="13"><div class="skeleton-cell" style="width:100%"></div></td></tr>
+            <tr class="skeleton-row"><td colspan="13"><div class="skeleton-cell" style="width:100%"></div></td></tr>
           </tbody>
         </table>
 
@@ -135,33 +94,24 @@
             <col style="width:10%"><col style="width:12%"><col style="width:10%">
             <col style="width:10%"><col style="width:8%"><col style="width:10%">
           </colgroup>
-          <thead>
-            <tr>
-              <th class="num" data-tkey="sr">Sr.</th>
-              <th data-tkey="date">Date</th>
-              <th data-tkey="item">Item</th>
-              <th data-tkey="vendor">Vendor</th>
-              <th class="num" data-tkey="purchase">Purchase $</th>
-              <th class="num" data-tkey="sale">Sale $</th>
-              <th data-tkey="dateSold">Date Sold</th>
-              <th data-tkey="soldTo">Sold To</th>
-              <th class="num" data-tkey="paid">Paid</th>
-              <th class="num" data-tkey="balance">Balance</th>
-              <th data-tkey="status">Status</th>
-              <th class="num" data-tkey="profit">P/L</th>
-            </tr>
-          </thead>
+          <thead><tr>
+            <th class="num">Sr.</th><th>Date</th><th>Item</th><th>Vendor</th>
+            <th class="num">Purchase $</th><th class="num">Sale $</th><th>Date Sold</th><th>Sold To</th>
+            <th class="num">Paid</th><th class="num">Balance</th><th>Status</th><th class="num">P/L</th>
+          </tr></thead>
           <tbody id="tradeTbody">
-            <tr class="skel-row"><td colspan="12"><span class="skel" style="width:100%">Loading…</span></td></tr>
+            <tr class="skeleton-row"><td colspan="12"><div class="skeleton-cell" style="width:100%"></div></td></tr>
+            <tr class="skeleton-row"><td colspan="12"><div class="skeleton-cell" style="width:100%"></div></td></tr>
+            <tr class="skeleton-row"><td colspan="12"><div class="skeleton-cell" style="width:100%"></div></td></tr>
           </tbody>
         </table>
       </div>
 
       <div class="card-list" id="cardList"></div>
       <div class="card-list" id="tradeCardList" style="display:none;"></div>
-
       <div class="pagination-bar" id="paginationBar"></div>
       <div class="pagination-bar" id="tradePaginationBar" style="display:none;"></div>
+      <div class="swipe-hint">Swipe left/right to change pages</div>
     </div>
   </main>
 </div>
@@ -169,15 +119,11 @@
 <!-- ============ ORDERS PANEL ============ -->
 <div id="overlay"></div>
 <div id="panel">
-  <div class="panel-head">
-    <h2 id="panelTitle">New order</h2>
-    <button id="closePanel">&times;</button>
-  </div>
+  <div class="panel-head"><h2 id="panelTitle">New order</h2><button id="closePanel">&times;</button></div>
   <div class="panel-body">
     <div class="field"><label>Customer *</label><input id="f_customer" placeholder="e.g. HET"><div class="field-error" id="err_f_customer"></div></div>
     <div class="field"><label>Style No. *</label><input id="f_style" placeholder="e.g. SLER-0079 I"><div class="field-error" id="err_f_style"></div></div>
     <div class="field"><label>Date</label><input id="f_date" type="date"></div>
-
     <div class="field-row">
       <div class="field"><label>Gross Wt (g)</label><input id="f_grossWt" type="number" step="0.001" placeholder="0.000"><div class="field-error" id="err_f_grossWt"></div></div>
       <div class="field"><label>Net Wt (g) *</label><input id="f_netWt" type="number" step="0.001" placeholder="0.000"><div class="field-error" id="err_f_netWt"></div></div>
@@ -188,38 +134,36 @@
     </div>
     <div class="field-row">
       <div class="field"><label>Colour Stone</label><input id="f_colourStone" type="number" step="1" placeholder="0"><div class="field-error" id="err_f_colourStone"></div></div>
-      <div class="field"><label>Multiplier</label><input id="f_multiplier" type="number" step="0.001" value="0.595" placeholder="0.595"><div class="field-error" id="err_f_multiplier"></div></div>
+      <div class="field"><label>Multiplier</label><input id="f_multiplier" type="number" step="0.001" value="0.595"><div class="field-error" id="err_f_multiplier"></div></div>
     </div>
     <div class="field-row">
       <div class="field"><label>Diamond Amount (₹)</label><input id="f_diamAmount" type="number" step="1" placeholder="0"><div class="field-error" id="err_f_diamAmount"></div></div>
       <div class="field"><label>L Charges (₹/g)</label><input id="f_lCharges" type="number" step="1" placeholder="900"><div class="field-error" id="err_f_lCharges"></div></div>
     </div>
-
+    <div class="field" style="margin-top:-6px;margin-bottom:10px;">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;text-transform:none;letter-spacing:0;color:var(--text-dim);font-weight:400;">
+        <input type="checkbox" id="f_flatLabor" style="width:16px;height:16px;cursor:pointer;">
+        Flat labor — fixed amount (don't multiply by weight)
+      </label>
+    </div>
     <div class="computed-preview">
-      <h4>Live Preview (Auto-calculated)</h4>
+      <h4>Live Preview</h4>
       <div class="computed-row"><span class="label">Pg Wt</span><span class="value" id="prev_pgWt">—</span></div>
       <div class="computed-row"><span class="label">Gold Amount</span><span class="value" id="prev_goldAmt">—</span></div>
       <div class="computed-row"><span class="label">Labor Amount</span><span class="value" id="prev_laborAmt">—</span></div>
       <div class="computed-row"><span class="label">Sub Total</span><span class="value" id="prev_subTotal">—</span></div>
       <div class="computed-row"><span class="label">USD ($)</span><span class="value" id="prev_usd">—</span></div>
     </div>
-
     <p class="computed-note">Formulas: Pg Wt = Net Wt × Multiplier | Gold Amt = Pg Wt × 16000 | Labor = Net Wt × L Charges | $ = Sub Total ÷ 94</p>
-
     <div class="section-divider">Sale &amp; Payment</div>
-
-    <div class="field">
-      <label>Memo No.</label>
-      <input id="f_memoNo" placeholder="e.g. MEMO-014 (leave blank if sold alone)">
-      <div class="computed-note" id="memoSummary" style="display:none;"></div>
-    </div>
+    <div class="field"><label>Memo No.</label><input id="f_memoNo" placeholder="e.g. MEMO-014"><div class="computed-note" id="memoSummary" style="display:none;"></div></div>
     <div class="field"><label>Sold To (Buyer)</label><input id="f_soldTo" placeholder="e.g. Priya Shah"></div>
     <div class="field-row">
       <div class="field"><label id="lbl_salePrice">Sale Price ($)</label><input id="f_salePrice" type="number" step="1" placeholder="0"><div class="field-error" id="err_f_salePrice"></div></div>
       <div class="field"><label>Date Sold</label><input id="f_dateSold" type="date"></div>
     </div>
     <div class="field">
-      <label>Installments <span id="instScopeLabel"></span></label>
+      <label>Installments</label>
       <div id="installmentsList" class="installments-list"></div>
       <div class="field-row installment-add-row">
         <div class="field"><input id="f_instAmount" type="number" step="1" min="0" placeholder="Amount $"></div>
@@ -228,22 +172,16 @@
       <button class="btn secondary small" id="addInstallmentBtn" type="button" style="width:100%">+ Add installment</button>
       <div class="field-error" id="err_f_installment"></div>
     </div>
-
     <div class="computed-preview">
       <h4>Payment Preview</h4>
-      <div class="computed-row" id="row_memoTotal" style="display:none;"><span class="label">Memo Total (all items)</span><span class="value" id="prev_memoTotal">—</span></div>
       <div class="computed-row"><span class="label">Amount Paid</span><span class="value" id="prev_amountPaid">—</span></div>
       <div class="computed-row"><span class="label">Balance Due</span><span class="value" id="prev_balanceDue">—</span></div>
       <div class="computed-row"><span class="label">Payment Status</span><span class="value" id="prev_paymentStatus">—</span></div>
     </div>
-
     <div id="saveMsg"></div>
   </div>
   <div class="panel-foot">
-    <button id="deleteBtn" style="display:none;">
-      <span id="deleteProgress"></span>
-      <span id="deleteText">Delete</span>
-    </button>
+    <button id="deleteBtn" style="display:none;"><span id="deleteText">Delete</span></button>
     <button class="btn" id="saveBtn" style="flex:1;">Save</button>
   </div>
 </div>
@@ -251,10 +189,7 @@
 <!-- ============ TRADING PANEL ============ -->
 <div id="tradeOverlay"></div>
 <div id="tradePanel">
-  <div class="panel-head">
-    <h2 id="tradePanelTitle">New Trade</h2>
-    <button id="closeTradePanel">&times;</button>
-  </div>
+  <div class="panel-head"><h2 id="tradePanelTitle">New Trade</h2><button id="closeTradePanel">&times;</button></div>
   <div class="panel-body">
     <div class="field-row">
       <div class="field"><label>Item *</label><input id="t_item" placeholder="e.g. Diamond Bracelet"><div class="field-error" id="err_t_item"></div></div>
@@ -264,15 +199,12 @@
       <div class="field"><label>Date</label><input id="t_date" type="date"></div>
       <div class="field"><label>Purchase Price ($) *</label><input id="t_purchasePrice" type="number" step="1" placeholder="0"><div class="field-error" id="err_t_purchasePrice"></div></div>
     </div>
-
     <div class="section-divider">Sale &amp; Payment</div>
-
     <div class="field-row">
       <div class="field"><label>Sale Price ($)</label><input id="t_salePrice" type="number" step="1" placeholder="0"><div class="field-error" id="err_t_salePrice"></div></div>
       <div class="field"><label>Date Sold</label><input id="t_dateSold" type="date"></div>
     </div>
     <div class="field"><label>Sold To</label><input id="t_soldTo" placeholder="e.g. Priya Shah"></div>
-
     <div class="field">
       <label>Installments</label>
       <div id="tradeInstallmentsList" class="installments-list"></div>
@@ -283,7 +215,6 @@
       <button class="btn secondary small" id="addTradeInstallmentBtn" type="button" style="width:100%">+ Add installment</button>
       <div class="field-error" id="err_t_installment"></div>
     </div>
-
     <div class="computed-preview">
       <h4>Trading Preview</h4>
       <div class="computed-row"><span class="label">Profit / Loss</span><span class="value" id="t_prev_profit" style="color:var(--text-dim)">—</span></div>
@@ -291,26 +222,19 @@
       <div class="computed-row"><span class="label">Balance Due</span><span class="value" id="t_prev_balanceDue">—</span></div>
       <div class="computed-row"><span class="label">Payment Status</span><span class="value" id="t_prev_paymentStatus">—</span></div>
     </div>
-
     <div class="field"><label>Notes</label><input id="t_notes" placeholder="Any notes…"></div>
     <div id="tradeSaveMsg"></div>
   </div>
   <div class="panel-foot">
-    <button id="deleteTradeBtn" style="display:none;">
-      <span id="deleteTradeProgress"></span>
-      <span id="deleteTradeText">Delete</span>
-    </button>
+    <button id="deleteTradeBtn" style="display:none;"><span id="deleteTradeText">Delete</span></button>
     <button class="btn" id="saveTradeBtn" style="flex:1;">Save</button>
   </div>
 </div>
-  
+
 <!-- ============ RECEIVE PAYMENT ============ -->
 <div id="paymentSearchOverlay"></div>
 <div id="paymentSearchModal">
-  <div class="panel-head">
-    <h2>Receive Payment</h2>
-    <button id="closePaymentSearch">&times;</button>
-  </div>
+  <div class="panel-head"><h2>Receive Payment</h2><button id="closePaymentSearch">&times;</button></div>
   <div class="pay-search-body">
     <input id="paySearchInput" placeholder="Search memo no., buyer, style, or customer…" autocomplete="off">
     <div id="payResults" class="pay-results"></div>
@@ -323,18 +247,28 @@
   <span class="undo-msg">Order deleted — <span class="undo-count" id="undoCount">60</span>s left</span>
   <button id="undoBtn">Undo</button>
 </div>
+<div id="toastContainer" class="toast-container"></div>
 
-<!-- Firebase SDK modules -->
-<script type="module" src="js/utils.js"></script>
-<script type="module" src="js/firebase.js"></script>
+<!-- Firebase SDKs (required before firebase.js runs) -->
+<!-- App scripts — load order matters -->
 
-<!-- App modules -->
-<script src="js/app.js" defer></script>
-<script src="js/dashboard.js" defer></script>
-<script src="js/table.js" defer></script>
-<script src="js/filters.js" defer></script>
-<script src="js/panel.js" defer></script>
-<script src="js/payments.js" defer></script>
-<script src="js/trading.js" defer></script>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+<!-- App scripts — load order matters -->
+<script src="js/utils.js"></script>
+<script src="js/api.js"></script>
+<script src="js/firebase.js"></script>
+<script src="js/app.js"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/filters.js"></script>
+<script src="js/panel.js"></script>
+<script src="js/table.js"></script>
+<script src="js/payments.js"></script>
+<script src="js/trading.js"></script>
+
 </body>
 </html>

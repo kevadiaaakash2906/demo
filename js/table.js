@@ -1,247 +1,261 @@
-// ============================================================
-// table.js — desktop table + mobile card rendering with ORDERS_KEYS
-// ============================================================
+/* ============================================
+   VINÉRE — Table Renderers
+   ============================================ */
 
-const OK = window.ORDERS_KEYS;
+function renderTable() {
+  var tbody = $('tbody');
+  var filtered = getFilteredOrders();
 
-function renderSkeleton(count = 6) {
-  const tbody = $('tbody');
-  tbody.innerHTML = Array.from({ length: count }).map(() => `
-    <tr class="skel-row">
-      <td><span class="skel" style="width:24px">•</span></td>
-      <td><span class="skel" style="width:70px">•</span></td>
-      <td><span class="skel" style="width:90px">•</span></td>
-      <td><span class="skel" style="width:80px">•</span></td>
-      <td class="num"><span class="skel" style="width:50px">•</span></td>
-      <td class="num"><span class="skel" style="width:50px">•</span></td>
-      <td class="num"><span class="skel" style="width:50px">•</span></td>
-      <td class="num"><span class="skel" style="width:50px">•</span></td>
-      <td class="num"><span class="skel" style="width:50px">•</span></td>
-      <td><span class="skel" style="width:60px">•</span></td>
-      <td><span class="skel" style="width:70px">•</span></td>
-      <td><span class="skel" style="width:60px">•</span></td>
-      <td><span class="skel" style="width:60px">•</span></td>
-    </tr>
-  `).join('');
+  // Apply role-based view class to table
+  var table = $('ordersTable');
+  table.classList.remove('seller-view', 'staff-view', 'customer-view');
+  if (ROLE === 'seller') table.classList.add('seller-view');
+  else if (ROLE === 'staff') table.classList.add('staff-view');
+  else if (ROLE === 'customer') table.classList.add('customer-view');
+  var start = (currentPage - 1) * PAGE_SIZE;
+  var pageRows = filtered.slice(start, start + PAGE_SIZE);
+  var q = window.currentSearchQuery || '';
 
-  const list = $('cardList');
-  list.innerHTML = Array.from({ length: count }).map(() => `
-    <div class="skel-card">
-      <div><span class="skel w1">•</span><span class="skel w2">•</span></div>
-      <span class="skel w3">•</span>
-    </div>
-  `).join('');
-}
-
-function renderErrorState(msg) {
-  const errorHtml = `
-    <div class="empty-state">
-      <h3>Couldn't load orders</h3>
-      <p>${msg}</p>
-      <button class="btn secondary small" id="retryLoadBtn" style="margin-top:14px;">Retry</button>
-    </div>
-  `;
-  $('tbody').innerHTML = `<tr><td colspan="14">${errorHtml}</td></tr>`;
-  $('cardList').innerHTML = errorHtml;
-  $('paginationBar').innerHTML = '';
-  const bind = (el) => el && el.addEventListener('click', loadOrders);
-  bind(document.querySelector('#tbody #retryLoadBtn'));
-  bind(document.querySelector('#cardList #retryLoadBtn'));
-}
-
-function getCustomerBadge(customer) {
-  const c = (customer || '').trim().toUpperCase();
-  if (c === 'HET') return '<span class="badge badge-het">HET</span>';
-  if (c.includes('CVD')) return '<span class="badge badge-cvd">CVD</span>';
-  return '<span class="badge badge-other">' + (customer || '—') + '</span>';
-}
-
-function getPaymentBadge(row) {
-  const price = String(row[OK.salePrice] ?? '').trim();
-  if (price === '') return '<span class="badge badge-notsold">Not sold</span>';
-  const status = String(row[OK.paymentStatus] ?? '').trim() || 'Unpaid';
-  const cls = status === 'Paid' ? 'badge-paid' : status === 'Partial' ? 'badge-partial' : 'badge-unpaid';
-  return `<span class="badge ${cls}">${status}</span>`;
-}
-
-function getRowStatusClass(r) {
-  const price = String(r[OK.salePrice] ?? '').trim();
-  if (price === '') return 'notsold-row';
-  const status = String(r[OK.paymentStatus] ?? '').trim() || 'Unpaid';
-  if (status === 'Paid') return 'paid-row';
-  if (status === 'Partial') return 'partial-row';
-  return 'unpaid-row';
-}
-
-function isPayable(row) {
-  const priced = String(row[OK.salePrice] ?? '').trim() !== '' || (() => {
-    const memoKey = String(getField(row, OK.memoNo) || '').trim().toLowerCase();
-    if (!memoKey) return false;
-    return ORDERS.some(x => x._row !== row._row &&
-      String(getField(x, OK.memoNo) || '').trim().toLowerCase() === memoKey &&
-      String(x[OK.salePrice] ?? '').trim() !== '');
-  })();
-  if (!priced) return false;
-  return (parseFloat(row[OK.balanceDue]) || 0) > 0.005;
-}
-
-function quickPayBtn(row) {
-  if (!isPayable(row)) return '';
-  return `<button type="button" class="quick-pay-btn" data-row="${row._row}" title="Receive payment">$</button>`;
-}
-
-function wireQuickPayButtons(container) {
-  container.querySelectorAll('.quick-pay-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      openEditForPayment(btn.dataset.row);
-    });
-  });
-}
-
-function renderTable(rows) {
-  const tbody = $('tbody');
-  if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="14"><div class="empty-state"><h3>No orders found</h3><p>Try a different search, or add a new order.</p></div></td></tr>`;
-    renderCards(rows);
+  if (!pageRows.length) {
+    var msg = window.currentSearchQuery 
+      ? 'No orders match "' + escapeHtml(window.currentSearchQuery) + '"' 
+      : 'No orders found';
+    tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;padding:40px;color:var(--text-dim)">' + msg + '</td></tr>';
     return;
   }
-  tbody.innerHTML = rows.map(r => `
-    <tr data-row="${r._row}" class="${getRowStatusClass(r)}">
-      <td class="num">${r[OK.srNo] ?? ''}</td>
-      <td class="customer-cell">${getCustomerBadge(r[OK.customer] ?? r[OK.customerAlt])}</td>
-      <td><span class="style-tag">${r[OK.styleNo] ?? ''}</span></td>
-      <td>${fmtDate(r[OK.date])}</td>
-      <td class="num col-grossWt">${fmtNum(r[OK.grossWt], 3)}</td>
-      <td class="num col-netWt">${fmtNum(r[OK.netWt], 3)}</td>
-      <td class="num col-ctWt">${fmtNum(gramsToCarats(r[OK.grossWt]), 3)}</td>
-      <td class="num col-diaCt">${fmtNum(r[OK.inCt], 2)}</td>
-      <td class="num col-subTotal" style="font-weight:600">${fmtMoney(r[OK.subTotal])}</td>
-      <td class="num col-usd">${fmtNum(r[OK.usd], 2)}</td>
-      <td class="col-memoNo">${getField(r, OK.memoNo) || '—'}</td>
-      <td class="col-soldTo">${r[OK.soldTo] ?? '—'}</td>
-      <td class="num col-salePrice">${String(getField(r, OK.salePrice) ?? '').trim() === '' ? '—' : fmtUSD(getField(r, OK.salePrice))}</td>
-      <td class="status-cell">${getPaymentBadge(r)}${quickPayBtn(r)}</td>
-    </tr>
-  `).join('');
 
-  tbody.querySelectorAll('tr[data-row]').forEach(tr => {
-    tr.addEventListener('click', () => {
-      tbody.querySelectorAll('tr').forEach(r => r.classList.remove('selected'));
-      tr.classList.add('selected');
-      openEdit(tr.dataset.row);
+  tbody.innerHTML = pageRows.map(function(r) {
+    var sr = r[DK.sr];
+    var status = (r[DK.paymentStatus] || 'Not Sold').trim();
+    var statusClass = {
+      'Not Sold': 'status-not-sold',
+      'Unpaid': 'status-unpaid',
+      'Partial': 'status-partial',
+      'Paid': 'status-paid'
+    }[status] || 'status-not-sold';
+
+    return '<tr data-id="' + r._id + '" data-sr="' + sr + '" style="cursor:pointer">' +
+      '<td class="num">' + sr + '</td>' +
+      '<td>' + highlightText(r[DK.customer] || '', q) + '</td>' +
+      '<td><strong>' + highlightText(r[DK.style] || '', q) + '</strong></td>' +
+      '<td>' + fmtDate(r[DK.date]) + '</td>' +
+      '<td class="num">' + (r[DK.grossWt] || '') + '</td>' +
+      '<td class="num">' + (r[DK.netWt] || '') + '</td>' +
+      '<td class="num">' + (r[DK.inCt] || '') + '</td>' +
+      '<td class="num">' + (function() {
+      var gold = parseFloat(r[DK.goldAmt]) || 0;
+      var labor = parseFloat(r[DK.laborAmt]) || 0;
+      var diam = parseFloat(r[DK.diamAmount]) || 0;
+      var sub = gold + labor + diam;
+      return sub ? '₹' + Math.round(sub).toLocaleString('en-IN') : '';
+    })() + '</td>' +
+      '<td class="num">' + (r[DK.usd] ? '$' + parseFloat(r[DK.usd]).toFixed(2) : '') + '</td>' +
+      '<td>' + highlightText(r[DK.memoNo] || '', q) + '</td>' +
+      '<td>' + highlightText(r[DK.soldTo] || '', q) + '</td>' +
+      '<td class="num">' + (r[DK.salePrice] ? '$' + fmtMoney(r[DK.salePrice]) : '') + '</td>' +
+      '<td><span class="status-badge ' + statusClass + '">' + status + '</span></td>' +
+      '</tr>';
+  }).join('');
+
+  tbody.querySelectorAll('tr[data-id]').forEach(function(tr) {
+    tr.addEventListener('click', function() {
+      if (window.openOrderPanel) window.openOrderPanel(tr.dataset.id);
     });
   });
-  wireQuickPayButtons(tbody);
-  renderCards(rows);
+
+  renderCards(pageRows);
 }
 
 function renderCards(rows) {
-  const list = $('cardList');
+  var container = $('cardList');
+  var q = window.currentSearchQuery || '';
+
   if (!rows.length) {
-    list.innerHTML = `<div class="empty-state"><h3>No orders found</h3><p>Try a different search, or add a new order.</p></div>`;
+    var msg = q ? 'No orders match "' + escapeHtml(q) + '"' : 'No orders found';
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-dim);font-size:14px;">' + msg + '</div>';
     return;
   }
-  list.innerHTML = rows.map(r => `
-    <div class="order-card ${getRowStatusClass(r)}" data-row="${r._row}">
-      <div class="order-card-head">
-        <div class="head-main">
-          <div class="head-top">
-            <span class="head-sr">#${r[OK.srNo] ?? ''}</span>
-            <span class="style-tag">${r[OK.styleNo] ?? ''}</span>
-          </div>
-          <span class="head-sub">${getCustomerBadge(r[OK.customer] ?? r[OK.customerAlt])} · ${fmtDate(r[OK.date])}</span>
-        </div>
-        <div class="head-total">${ROLE === 'seller' ? '$' + fmtNum(r[OK.usd], 2) : fmtMoney(r[OK.subTotal])}</div>
-        <svg class="order-card-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-      </div>
-      <div class="order-card-body">
-        <div class="order-card-grid">
-          <div class="field-item col-grossWt"><div class="k">Gross Wt</div><div class="v">${fmtNum(r[OK.grossWt], 3)}</div></div>
-          <div class="field-item col-netWt"><div class="k">Net Wt</div><div class="v">${fmtNum(r[OK.netWt], 3)}</div></div>
-          <div class="field-item col-ctWt"><div class="k">Carat</div><div class="v">${fmtNum(gramsToCarats(r[OK.grossWt]), 3)}</div></div>
-          <div class="field-item col-diaCt"><div class="k">diamond ct</div><div class="v">${fmtNum(r[OK.inCt], 2)}</div></div>
-          <div class="field-item col-usd"><div class="k">$</div><div class="v">${fmtNum(r[OK.usd], 2)}</div></div>
-          <div class="field-item col-memoNo"><div class="k">Memo No.</div><div class="v">${getField(r, OK.memoNo) || '—'}</div></div>
-          <div class="field-item"><div class="k">Sold To</div><div class="v">${r[OK.soldTo] || '—'}</div></div>
-          <div class="field-item col-salePrice"><div class="k">Sale Price</div><div class="v">${String(r[OK.salePrice] ?? '').trim() === '' ? '—' : fmtUSD(r[OK.salePrice])}</div></div>
-          <div class="field-item"><div class="k">Status</div><div class="v">${getPaymentBadge(r)}${quickPayBtn(r)}</div></div>
-          <div class="field-item col-balanceDue"><div class="k">Balance Due</div><div class="v">${String(r[OK.salePrice] ?? '').trim() === '' ? '—' : fmtUSD(r[OK.balanceDue])}</div></div>
-        </div>
-      </div>
-    </div>
-  `).join('');
 
-  wireQuickPayButtons(list);
+  // Determine role-based view class
+  var viewClass = '';
+  if (ROLE === 'seller') viewClass = 'seller-view';
+  else if (ROLE === 'staff') viewClass = 'staff-view';
+  else if (ROLE === 'customer') viewClass = 'customer-view';
 
-  list.querySelectorAll('.order-card').forEach(card => {
-    const head = card.querySelector('.order-card-head');
-    head.addEventListener('click', (e) => {
-      const onChevron = !!e.target.closest('.order-card-chevron');
-      if (card.classList.contains('open')) {
-        if (onChevron) {
-          closeCard(card);
-        } else {
-          openEdit(parseInt(card.dataset.row));
-        }
-        return;
-      }
-      openCard(card);
+  container.innerHTML = rows.map(function(r) {
+    var status = (r[DK.paymentStatus] || 'Not Sold').trim();
+    var statusClass = {
+      'Not Sold': 'status-not-sold',
+      'Unpaid': 'status-unpaid',
+      'Partial': 'status-partial',
+      'Paid': 'status-paid'
+    }[status] || 'status-not-sold';
+
+    var subTotal = r[DK.subTotal] ? '₹' + Math.round(parseFloat(r[DK.subTotal]) || 0).toLocaleString('en-IN') : '—';
+    var usd = r[DK.usd] ? '$' + parseFloat(r[DK.usd]).toFixed(2) : '—';
+
+    // Build card-summary rows based on role
+    var summaryRows = '';
+    if (ROLE !== 'seller') {
+      summaryRows += '<div class="card-sum-row"><span>Net Wt</span><span>' + (r[DK.netWt] || '—') + 'g</span></div>';
+    }
+    if (ROLE !== 'seller') {
+      summaryRows += '<div class="card-sum-row"><span>Sub Total</span><span>' + (function() {
+        var gold = parseFloat(r[DK.goldAmt]) || 0;
+        var labor = parseFloat(r[DK.laborAmt]) || 0;
+        var diam = parseFloat(r[DK.diamAmount]) || 0;
+        var sub = gold + labor + diam;
+        return sub ? '₹' + Math.round(sub).toLocaleString('en-IN') : '—';
+      })() + '</span></div>';
+    }
+    summaryRows += '<div class="card-sum-row"><span>USD</span><span>' + usd + '</span></div>';
+
+    // Build card-body rows based on role
+    var bodyRows = '';
+    bodyRows += '<div class="card-row"><span class="card-label">Gross Wt</span><span class="card-value">' + (r[DK.grossWt] || '—') + 'g</span></div>';
+    bodyRows += '<div class="card-row"><span class="card-label">Dia Qty</span><span class="card-value">' + (r[DK.diaQty] || '—') + '</span></div>';
+    if (ROLE !== 'staff') {
+      bodyRows += '<div class="card-row"><span class="card-label">IN CT</span><span class="card-value">' + (r[DK.inCt] || '—') + '</span></div>';
+    }
+    bodyRows += '<div class="card-row"><span class="card-label">Colour Stone</span><span class="card-value">' + (r[DK.colourStone] || '—') + '</span></div>';
+    bodyRows += '<div class="card-row"><span class="card-label">Memo No.</span><span class="card-value">' + (r[DK.memoNo] || '—') + '</span></div>';
+    bodyRows += '<div class="card-row"><span class="card-label">Sold To</span><span class="card-value">' + (r[DK.soldTo] || '—') + '</span></div>';
+    bodyRows += '<div class="card-row"><span class="card-label">Sale Price</span><span class="card-value">' + (r[DK.salePrice] ? '$' + fmtMoney(r[DK.salePrice]) : '—') + '</span></div>';
+    bodyRows += '<div class="card-row"><span class="card-label">Balance</span><span class="card-value">$' + (r[DK.balanceDue] || '0') + '</span></div>';
+
+    return '<div class="order-card ' + viewClass + '" data-id="' + r._id + '">' +
+      '<div class="card-header" onclick="window.toggleCard(this)">' +
+      '<div class="card-header-left">' +
+      '<span class="card-title">' + highlightText(r[DK.style] || '', q) + '</span>' +
+      '<span class="card-meta">' + (r[DK.customer] || '') + ' · ' + fmtDate(r[DK.date]) + '</span>' +
+      '</div>' +
+      '<div class="card-header-right">' +
+      '<span class="card-sr-badge">#' + r[DK.sr] + '</span>' +
+      '<span class="status-badge ' + statusClass + '">' + status + '</span>' +
+      '<span class="card-chevron">▼</span>' +
+      '</div>' +
+      '</div>' +
+      '<div class="card-summary">' + summaryRows + '</div>' +
+      '<div class="card-body">' + bodyRows + '</div>' +
+      '</div>';
+  }).join('');
+
+  container.querySelectorAll('.order-card').forEach(function(card) {
+    card.addEventListener('click', function(e) {
+      if (e.target.closest('.card-header')) return;
+      if (window.openOrderPanel) window.openOrderPanel(card.dataset.id);
     });
   });
 }
 
-function openCard(card) {
-  $('cardList').querySelectorAll('.order-card.open').forEach(c => { if (c !== card) closeCard(c); });
-  card.classList.add('open');
-  const body = card.querySelector('.order-card-body');
-  body.style.maxHeight = body.scrollHeight + 'px';
+window.toggleCard = function(header) {
+  var card = header.closest('.order-card');
+  card.classList.toggle('expanded');
+};
+
+function renderTradeTable() {
+  var tbody = $('tradeTbody');
+  var filtered = getFilteredTrading();
+  var start = (currentPage - 1) * PAGE_SIZE;
+  var pageRows = filtered.slice(start, start + PAGE_SIZE);
+  var K = SHEET_KEYS;
+  var q = window.currentSearchQuery || '';
+
+  if (!pageRows.length) {
+    var msg = window.currentSearchQuery 
+      ? 'No trades match "' + escapeHtml(window.currentSearchQuery) + '"' 
+      : 'No trades found';
+    tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--text-dim)">' + msg + '</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = pageRows.map(function(r) {
+    var purchase = parseFloat(r[K.purchasePrice]) || 0;
+    var sale = parseFloat(r[K.salePrice]) || 0;
+    var profit = sale ? sale - purchase : 0;
+    var status = (r[K.paymentStatus] || 'Not Sold').trim();
+    var statusClass = {
+      'Not Sold': 'status-not-sold',
+      'Unpaid': 'status-unpaid',
+      'Partial': 'status-partial',
+      'Paid': 'status-paid'
+    }[status] || 'status-not-sold';
+
+    return '<tr data-id="' + r._id + '" style="cursor:pointer">' +
+      '<td class="num">' + r[K.sr] + '</td>' +
+      '<td>' + fmtDate(r[K.date]) + '</td>' +
+      '<td><strong>' + highlightText(r[K.item] || '', q) + '</strong></td>' +
+      '<td>' + highlightText(r[K.vendor] || '', q) + '</td>' +
+      '<td class="num">$' + fmtMoney(purchase) + '</td>' +
+      '<td class="num">' + (sale ? '$' + fmtMoney(sale) : '') + '</td>' +
+      '<td>' + fmtDate(r[K.dateSold]) + '</td>' +
+      '<td>' + highlightText(r[K.soldTo] || '', q) + '</td>' +
+      '<td class="num">$' + fmtMoney(r[K.amountPaid]) + '</td>' +
+      '<td class="num">$' + fmtMoney(r[K.balanceDue]) + '</td>' +
+      '<td><span class="status-badge ' + statusClass + '">' + status + '</span></td>' +
+      '<td class="num" style="color:' + (profit >= 0 ? 'var(--success)' : 'var(--error)') + '">' +
+      (sale ? (profit >= 0 ? '+' : '-') + '$' + fmtMoney(Math.abs(profit)) : '') + '</td>' +
+      '</tr>';
+  }).join('');
+
+  tbody.querySelectorAll('tr[data-id]').forEach(function(tr) {
+    tr.addEventListener('click', function() {
+      if (window.openEditTrade) window.openEditTrade(tr.dataset.id);
+    });
+  });
+
+  renderTradeCards(pageRows);
 }
 
-function closeCard(card) {
-  const body = card.querySelector('.order-card-body');
-  body.style.maxHeight = body.scrollHeight + 'px';
-  requestAnimationFrame(() => {
-    card.classList.remove('open');
-    body.style.maxHeight = '0px';
+function renderTradeCards(rows) {
+  var container = $('tradeCardList');
+  var K = SHEET_KEYS;
+  var q = window.currentSearchQuery || '';
+
+  if (!rows.length) {
+    var msg = q ? 'No trades match "' + escapeHtml(q) + '"' : 'No trades found';
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-dim);font-size:14px;">' + msg + '</div>';
+    return;
+  }
+
+  container.innerHTML = rows.map(function(r) {
+    var purchase = parseFloat(r[K.purchasePrice]) || 0;
+    var sale = parseFloat(r[K.salePrice]) || 0;
+    var profit = sale ? sale - purchase : 0;
+    var status = (r[K.paymentStatus] || 'Not Sold').trim();
+    var statusClass = {
+      'Not Sold': 'status-not-sold',
+      'Unpaid': 'status-unpaid',
+      'Partial': 'status-partial',
+      'Paid': 'status-paid'
+    }[status] || 'status-not-sold';
+
+    var profitStr = sale ? (profit >= 0 ? '+' : '-') + '$' + fmtMoney(Math.abs(profit)) : '—';
+    var profitColor = sale ? (profit >= 0 ? 'var(--success)' : 'var(--error)') : 'var(--text-dim)';
+
+    // Single-row trading card — no summary, no body, no expand
+    return '<div class="order-card trade-card" data-id="' + r._id + '">' +
+      '<div class="card-header">' +
+      '<div class="card-header-left">' +
+      '<span class="card-title">' + highlightText(r[K.item] || '', q) + '</span>' +
+      '<span class="card-meta">' + (r[K.vendor] || '') + ' · ' + fmtDate(r[K.date]) + '</span>' +
+      '</div>' +
+      '<div class="card-header-right">' +
+      '<span class="card-sr-badge">#' + r[K.sr] + '</span>' +
+      '<span class="card-value" style="color:' + profitColor + '">' + profitStr + '</span>' +
+      '<span class="status-badge ' + statusClass + '">' + status + '</span>' +
+      '</div>' +
+      '</div>' +
+      '</div>';
+  }).join('');
+
+  // Click anywhere on card to open edit panel
+  container.querySelectorAll('.trade-card').forEach(function(card) {
+    card.addEventListener('click', function() {
+      if (window.openEditTrade) window.openEditTrade(card.dataset.id);
+    });
   });
 }
 
-document.querySelectorAll('thead th[data-key]').forEach(th => {
-  th.addEventListener('click', () => {
-    const key = th.dataset.key;
-    if (sortKey === key) {
-      sortDir = sortDir === 'asc' ? 'desc' : 'asc';
-    } else {
-      sortKey = key;
-      sortDir = 'asc';
-    }
-    document.querySelectorAll('thead th').forEach(t => t.classList.remove('sort-asc','sort-desc'));
-    th.classList.add(sortDir === 'asc' ? 'sort-asc' : 'sort-desc');
-    currentPage = 1;
-    renderResults(applyFilter());
-  });
-});
-
-function sortRows(rows) {
-  if (!sortKey) return rows;
-  const map = {
-    sr: OK.srNo, customer: OK.customer, style: OK.styleNo, date: OK.date,
-    grossWt: OK.grossWt, netWt: OK.netWt, carat: OK.grossWt, inCt: OK.inCt,
-    subTotal: OK.subTotal, usd: OK.usd,
-    memoNo: OK.memoNo, soldTo: OK.soldTo, salePrice: OK.salePrice, paymentStatus: OK.paymentStatus
-  };
-  const col = map[sortKey];
-  return [...rows].sort((a, b) => {
-    let av = a[col] ?? a[col.replace(' ', '')] ?? '';
-    let bv = b[col] ?? b[col.replace(' ', '')] ?? '';
-    if (typeof av === 'string') av = av.toLowerCase();
-    if (typeof bv === 'string') bv = bv.toLowerCase();
-    if (!isNaN(parseFloat(av)) && !isNaN(parseFloat(bv))) {
-      av = parseFloat(av); bv = parseFloat(bv);
-    }
-    if (av < bv) return sortDir === 'asc' ? -1 : 1;
-    if (av > bv) return sortDir === 'asc' ? 1 : -1;
-    return 0;
-  });
-}
+window.renderTable = renderTable;
+window.renderTradeTable = renderTradeTable;

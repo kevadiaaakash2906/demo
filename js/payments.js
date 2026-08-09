@@ -1,122 +1,96 @@
-// ============================================================
-// payments.js — Receive Payment search modal with ORDERS_KEYS
-// ============================================================
+/* ============================================
+   VINÉRE — Receive Payment Modal
+   ============================================ */
 
-const PK = window.ORDERS_KEYS;
-
-function buildPayableGroups() {
-  const seenMemo = new Set();
-  const groups = [];
-  const hasBalance = (row) => (parseFloat(row[PK.balanceDue]) || 0) > 0.005;
-
-  ORDERS.forEach(r => {
-    const memoKey = String(getField(r, PK.memoNo) || '').trim();
-
-    if (memoKey) {
-      const lower = memoKey.toLowerCase();
-      if (seenMemo.has(lower)) return;
-      seenMemo.add(lower);
-
-      const siblings = ORDERS.filter(x => String(getField(x, PK.memoNo) || '').trim().toLowerCase() === lower);
-      const priced = siblings.find(x => String(x[PK.salePrice] ?? '').trim() !== '');
-      if (!priced) return;
-      if (!hasBalance(priced)) return;
-
-      groups.push({
-        repId: priced._row,
-        memoNo: memoKey,
-        buyer: priced[PK.soldTo] || '',
-        customer: priced[PK.customer] ?? priced[PK.customerAlt] ?? '',
-        styles: siblings.map(x => x[PK.styleNo]).filter(Boolean),
-        amountPaid: parseFloat(priced[PK.amountPaid]) || 0,
-        balanceDue: parseFloat(priced[PK.balanceDue]) || 0,
-        status: String(priced[PK.paymentStatus] || '').trim() || 'Unpaid',
-      });
-    } else {
-      if (String(r[PK.salePrice] ?? '').trim() === '') return;
-      if (!hasBalance(r)) return;
-      groups.push({
-        repId: r._row,
-        memoNo: '',
-        buyer: r[PK.soldTo] || '',
-        customer: r[PK.customer] ?? r[PK.customerAlt] ?? '',
-        styles: [r[PK.styleNo]].filter(Boolean),
-        amountPaid: parseFloat(r[PK.amountPaid]) || 0,
-        balanceDue: parseFloat(r[PK.balanceDue]) || 0,
-        status: String(r[PK.paymentStatus] || '').trim() || 'Unpaid',
-      });
-    }
-  });
-
-  return groups;
-}
-
-function filterPayableGroups(query) {
-  const groups = buildPayableGroups();
-  const q = query.trim().toLowerCase();
-  if (!q) return groups;
-  return groups.filter(g =>
-    g.memoNo.toLowerCase().includes(q) ||
-    g.buyer.toLowerCase().includes(q) ||
-    g.customer.toLowerCase().includes(q) ||
-    g.styles.join(' ').toLowerCase().includes(q)
-  );
-}
-
-function renderPayResults(query) {
-  const groups = filterPayableGroups(query);
-  const list = $('payResults');
-
-  if (!groups.length) {
-    list.innerHTML = `<div class="pay-empty">No outstanding balances match that search.</div>`;
-    return;
-  }
-
-  groups.sort((a, b) => b.balanceDue - a.balanceDue);
-
-  list.innerHTML = groups.map(g => {
-    const cls = g.status === 'Paid' ? 'badge-paid' : g.status === 'Partial' ? 'badge-partial' : 'badge-unpaid';
-    return `
-      <div class="pay-result" data-row="${g.repId}">
-        <div class="pay-result-main">
-          <div class="pay-result-buyer">${g.buyer || 'No buyer set'}</div>
-          <div class="pay-result-sub">${getCustomerBadge(g.customer)} · ${g.styles.join(', ')}${g.memoNo ? ' · Memo ' + g.memoNo : ''}</div>
-        </div>
-        <div class="pay-result-side">
-          <div class="pay-result-balance">${fmtUSD(g.balanceDue)}</div>
-          <span class="badge ${cls}">${g.status}</span>
-        </div>
-      </div>
-    `;
-  }).join('');
-
-  list.querySelectorAll('.pay-result').forEach(el => {
-    el.addEventListener('click', () => {
-      closePaymentSearch();
-      openEditForPayment(el.dataset.row);
-    });
-  });
-}
-
-function openPaymentSearch() {
-  $('paymentSearchOverlay').classList.add('open');
+window.openPaymentSearch = function() {
+  $('paymentSearchOverlay').style.display = 'block';
   $('paymentSearchModal').classList.add('open');
   $('paySearchInput').value = '';
+  $('paySearchInput').focus();
   renderPayResults('');
-  setTimeout(() => $('paySearchInput').focus(), 50);
-}
+};
 
-function closePaymentSearch() {
-  $('paymentSearchOverlay').classList.remove('open');
-  $('paymentSearchModal').classList.remove('open');
-}
-
-$('receivePaymentBtn').addEventListener('click', openPaymentSearch);
 $('closePaymentSearch').addEventListener('click', closePaymentSearch);
 $('paymentSearchOverlay').addEventListener('click', closePaymentSearch);
 
-let paySearchDebounceTimer = null;
-$('paySearchInput').addEventListener('input', () => {
-  clearTimeout(paySearchDebounceTimer);
-  paySearchDebounceTimer = setTimeout(() => renderPayResults($('paySearchInput').value), 120);
+function closePaymentSearch() {
+  $('paymentSearchModal').classList.remove('open');
+  $('paymentSearchOverlay').style.display = 'none';
+}
+
+$('paySearchInput').addEventListener('input', function(e) {
+  renderPayResults(e.target.value.trim().toLowerCase());
 });
+
+function renderPayResults(query) {
+  var container = $('payResults');
+  var rows = ORDERS.filter(function(r) {
+    var status = (r[DK.paymentStatus] || 'Not Sold').trim();
+    return status !== 'Paid' && status !== 'Not Sold';
+  });
+
+  if (query) {
+    rows = rows.filter(function(r) {
+      return Object.values(r).some(function(v) { return String(v).toLowerCase().includes(query); });
+    });
+  }
+
+  if (!rows.length) {
+    container.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-dim)">No pending payments found</div>';
+    return;
+  }
+
+  container.innerHTML = rows.map(function(r) {
+    var balance = parseFloat(r[DK.balanceDue]) || 0;
+    return '<div class="pay-result-item" data-id="' + r._id + '">' +
+      '<div class="pay-result-header">' +
+      '<span class="pay-result-title">' + r[DK.style] + ' · ' + r[DK.customer] + '</span>' +
+      '<span style="color:var(--warning);font-family:var(--font-mono)">$' + fmtMoney(balance) + '</span>' +
+      '</div>' +
+      '<div class="pay-result-meta">Sr. ' + r[DK.sr] + ' · Sold To: ' + (r[DK.soldTo] || '—') + ' · Status: ' + r[DK.paymentStatus] + '</div>' +
+      '</div>';
+  }).join('');
+
+  container.querySelectorAll('.pay-result-item').forEach(function(item) {
+    item.addEventListener('click', function() { openPaymentForm(item.dataset.id); });
+  });
+}
+
+function openPaymentForm(id) {
+  closePaymentSearch();
+  var order = ORDERS.find(function(r) { return r._id === id; });
+  if (!order) return;
+
+  var amount = prompt('Record payment for Order #' + order[DK.sr] + ' — ' + order[DK.style] + '\nBalance Due: $' + fmtMoney(order[DK.balanceDue]) + '\n\nEnter amount received:');
+  if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) return;
+
+  var date = prompt('Payment date (YYYY-MM-DD):', new Date().toISOString().split('T')[0]);
+  if (!date) return;
+
+  var installments = [];
+  try { installments = JSON.parse(order[DK.paymentLog] || '[]'); } catch(e) { installments = []; }
+  installments.push({ amount: parseFloat(amount), date: date });
+
+  var totalPaid = installments.reduce(function(s, i) { return s + i.amount; }, 0);
+  var salePrice = parseFloat(order[DK.salePrice]) || 0;
+  var balance = salePrice - totalPaid;
+
+  var status = 'Unpaid';
+  if (totalPaid >= salePrice) status = 'Paid';
+  else if (totalPaid > 0) status = 'Partial';
+
+  var data = {};
+  for (var k in order) data[k] = order[k];
+  data[DK.amountPaid] = totalPaid.toString();
+  data[DK.balanceDue] = balance.toString();
+  data[DK.paymentStatus] = status;
+  data[DK.paymentLog] = JSON.stringify(installments);
+
+  window.updateOrder(id, data).then(function() {
+    showToast('Payment of $' + fmtMoney(amount) + ' recorded for order #' + order[DK.sr], 'success');
+    return doFetchOrders();
+  }).then(function() { renderAll(); }).catch(function(err) {
+    console.error(err);
+    showToast('Failed to record payment', 'error');
+  });
+}

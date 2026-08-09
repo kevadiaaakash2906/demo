@@ -658,7 +658,8 @@ main {
   background: var(--md-surface);
   border: 1px solid var(--md-outline-variant);
   border-radius: var(--radius-md);
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   box-shadow: var(--shadow-0);
   margin-bottom: var(--space-4);
 }

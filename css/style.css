@@ -1757,3 +1757,32 @@ select:focus-visible {
 #tradingTable tbody tr:hover td:first-child {
   background: rgba(26,115,232,0.03);
 }
+
+/* ============================================
+   STICKY TABLE HEADER ROW
+   ============================================ */
+#ordersTable thead,
+#tradingTable thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+#ordersTable thead tr,
+#tradingTable thead tr {
+  background: var(--md-surface-variant);
+}
+
+#ordersTable thead th,
+#tradingTable thead th {
+  position: sticky;
+  top: 0;
+  background: var(--md-surface-variant);
+  z-index: 10;
+}
+
+/* Ensure first header cell (Sr.) stays above others */
+#ordersTable thead th:first-child,
+#tradingTable thead th:first-child {
+  z-index: 11;
+}

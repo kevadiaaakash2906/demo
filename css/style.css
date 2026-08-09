@@ -696,6 +696,13 @@ main {
   text-align: right;
 }
 
+/* $ column header — center the symbol so it aligns with values below */
+#ordersTable th:nth-child(9) {
+  text-align: center;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
 #ordersTable tbody td,
 #tradingTable tbody td {
   padding: 16px 18px;
@@ -1726,3 +1733,27 @@ select:focus-visible {
   white-space: nowrap;
 }
 
+/* ============================================
+   STICKY SR. COLUMN
+   ============================================ */
+#ordersTable th:first-child,
+#ordersTable td:first-child,
+#tradingTable th:first-child,
+#tradingTable td:first-child {
+  position: sticky;
+  left: 0;
+  background: var(--md-surface);
+  z-index: 2;
+  box-shadow: 2px 0 4px rgba(0,0,0,0.04);
+}
+
+#ordersTable thead th:first-child,
+#tradingTable thead th:first-child {
+  background: var(--md-surface-variant);
+  z-index: 3;
+}
+
+#ordersTable tbody tr:hover td:first-child,
+#tradingTable tbody tr:hover td:first-child {
+  background: rgba(26,115,232,0.03);
+}

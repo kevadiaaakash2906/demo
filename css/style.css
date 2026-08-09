@@ -1786,3 +1786,23 @@ select:focus-visible {
 #tradingTable thead th:first-child {
   z-index: 11;
 }
+
+/* ============================================
+   TABLE WIDTH FIX — Prevent column squishing
+   ============================================ */
+#ordersTable,
+#tradingTable {
+  min-width: 1200px;
+}
+
+/* Status column minimum width */
+#ordersTable th:nth-child(13),
+#ordersTable td:nth-child(13) {
+  min-width: 90px;
+}
+
+/* Status badge — ensure full text shows */
+.status-badge {
+  white-space: nowrap;
+  display: inline-flex;
+}

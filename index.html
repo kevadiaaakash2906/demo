@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#1E1B18">
 <title>VINÉRE Ledger — Orders</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 <base target="_blank">
 <base target="_blank">
@@ -41,7 +41,7 @@
     </div>
     <div class="topbar-right">
       <div class="search-wrap">
-        <input id="search" placeholder="Search…" autocomplete="off">
+        <input id="search" placeholder="Search…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" onfocus="this.setAttribute('readonly','readonly');setTimeout(()=>this.removeAttribute('readonly'),1)">
         <button id="searchClear" class="search-clear" title="Clear search">&times;</button>
         <span id="resultCount" class="result-count"></span>
       </div>
@@ -236,7 +236,7 @@
 <div id="paymentSearchModal">
   <div class="panel-head"><h2>Receive Payment</h2><button id="closePaymentSearch">&times;</button></div>
   <div class="pay-search-body">
-    <input id="paySearchInput" placeholder="Search memo no., buyer, style, or customer…" autocomplete="off">
+    <input id="paySearchInput" placeholder="Search memo no., buyer, style, or customer…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" onfocus="this.setAttribute('readonly','readonly');setTimeout(()=>this.removeAttribute('readonly'),1)">
     <div id="payResults" class="pay-results"></div>
   </div>
 </div>

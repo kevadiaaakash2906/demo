@@ -1,149 +1,97 @@
 /* ============================================
-   VINÉRE — Firebase + Sheet Sync
+   VINÉRE — Dashboard / KPI Cards
    ============================================ */
 
-var firebaseConfig = {
-  apiKey: "AIzaSyC3GlUHfz6Zfd1o5eymGcY_jkyz4MuVfls",
-  authDomain: "vinereledger-b29be.firebaseapp.com",
-  databaseURL: "https://vinereledger-b29be-default-rtdb.firebaseio.com",
-  projectId: "vinereledger-b29be",
-  storageBucket: "vinereledger-b29be.firebasestorage.app",
-  messagingSenderId: "701394930039",
-  appId: "1:701394930039:web:456e7ae9c61fc92402b972",
-  measurementId: "G-HQN3J4LGXE"
-};
+function renderKPIs() {
+  var sold = ORDERS.filter(function(r) { return String(r[DK.salePrice] || '').trim() !== ''; });
+  var notSold = ORDERS.filter(function(r) { return String(r[DK.salePrice] || '').trim() === ''; });
 
-// Initialize Firebase (safe if already initialized)
-try {
-  window.firebase.initializeApp(firebaseConfig);
-} catch (e) {
-  if (e.message && e.message.indexOf('already exists') > -1) {
-    console.log('Firebase already initialized');
-  } else {
-    console.error('Firebase init error:', e);
-  }
+  var totalRevenue = sold.reduce(function(s, r) { return s + (parseFloat(r[DK.salePrice]) || 0); }, 0);
+  var totalCost = sold.reduce(function(s, r) { return s + (parseFloat(r[DK.usd]) || 0); }, 0);
+  var profit = totalRevenue - totalCost;
+
+  var totalCollected = ORDERS.reduce(function(s, r) { return s + (parseFloat(r[DK.amountPaid]) || 0); }, 0);
+  var totalOutstanding = ORDERS.reduce(function(s, r) { return s + (parseFloat(r[DK.balanceDue]) || 0); }, 0);
+
+  var stockCount = notSold.length;
+  var stockCost = notSold.reduce(function(s, r) { return s + (parseFloat(r[DK.usd]) || 0); }, 0);
+
+  // Header stats — same 3-slot layout for coherence
+  $('hstat_1_label').textContent = 'Profit / Loss';
+  $('hstat_1').textContent = (profit >= 0 ? '+' : '-') + '$' + Math.abs(profit).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+  $('hstat_2_label').textContent = 'Remaining Stock';
+  $('hstat_2').textContent = stockCount;
+  $('hstat_3_label').textContent = 'Stock Cost';
+  $('hstat_3').textContent = '$' + stockCost.toLocaleString('en-IN', { maximumFractionDigits: 2 });
+
+  // Multicolored header stats
+  $('hstat_1').style.color = profit >= 0 ? 'var(--success)' : 'var(--error)';
+  $('hstat_2').style.color = 'var(--accent)';
+  $('hstat_3').style.color = 'var(--warning)';
+
+  $('kpiGrid').innerHTML =
+    '<div class="kpi-card"><div class="kpi-label">Total Revenue</div>' +
+    '<div class="kpi-value">$' + fmtMoney(totalRevenue) + '</div>' +
+    '<div class="kpi-sub">from ' + sold.length + ' sold items</div></div>' +
+    '<div class="kpi-card"><div class="kpi-label">Total Cost</div>' +
+    '<div class="kpi-value">$' + fmtMoney(totalCost) + '</div>' +
+    '<div class="kpi-sub">manufacturing + labor</div></div>' +
+    '<div class="kpi-card"><div class="kpi-label">Gross Profit / Loss</div>' +
+    '<div class="kpi-value" style="color:' + (profit >= 0 ? 'var(--success)' : 'var(--error)') + '">' +
+    (profit >= 0 ? '+' : '-') + '$' + fmtMoney(Math.abs(profit)) + '</div>' +
+    '<div class="kpi-sub">revenue minus cost</div></div>' +
+    '<div class="kpi-card"><div class="kpi-label">Amount Collected</div>' +
+    '<div class="kpi-value">$' + fmtMoney(totalCollected) + '</div>' +
+    '<div class="kpi-sub">payments received</div></div>' +
+    '<div class="kpi-card"><div class="kpi-label">Outstanding Balance</div>' +
+    '<div class="kpi-value" style="color:var(--warning)">$' + fmtMoney(totalOutstanding) + '</div>' +
+    '<div class="kpi-sub">across all orders</div></div>' +
+    '<div class="kpi-card"><div class="kpi-label">Stock on Hand</div>' +
+    '<div class="kpi-value">' + stockCount + '</div>' +
+    '<div class="kpi-sub">unsold items worth $' + fmtMoney(stockCost) + '</div></div>';
 }
 
-var db = window.firebase.firestore();
+function renderTradeKPIs() {
+  var K = SHEET_KEYS;
+  var sold = TRADING.filter(function(r) { return String(r[K.salePrice] || '').trim() !== ''; });
+  var totalInvested = TRADING.reduce(function(s, r) { return s + (parseFloat(r[K.purchasePrice]) || 0); }, 0);
+  var totalSales = sold.reduce(function(s, r) { return s + (parseFloat(r[K.salePrice]) || 0); }, 0);
+  var netPL = sold.reduce(function(s, r) { return s + ((parseFloat(r[K.salePrice]) || 0) - (parseFloat(r[K.purchasePrice]) || 0)); }, 0);
+  var collected = TRADING.reduce(function(s, r) { return s + (parseFloat(r[K.amountPaid]) || 0); }, 0);
+  var outstanding = TRADING.reduce(function(s, r) { return s + (parseFloat(r[K.balanceDue]) || 0); }, 0);
 
-var SHEET_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbx9yEy0j0EHMegp_tzHX5-Q1xSuLHsp6Em98fLIg8wp9hbzIVbkTHeWhkWzZHgLE9RAYw/exec';
+  // Header stats — same 3-slot layout for coherence
+  $('hstat_1_label').textContent = 'Net P/L';
+  $('hstat_1').textContent = (netPL >= 0 ? '+' : '-') + '$' + Math.abs(netPL).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+  $('hstat_1').style.color = netPL >= 0 ? 'var(--success)' : 'var(--error)';
+  $('hstat_2_label').textContent = 'Total Trades';
+  $('hstat_2').textContent = TRADING.length;
+  $('hstat_2').style.color = 'var(--accent)';
+  $('hstat_3_label').textContent = 'Outstanding';
+  $('hstat_3').textContent = '$' + outstanding.toLocaleString('en-IN', { maximumFractionDigits: 2 });
+  $('hstat_3').style.color = 'var(--warning)';
 
-/* Wait for Firebase Auth to be ready (session restored from disk) */
-var authReadyPromise = new Promise(function(resolve) {
-  var unsub = window.firebase.auth().onAuthStateChanged(function(user) {
-    unsub();
-    resolve(user);
-  });
-});
-
-async function ensureAuth() {
-  var user = window.firebase.auth().currentUser;
-  if (user) return user;
-  // If not immediately available, wait for the initial state to resolve
-  return await authReadyPromise;
+  $('tradeKpiGrid').innerHTML =
+    '<div class="kpi-card"><div class="kpi-label">Total Trades</div>' +
+    '<div class="kpi-value">' + TRADING.length + '</div>' +
+    '<div class="kpi-sub">buy & sell records</div></div>' +
+    '<div class="kpi-card"><div class="kpi-label">Total Invested</div>' +
+    '<div class="kpi-value">$' + fmtMoney(totalInvested) + '</div>' +
+    '<div class="kpi-sub">capital deployed</div></div>' +
+    '<div class="kpi-card"><div class="kpi-label">Total Sales</div>' +
+    '<div class="kpi-value">$' + fmtMoney(totalSales) + '</div>' +
+    '<div class="kpi-sub">revenue from sold items</div></div>' +
+    '<div class="kpi-card"><div class="kpi-label">Net P/L</div>' +
+    '<div class="kpi-value" style="color:' + (netPL >= 0 ? 'var(--success)' : 'var(--error)') + '">' +
+    (netPL >= 0 ? '+' : '-') + '$' + fmtMoney(Math.abs(netPL)) + '</div>' +
+    '<div class="kpi-sub">closed trades only</div></div>' +
+    '<div class="kpi-card"><div class="kpi-label">Collected</div>' +
+    '<div class="kpi-value">$' + fmtMoney(collected) + '</div>' +
+    '<div class="kpi-sub">payments received</div></div>' +
+    '<div class="kpi-card"><div class="kpi-label">Outstanding</div>' +
+    '<div class="kpi-value" style="color:var(--warning)">$' + fmtMoney(outstanding) + '</div>' +
+    '<div class="kpi-sub">balance due across all</div></div>';
 }
 
-/* ============ ORDERS ============ */
-async function fetchOrders() {
-  await ensureAuth();
-  var snap = await db.collection('orders').get();
-  var rows = snap.docs.map(function(d) { return { _id: d.id, ...d.data() }; });
-  rows.sort(function(a, b) {
-    return (parseInt(a['Sr. No.']) || 0) - (parseInt(b['Sr. No.']) || 0);
-  });
-  return { rows: rows };
-}
-
-async function addOrder(data) {
-  await ensureAuth();
-  var ref = db.collection('orders').doc();
-  await ref.set({
-    ...data,
-    createdAt: window.firebase.firestore.FieldValue.serverTimestamp(),
-    updatedAt: window.firebase.firestore.FieldValue.serverTimestamp()
-  });
-  syncToSheet({ ...data, _collection: 'orders' });
-  return ref.id;
-}
-
-async function updateOrder(id, data) {
-  await ensureAuth();
-  await db.collection('orders').doc(id).set({
-    ...data,
-    updatedAt: window.firebase.firestore.FieldValue.serverTimestamp()
-  }, { merge: true });
-  syncToSheet({ ...data, _collection: 'orders' });
-}
-
-async function deleteOrder(id, srNo) {
-  await ensureAuth();
-  await db.collection('orders').doc(id).delete();
-  syncToSheet({ 'Sr. No.': srNo, _action: 'delete', _collection: 'orders' });
-}
-
-/* ============ TRADING ============ */
-async function fetchTrading() {
-  await ensureAuth();
-  var snap = await db.collection('trading').get();
-  var rows = snap.docs.map(function(d) { return { _id: d.id, ...d.data() }; });
-  rows.sort(function(a, b) {
-    return (parseInt(a['Sr. No.']) || 0) - (parseInt(b['Sr. No.']) || 0);
-  });
-  return { rows: rows };
-}
-
-async function addTrading(data) {
-  await ensureAuth();
-  var ref = db.collection('trading').doc();
-  await ref.set({
-    ...data,
-    createdAt: window.firebase.firestore.FieldValue.serverTimestamp(),
-    updatedAt: window.firebase.firestore.FieldValue.serverTimestamp()
-  });
-  syncToSheet({ ...data, _collection: 'trading' });
-  return ref.id;
-}
-
-async function updateTrading(id, data) {
-  await ensureAuth();
-  await db.collection('trading').doc(id).set({
-    ...data,
-    updatedAt: window.firebase.firestore.FieldValue.serverTimestamp()
-  }, { merge: true });
-  syncToSheet({ ...data, _collection: 'trading' });
-}
-
-async function deleteTrading(id, srNo) {
-  await ensureAuth();
-  await db.collection('trading').doc(id).delete();
-  syncToSheet({ 'Sr. No.': srNo, _action: 'delete', _collection: 'trading' });
-}
-
-/* ============ SHEET SYNC ============ */
-function syncToSheet(payload) {
-  var url = SHEET_WEBHOOK_URL + '?secret=vinere-sync-2026';
-  fetch(url, {
-    method: 'POST',
-    mode: 'no-cors',
-    headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify(payload)
-  })
-  .then(function() {
-    if (window.showToast) showToast('Synced to Google Sheet', 'success', 2500);
-  })
-  .catch(function(err) {
-    if (window.showToast) showToast('Sheet sync failed', 'error', 4000);
-    console.error('Sync failed', err);
-  });
-}
-
-/* ============ EXPOSE GLOBALLY ============ */
-window.db = db;
-window.fetchOrders = fetchOrders;
-window.fetchTrading = fetchTrading;
-window.addOrder = addOrder;
-window.updateOrder = updateOrder;
-window.deleteOrder = deleteOrder;
-window.addTrading = addTrading;
-window.updateTrading = updateTrading;
-window.deleteTrading = deleteTrading;
+window.renderKPIs = renderKPIs;
+window.renderTradeKPIs = renderTradeKPIs;

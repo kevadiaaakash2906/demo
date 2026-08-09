@@ -165,7 +165,7 @@ function renderTradeTable() {
     var msg = window.currentSearchQuery 
       ? 'No trades match "' + escapeHtml(window.currentSearchQuery) + '"' 
       : 'No trades found';
-    tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--text-dim)">' + msg + '</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-dim)">' + msg + '</td></tr>';
     return;
   }
 
@@ -185,13 +185,10 @@ function renderTradeTable() {
       '<td class="num">' + r[K.sr] + '</td>' +
       '<td>' + fmtDate(r[K.date]) + '</td>' +
       '<td><strong>' + highlightText(r[K.item] || '', q) + '</strong></td>' +
-      '<td>' + highlightText(r[K.vendor] || '', q) + '</td>' +
+      '<td class="vendor-wrap">' + highlightText(r[K.vendor] || '', q) + '</td>' +
       '<td class="num">$' + fmtMoney(purchase) + '</td>' +
       '<td class="num">' + (sale ? '$' + fmtMoney(sale) : '') + '</td>' +
-      '<td>' + fmtDate(r[K.dateSold]) + '</td>' +
       '<td>' + highlightText(r[K.soldTo] || '', q) + '</td>' +
-      '<td class="num">$' + fmtMoney(r[K.amountPaid]) + '</td>' +
-      '<td class="num">$' + fmtMoney(r[K.balanceDue]) + '</td>' +
       '<td><span class="status-badge ' + statusClass + '">' + status + '</span></td>' +
       '<td class="num" style="color:' + (profit >= 0 ? 'var(--success)' : 'var(--error)') + '">' +
       (sale ? (profit >= 0 ? '+' : '-') + '$' + fmtMoney(Math.abs(profit)) : '') + '</td>' +

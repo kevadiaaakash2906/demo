@@ -1710,3 +1710,18 @@ select:focus-visible {
   from { transform: translateX(0); opacity: 1; }
   to   { transform: translateX(120%); opacity: 0; }
 }
+
+/* Trading table vendor column — allow text wrapping */
+#tradingTable td.vendor-wrap,
+#tradingTable th:nth-child(4) {
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.4;
+  max-width: 200px;
+}
+
+/* Ensure other trading table cells stay nowrap */
+#tradingTable td:not(.vendor-wrap),
+#tradingTable th:not(:nth-child(4)) {
+  white-space: nowrap;
+}

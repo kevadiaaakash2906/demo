@@ -990,18 +990,15 @@ main {
    PANELS (Side Sheets)
    ============================================ */
 #overlay, #tradeOverlay, #paymentSearchOverlay {
+  display: none;
   position: fixed;
   inset: 0;
   background: rgba(32,33,36,0.32);
   backdrop-filter: blur(4px);
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity var(--duration-normal) var(--ease-standard),
-              visibility var(--duration-normal);
   z-index: 200;
 }
 
-#overlay.open, #tradeOverlay.open, #paymentSearchOverlay.open {
+#overlay.open, #tradeOverlay.open {
   opacity: 1;
   visibility: visible;
 }

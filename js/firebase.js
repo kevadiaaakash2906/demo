@@ -26,6 +26,20 @@ try {
 
 var db = window.firebase.firestore();
 
+/* Enable offline persistence so data works without internet */
+try {
+  db.enablePersistence({ synchronizeTabs: true })
+    .catch(function(err) {
+      if (err.code === 'failed-precondition') {
+        console.log('Persistence: multiple tabs open');
+      } else if (err.code === 'unimplemented') {
+        console.log('Persistence: browser unsupported');
+      }
+    });
+} catch (e) {
+  console.log('Persistence init skipped');
+}
+
 var SHEET_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbx9yEy0j0EHMegp_tzHX5-Q1xSuLHsp6Em98fLIg8wp9hbzIVbkTHeWhkWzZHgLE9RAYw/exec';
 
 /* Wait for Firebase Auth to be ready (session restored from disk) */

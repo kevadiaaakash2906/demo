@@ -18,6 +18,10 @@ window.openTradePanel = function() {
 };
 
 window.openEditTrade = function(id) {
+  if (ROLE === 'customer') {
+    showToast('View only — you do not have permission to edit trades', 'warning');
+    return;
+  }
   var trade = TRADING.find(function(r) { return r._id === id; });
   if (!trade) return;
 
@@ -126,6 +130,10 @@ window.removeTradeInst = function(idx) {
 
 /* ============ SAVE ============ */
 $('saveTradeBtn').addEventListener('click', async function() {
+  if (ROLE === 'customer') {
+    showToast('View only — you do not have permission to save trades', 'warning');
+    return;
+  }
   document.querySelectorAll('[id^="err_t_"]').forEach(function(el) { el.textContent = ''; });
 
   var valid = true;

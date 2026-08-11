@@ -6,7 +6,7 @@
 var PASSWORDS = {
   staff:   '25f885fa451c3c6b024fe23dbf834ceb2be6361316010ef348e7777faa78634c',
   seller:  'c60a26e1e8094121dae3acccdfdb1fffeb616bcb2e3ae68f6b18c336e6e031d7',
-  customer:'ed0d153323609350d97777beab557ffe834d93f615c0a9f7d8c01767d7fc158d'
+  customer:'9a900403ac313ba27a1bc81f0932652b8020dac92c234d98fa0b06bf0040ecfd'
 };
 
 var ROLE = null;
@@ -31,12 +31,19 @@ window.showApp = function(role) {
   if (userBadge) userBadge.textContent = ROLE;
   var isStaff = ROLE === 'staff';
   var isSeller = ROLE === 'seller';
+  var isCustomer = ROLE === 'customer';
   var newOrderBtn = document.getElementById('newOrderBtn');
   var receivePaymentBtn = document.getElementById('receivePaymentBtn');
   var newTradeBtn = document.getElementById('newTradeBtn');
   if (newOrderBtn) newOrderBtn.style.display = (isStaff || isSeller) ? 'inline-flex' : 'none';
   if (receivePaymentBtn) receivePaymentBtn.style.display = (isStaff || isSeller) ? 'inline-flex' : 'none';
   if (newTradeBtn) newTradeBtn.style.display = (isStaff || isSeller) ? 'inline-flex' : 'none';
+
+  // Add role class to body for CSS targeting
+  document.body.classList.remove('staff-role', 'seller-role', 'customer-role');
+  if (isStaff) document.body.classList.add('staff-role');
+  else if (isSeller) document.body.classList.add('seller-role');
+  else if (isCustomer) document.body.classList.add('customer-role');
 };
 
 window.checkStoredAuth = function() {
@@ -71,10 +78,23 @@ window.login = async function() {
 
       try {
         var email = role + '@vinere.local';
-        await window.firebase.auth().createUserWithEmailAndPassword(email, input);
+        // Try sign-in first (avoids rate limit on createUser for existing accounts)
+        await window.firebase.auth().signInWithEmailAndPassword(email, input);
       } catch (err) {
-        if (err.code === 'auth/email-already-in-use') {
-          await window.firebase.auth().signInWithEmailAndPassword(email, input);
+        if (err.code === 'auth/user-not-found') {
+          // User doesn't exist yet — create them
+          try {
+            await window.firebase.auth().createUserWithEmailAndPassword(email, input);
+          } catch (createErr) {
+            console.error('Firebase create failed', createErr);
+            $('loginError').textContent = 'Auth error — check console';
+            showToast('Firebase auth failed: ' + createErr.message, 'error');
+            return;
+          }
+        } else if (err.code === 'auth/too-many-requests') {
+          $('loginError').textContent = 'Too many attempts — wait 1 minute and try again';
+          showToast('Too many login attempts. Please wait.', 'error', 4000);
+          return;
         } else {
           console.error('Firebase auth failed', err);
           $('loginError').textContent = 'Auth error — check console';

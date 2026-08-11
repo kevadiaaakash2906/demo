@@ -110,6 +110,14 @@ function renderCards(rows) {
     }
     summaryRows += '<div class="card-sum-row"><span>USD</span><span>' + usd + '</span></div>';
 
+    // Show P/L in collapsed card for all mobile users
+    var salePrice = parseFloat(r[DK.salePrice]) || 0;
+    var subTotal = parseFloat(r[DK.subTotal]) || 0;
+    var pl = salePrice && subTotal ? salePrice - (subTotal / 94) : 0;
+    if (salePrice) {
+      summaryRows += '<div class="card-sum-row"><span>P/L</span><span style="color:' + (pl >= 0 ? 'var(--success)' : 'var(--error)') + '">' + (pl >= 0 ? '+' : '-') + '$' + fmtMoney(Math.abs(pl)) + '</span></div>';
+    }
+
     // Build card-body rows based on role
     var bodyRows = '';
     bodyRows += '<div class="card-row"><span class="card-label">Gross Wt</span><span class="card-value">' + (r[DK.grossWt] || '—') + 'g</span></div>';
@@ -249,6 +257,10 @@ function renderTradeCards(rows) {
   // Click anywhere on card to open edit panel
   container.querySelectorAll('.trade-card').forEach(function(card) {
     card.addEventListener('click', function() {
+      if (ROLE === 'customer') {
+        showToast('View only — you do not have permission to edit trades', 'warning');
+        return;
+      }
       if (window.openEditTrade) window.openEditTrade(card.dataset.id);
     });
   });

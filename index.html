@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#1E1B18">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="images/vinere-logo-white.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="VINÉRE">
 <title>VINÉRE Ledger — Orders</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -268,6 +273,12 @@
 <script src="js/table.js?v=2"></script>
 <script src="js/payments.js?v=3"></script>
 <script src="js/trading.js?v=2"></script>
-
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js')
+      .then(function(reg) { console.log('PWA Service Worker registered:', reg.scope); })
+      .catch(function(err) { console.log('SW registration failed:', err); });
+  }
+</script>
 </body>
 </html>

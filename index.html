@@ -1,284 +1,267 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#1E1B18">
-<link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="images/vinere-logo-white.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="VINÉRE">
-<title>VINÉRE Ledger — Orders</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=2">
-<base target="_blank">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>Weight Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
 <base target="_blank">
 </head>
 <body>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="skeleton-app">
+            <div class="skeleton-header"></div>
+            <div class="skeleton-stats">
+                <div class="skeleton-stat"></div>
+                <div class="skeleton-stat"></div>
+                <div class="skeleton-stat"></div>
+                <div class="skeleton-stat"></div>
+            </div>
+            <div class="skeleton-chart"></div>
+            <div class="skeleton-list">
+                <div class="skeleton-item"></div>
+                <div class="skeleton-item"></div>
+                <div class="skeleton-item"></div>
+            </div>
+        </div>
+        <div class="loading-text" id="loadingText">Loading...</div>
+    </div>
+    <div class="pull-refresh" id="pullRefresh">
+        <div class="pull-spinner" id="pullSpinner"></div>
+        <span id="pullText">Pull to refresh</span>
+    </div>
 
+    <div class="app" id="mainApp">
+        <header>
+            <h1>Weight Tracker</h1>
+            <p>Log morning & night, every day</p>
+            <div class="header-actions">
+                <button class="btn-icon" id="themeToggleBtn" onclick="toggleTheme()" aria-label="Toggle theme">
+                    <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                </button>
+                <button class="btn-icon" onclick="openSettingsSheet()" aria-label="Settings">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.67 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.67 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.67a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                </button>
+            </div>
+        </header>
 
-<!-- ============ LOGIN ============ -->
-<div id="login">
-  <div class="login-card">
-    <img class="login-logo" src="images/vinere-logo-white.png" alt="VINÉRE Jewellery">
-    <input id="passInput" type="password" placeholder="Access code" autofocus autocomplete="off">
-    <button id="loginBtn">Unlock</button>
-    <div id="loginError"></div>
-  </div>
-</div>
+        <div class="sync-bar" id="syncBar">
+            <div class="sync-dot"></div>
+            <span id="syncText">Syncing...</span>
+        </div>
 
-<!-- ============ APP ============ -->
-<div id="app">
-  <header class="topbar">
-    <div class="topbar-left">
-      <div class="mark">VINÉRE<span class="dot">·</span>Ledger</div>
-      <div class="view-toggle">
-        <button class="btn secondary small active" id="ordersViewBtn">Orders</button>
-        <button class="btn secondary small" id="tradingViewBtn">Trading</button>
-      </div>
-    </div>
-    <div class="header-stats" id="headerStats">
-      <div class="hstat" id="hstat_1_wrap"><span class="hstat-label" id="hstat_1_label">Profit / Loss</span><span class="hstat-value" id="hstat_1">—</span></div>
-      <div class="hstat" id="hstat_2_wrap"><span class="hstat-label" id="hstat_2_label">Remaining Stock</span><span class="hstat-value" id="hstat_2">—</span></div>
-      <div class="hstat" id="hstat_3_wrap"><span class="hstat-label" id="hstat_3_label">Stock Cost</span><span class="hstat-value" id="hstat_3">—</span></div>
-    </div>
-    <div class="topbar-right">
-      <div class="search-wrap">
-        <input id="search" placeholder="Search…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" onfocus="this.setAttribute('readonly','readonly');setTimeout(()=>this.removeAttribute('readonly'),1)">
-        <button id="searchClear" class="search-clear" title="Clear search">&times;</button>
-        <span id="resultCount" class="result-count"></span>
-      </div>
-      <button class="btn secondary small" id="refreshBtn" title="Refresh">↻</button>
-      <button class="btn secondary small" id="receivePaymentBtn">Payment</button>
-      <button class="btn small" id="newOrderBtn">+ Order</button>
-      <button class="btn small" id="newTradeBtn" style="display:none;">+ Trade</button>
-    </div>
-  </header>
+        <div class="stats-scroll">
+            <div class="stat-card morning">
+                <div class="label">Avg Morning</div>
+                <div class="value" id="avgMorning">--</div>
+                <div class="trend-mini" id="avgMorningSub"></div>
+            </div>
+            <div class="stat-card night">
+                <div class="label">Avg Night</div>
+                <div class="value" id="avgNight">--</div>
+                <div class="trend-mini" id="avgNightSub"></div>
+            </div>
+            <div class="stat-card diff">
+                <div class="label">Avg Diff</div>
+                <div class="value" id="avgDiff">--</div>
+                <div class="trend-mini" id="avgDiffSub"></div>
+            </div>
+            <div class="stat-card bmi">
+                <div class="label">BMI</div>
+                <div class="value" id="bmiValue">--</div>
+                <div id="bmiCategory"></div>
+            </div>
+            <div class="stat-card goal">
+                <div class="label">Goal</div>
+                <div class="value" id="goalValue">--</div>
+                <div class="goal-progress-bar"><div class="goal-progress-fill" id="goalProgress" style="width:0%"></div></div>
+                <div class="goal-days" id="goalDays">Set a goal</div>
+            </div>
+            <div class="stat-card weekly">
+                <div class="label">7-Day Avg</div>
+                <div class="value" id="weeklyAvgMorning">--</div>
+                <div class="trend-mini" id="weeklyAvgSub"></div>
+            </div>
+            <div class="stat-card count">
+                <div class="label">Entries</div>
+                <div class="value" id="entryCount">0</div>
+                <div id="streakDisplay"></div>
+            </div>
+        </div>
 
-  <main>
-    <div id="ordersView">
-      <div class="filter-bar compact">
-        <select id="filterCustomer"><option value="">All customers</option></select>
-        <input type="date" id="filterDateFrom" placeholder="From">
-        <input type="date" id="filterDateTo" placeholder="To">
-        <select id="filterSaleStatus"><option value="">All status</option><option value="Not Sold">Not sold</option><option value="Unpaid">Unpaid</option><option value="Partial">Partial</option><option value="Paid">Paid</option></select>
-        <button class="btn secondary small" id="clearFiltersBtn">Clear</button>
-        <span class="rate-note" id="rateNote"></span>
-      </div>
+        <div id="weeklySummary"></div>
+        <div id="insightsContainer"></div>
 
-      <div class="kpi-grid" id="kpiGrid"></div>
-      <div class="kpi-grid" id="tradeKpiGrid" style="display:none;"></div>
+        <div class="section-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
+            Trend
+        </div>
+        <div class="filter-pills">
+            <button class="filter-pill active" data-filter="all" onclick="handleFilterClick('all')">All</button>
+            <button class="filter-pill" data-filter="7d" onclick="handleFilterClick('7d')">7D</button>
+            <button class="filter-pill" data-filter="30d" onclick="handleFilterClick('30d')">30D</button>
+            <button class="filter-pill" data-filter="90d" onclick="handleFilterClick('90d')">90D</button>
+        </div>
+        <div class="chart-card">
+            <div class="legend">
+                <div class="legend-item"><div class="legend-dot morning"></div><span>Morning</span></div>
+                <div class="legend-item"><div class="legend-dot night"></div><span>Night</span></div>
+            </div>
+            <div class="chart-container"><canvas id="weightChart"></canvas></div>
+        </div>
 
-      <div class="table-wrap">
-        <table id="ordersTable">
-          <colgroup>
-            <col style="width:5%"><col style="width:7%"><col style="width:10%"><col style="width:8%">
-            <col style="width:6%"><col style="width:6%"><col style="width:6%">
-            <col style="width:10%"><col style="width:6%"><col style="width:7%"><col style="width:10%">
-            <col style="width:8%"><col style="width:11%">
-          </colgroup>
-          <thead><tr>
-            <th class="num">Sr.</th><th>Customer</th><th>Style No.</th><th>Date</th>
-            <th class="num">Gross Wt</th><th class="num">Net Wt</th><th class="num">Carat</th>
-            <th class="num">Sub Total</th><th class="num">$</th><th>Memo No.</th><th>Sold To</th>
-            <th class="num">Sale Price</th><th>Status</th>
-          </tr></thead>
-          <tbody id="tbody">
-            <tr class="skeleton-row"><td colspan="13"><div class="skeleton-cell" style="width:100%"></div></td></tr>
-            <tr class="skeleton-row"><td colspan="13"><div class="skeleton-cell" style="width:100%"></div></td></tr>
-            <tr class="skeleton-row"><td colspan="13"><div class="skeleton-cell" style="width:100%"></div></td></tr>
-          </tbody>
-        </table>
+        <div class="section-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            Progress Photos
+        </div>
+        <div class="photos-section" id="photosSection">
+            <div class="photos-empty" id="photosEmpty">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                <p>No progress photos yet.<br>Tap <strong>+</strong> in the add sheet to attach one.</p>
+            </div>
+            <div class="photos-grid" id="photosGrid"></div>
+            <div class="photo-compare" id="photoCompare" style="display:none">
+                <div class="compare-labels">
+                    <span id="compareBeforeLabel">Before</span>
+                    <span id="compareAfterLabel">After</span>
+                </div>
+                <div class="compare-images">
+                    <img id="compareBeforeImg" src="" alt="Before">
+                    <img id="compareAfterImg" src="" alt="After">
+                </div>
+                <button class="btn btn-secondary" onclick="closePhotoCompare()" style="width:100%;margin-top:12px;">Close Comparison</button>
+            </div>
+        </div>
 
-        <table id="tradingTable" style="display:none;">
-          <colgroup>
-            <col style="width:4%"><col style="width:8%"><col style="width:18%">
-            <col style="width:16%"><col style="width:8%"><col style="width:8%">
-            <col style="width:16%"><col style="width:7%"><col style="width:8%">
-          </colgroup>
-          <thead><tr>
-            <th class="num">Sr.</th><th>Date</th><th>Item</th><th>Vendor</th>
-            <th class="num">Purchase $</th><th class="num">Sale $</th><th>Sold To</th>
-            <th>Status</th><th class="num">P/L</th>
-          </tr></thead>
-          <tbody id="tradeTbody">
-            <tr class="skeleton-row"><td colspan="9"><div class="skeleton-cell" style="width:100%"></div></td></tr>
-            <tr class="skeleton-row"><td colspan="9"><div class="skeleton-cell" style="width:100%"></div></td></tr>
-            <tr class="skeleton-row"><td colspan="9"><div class="skeleton-cell" style="width:100%"></div></td></tr>
-          </tbody>
-        </table>
-      </div>
+        <div class="section-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            History
+        </div>
+        <div class="entry-list" id="historyList">
+            <div class="empty-state">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/><path d="M9 14l2 2 4-4"/></svg>
+                <p>No entries yet.<br>Tap <strong>+</strong> to add your first weight, or press <kbd>N</kbd></p>
+            </div>
+        </div>
+    </div>
 
-      <div class="card-list" id="cardList"></div>
-      <div class="card-list" id="tradeCardList"></div>
-      <div class="pagination-bar" id="paginationBar"></div>
-      <div class="pagination-bar" id="tradePaginationBar" style="display:none;"></div>
-      <div class="swipe-hint">Swipe left/right to change pages</div>
-    </div>
-  </main>
-</div>
+    <button class="fab" id="fabBtn" onclick="openAddSheet()" aria-label="Add entry">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
 
-<!-- ============ ORDERS PANEL ============ -->
-<div id="overlay"></div>
-<div id="panel">
-  <div class="panel-head"><h2 id="panelTitle">New order</h2><button id="closePanel">&times;</button></div>
-  <div class="panel-body">
-    <div class="field"><label>Customer *</label><input id="f_customer" placeholder="e.g. HET"><div class="field-error" id="err_f_customer"></div></div>
-    <div class="field"><label>Style No. *</label><input id="f_style" placeholder="e.g. SLER-0079 I"><div class="field-error" id="err_f_style"></div></div>
-    <div class="field"><label>Date</label><input id="f_date" type="date"></div>
-    <div class="field-row">
-      <div class="field"><label>Gross Wt (g)</label><input id="f_grossWt" type="number" step="0.001" placeholder="0.000"><div class="field-error" id="err_f_grossWt"></div></div>
-      <div class="field"><label>Net Wt (g) *</label><input id="f_netWt" type="number" step="0.001" placeholder="0.000"><div class="field-error" id="err_f_netWt"></div></div>
+    <!-- Add/Edit Sheet -->
+    <div class="bottom-sheet" id="bottomSheet" onclick="closeSheetOnOverlay(event)">
+        <div class="overlay"></div>
+        <div class="sheet-content">
+            <div class="sheet-handle"></div>
+            <div class="sheet-title" id="sheetTitle">Add Entry</div>
+            <div class="form-group">
+                <label for="date">Date</label>
+                <input type="date" id="date" required>
+            </div>
+            <div class="form-group">
+                <label>Time of Day</label>
+                <div class="toggle-group">
+                    <button class="toggle-btn active" id="toggleMorning" onclick="setTimeOfDay('morning')">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                        Morning
+                    </button>
+                    <button class="toggle-btn" id="toggleNight" onclick="setTimeOfDay('night')">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                        Night
+                    </button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="weight" id="weightLabel">Weight (Morning) (kg)</label>
+                <div class="weight-input-wrap">
+                    <button class="stepper-btn" onclick="adjustWeight(-0.1)" type="button" aria-label="Decrease weight">−</button>
+                    <input type="number" id="weight" step="0.1" placeholder="e.g. 72.5" required inputmode="decimal">
+                    <button class="stepper-btn" onclick="adjustWeight(0.1)" type="button" aria-label="Increase weight">+</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Progress Photo (optional)</label>
+                <div class="photo-upload" id="photoUploadArea">
+                    <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoSelect(event)">
+                    <div class="photo-upload-placeholder" id="photoPlaceholder" onclick="document.getElementById('photoInput').click()">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                        <span>Tap to add photo</span>
+                    </div>
+                    <div class="photo-preview" id="photoPreview" style="display:none">
+                        <img id="photoPreviewImg" src="" alt="Preview">
+                        <button class="photo-remove" onclick="removePhoto()" aria-label="Remove photo">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="photo-hint">One photo per week is enough. Same lighting, same angle.</div>
+            </div>
+            <div class="quick-add-group">
+                <span class="quick-add-label">Quick add:</span>
+                <button class="quick-add-btn" onclick="quickAddLastEntry()">Last entry</button>
+                <button class="quick-add-btn" onclick="quickAddSameAsYesterday()">Same as yesterday</button>
+            </div>
+            <div class="sheet-actions">
+                <button class="btn btn-secondary" onclick="closeSheet()">Cancel</button>
+                <button class="btn btn-primary" id="submitBtn" onclick="handleSubmit()">Add</button>
+            </div>
+        </div>
     </div>
-    <div class="field-row">
-      <div class="field"><label>Dia Qty</label><input id="f_diaQty" type="number" step="1" placeholder="0"><div class="field-error" id="err_f_diaQty"></div></div>
-      <div class="field"><label>IN CT</label><input id="f_inCt" type="number" step="0.01" placeholder="0.00"><div class="field-error" id="err_f_inCt"></div></div>
-    </div>
-    <div class="field-row">
-      <div class="field"><label>Colour Stone</label><input id="f_colourStone" type="number" step="1" placeholder="0"><div class="field-error" id="err_f_colourStone"></div></div>
-      <div class="field"><label>Multiplier</label><input id="f_multiplier" type="number" step="0.001" value="0.595"><div class="field-error" id="err_f_multiplier"></div></div>
-    </div>
-    <div class="field-row">
-      <div class="field"><label>Diamond Amount (₹)</label><input id="f_diamAmount" type="number" step="1" placeholder="0"><div class="field-error" id="err_f_diamAmount"></div></div>
-      <div class="field"><label>L Charges (₹/g)</label><input id="f_lCharges" type="number" step="1" placeholder="900"><div class="field-error" id="err_f_lCharges"></div></div>
-    </div>
-    <div class="field" style="margin-top:-6px;margin-bottom:10px;">
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;text-transform:none;letter-spacing:0;color:var(--text-dim);font-weight:400;">
-        <input type="checkbox" id="f_flatLabor" style="width:16px;height:16px;cursor:pointer;">
-        Flat labor — fixed amount (don't multiply by weight)
-      </label>
-    </div>
-    <div class="computed-preview">
-      <h4>Live Preview</h4>
-      <div class="computed-row"><span class="label">Pg Wt</span><span class="value" id="prev_pgWt">—</span></div>
-      <div class="computed-row"><span class="label">Gold Amount</span><span class="value" id="prev_goldAmt">—</span></div>
-      <div class="computed-row"><span class="label">Labor Amount</span><span class="value" id="prev_laborAmt">—</span></div>
-      <div class="computed-row"><span class="label">Sub Total</span><span class="value" id="prev_subTotal">—</span></div>
-      <div class="computed-row"><span class="label">USD ($)</span><span class="value" id="prev_usd">—</span></div>
-    </div>
-    <p class="computed-note">Formulas: Pg Wt = Net Wt × Multiplier | Gold Amt = Pg Wt × 16000 | Labor = Net Wt × L Charges | $ = Sub Total ÷ 94</p>
-    <div class="section-divider">Sale &amp; Payment</div>
-    <div class="field"><label>Memo No.</label><input id="f_memoNo" placeholder="e.g. MEMO-014"><div class="computed-note" id="memoSummary" style="display:none;"></div></div>
-    <div class="field"><label>Sold To (Buyer)</label><input id="f_soldTo" placeholder="e.g. Priya Shah"></div>
-    <div class="field-row">
-      <div class="field"><label id="lbl_salePrice">Sale Price ($)</label><input id="f_salePrice" type="number" step="1" placeholder="0"><div class="field-error" id="err_f_salePrice"></div></div>
-      <div class="field"><label>Date Sold</label><input id="f_dateSold" type="date"></div>
-    </div>
-    <div class="field">
-      <label>Installments</label>
-      <div id="installmentsList" class="installments-list"></div>
-      <div class="field-row installment-add-row">
-        <div class="field"><input id="f_instAmount" type="number" step="1" min="0" placeholder="Amount $"></div>
-        <div class="field"><input id="f_instDate" type="date"></div>
-      </div>
-      <button class="btn secondary small" id="addInstallmentBtn" type="button" style="width:100%">+ Add installment</button>
-      <div class="field-error" id="err_f_installment"></div>
-    </div>
-    <div class="computed-preview">
-      <h4>Payment Preview</h4>
-      <div class="computed-row"><span class="label">Amount Paid</span><span class="value" id="prev_amountPaid">—</span></div>
-      <div class="computed-row"><span class="label">Balance Due</span><span class="value" id="prev_balanceDue">—</span></div>
-      <div class="computed-row"><span class="label">Payment Status</span><span class="value" id="prev_paymentStatus">—</span></div>
-    </div>
-    <div id="saveMsg"></div>
-  </div>
-  <div class="panel-foot">
-    <button id="deleteBtn" style="display:none;"><span id="deleteText">Delete</span></button>
-    <button class="btn" id="saveBtn" style="flex:1;">Save</button>
-  </div>
-</div>
 
-<!-- ============ TRADING PANEL ============ -->
-<div id="tradeOverlay"></div>
-<div id="tradePanel">
-  <div class="panel-head"><h2 id="tradePanelTitle">New Trade</h2><button id="closeTradePanel">&times;</button></div>
-  <div class="panel-body">
-    <div class="field-row">
-      <div class="field"><label>Item *</label><input id="t_item" placeholder="e.g. Diamond Bracelet"><div class="field-error" id="err_t_item"></div></div>
-      <div class="field"><label>Vendor *</label><input id="t_vendor" placeholder="e.g. Rakesh Jewellers"><div class="field-error" id="err_t_vendor"></div></div>
+    <!-- Settings Sheet -->
+    <div class="bottom-sheet" id="settingsSheet" onclick="closeSheetOnOverlay(event, 'settingsSheet')">
+        <div class="overlay"></div>
+        <div class="sheet-content">
+            <div class="sheet-handle"></div>
+            <div class="sheet-title">Settings</div>
+            <div class="form-group">
+                <label for="settingHeight">Height (cm)</label>
+                <input type="number" id="settingHeight" step="0.1" placeholder="e.g. 175" inputmode="decimal">
+            </div>
+            <div class="form-group">
+                <label for="settingGoal">Goal Weight (kg)</label>
+                <input type="number" id="settingGoal" step="0.1" placeholder="e.g. 70" inputmode="decimal">
+            </div>
+            <div class="sheet-actions">
+                <button class="btn btn-secondary" onclick="closeSheet('settingsSheet')">Cancel</button>
+                <button class="btn btn-primary" onclick="handleSettingsSave()">Save</button>
+            </div>
+            <div class="data-actions">
+                <div class="data-actions-title">Your Data</div>
+                <button class="btn btn-secondary data-btn" onclick="exportCSV()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Export CSV
+                </button>
+                <button class="btn btn-secondary data-btn" onclick="exportJSON()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Backup JSON
+                </button>
+                <button class="btn btn-secondary data-btn" onclick="importJSON()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    Restore JSON
+                </button>
+            </div>
+            <div style="margin-top: 16px; text-align: center;">
+                <button class="btn btn-secondary" onclick="handleLogout()" style="width: 100%; color: var(--danger); border-color: rgba(248,113,113,.2);">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align: middle; margin-right: 6px;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                    Log Out
+                </button>
+            </div>
+        </div>
     </div>
-    <div class="field-row">
-      <div class="field"><label>Date</label><input id="t_date" type="date"></div>
-      <div class="field"><label>Purchase Price ($) *</label><input id="t_purchasePrice" type="number" step="1" placeholder="0"><div class="field-error" id="err_t_purchasePrice"></div></div>
-    </div>
-    <div class="section-divider">Sale &amp; Payment</div>
-    <div class="field-row">
-      <div class="field"><label>Sale Price ($)</label><input id="t_salePrice" type="number" step="1" placeholder="0"><div class="field-error" id="err_t_salePrice"></div></div>
-      <div class="field"><label>Date Sold</label><input id="t_dateSold" type="date"></div>
-    </div>
-    <div class="field"><label>Sold To</label><input id="t_soldTo" placeholder="e.g. Priya Shah"></div>
-    <div class="field">
-      <label>Installments</label>
-      <div id="tradeInstallmentsList" class="installments-list"></div>
-      <div class="field-row installment-add-row">
-        <div class="field"><input id="t_instAmount" type="number" step="1" min="0" placeholder="Amount $"></div>
-        <div class="field"><input id="t_instDate" type="date"></div>
-      </div>
-      <button class="btn secondary small" id="addTradeInstallmentBtn" type="button" style="width:100%">+ Add installment</button>
-      <div class="field-error" id="err_t_installment"></div>
-    </div>
-    <div class="computed-preview">
-      <h4>Trading Preview</h4>
-      <div class="computed-row"><span class="label">Profit / Loss</span><span class="value" id="t_prev_profit" style="color:var(--text-dim)">—</span></div>
-      <div class="computed-row"><span class="label">Amount Paid</span><span class="value" id="t_prev_amountPaid">—</span></div>
-      <div class="computed-row"><span class="label">Balance Due</span><span class="value" id="t_prev_balanceDue">—</span></div>
-      <div class="computed-row"><span class="label">Payment Status</span><span class="value" id="t_prev_paymentStatus">—</span></div>
-    </div>
-    <div class="field"><label>Notes</label><input id="t_notes" placeholder="Any notes…"></div>
-    <div id="tradeSaveMsg"></div>
-  </div>
-  <div class="panel-foot">
-    <button id="deleteTradeBtn" style="display:none;"><span id="deleteTradeText">Delete</span></button>
-    <button class="btn" id="saveTradeBtn" style="flex:1;">Save</button>
-  </div>
-</div>
 
-<!-- ============ RECEIVE PAYMENT ============ -->
-<div id="paymentSearchOverlay"></div>
-<div id="paymentSearchModal">
-  <div class="panel-head"><h2>Receive Payment</h2><button id="closePaymentSearch">&times;</button></div>
-  <div class="pay-search-body">
-    <input id="paySearchInput" placeholder="Search memo no., buyer, style, or customer…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" onfocus="this.setAttribute('readonly','readonly');setTimeout(()=>this.removeAttribute('readonly'),1)">
-    <div id="payResults" class="pay-results"></div>
-  </div>
-</div>
+    <div class="toast" id="toast"></div>
 
-<div id="screenFx"></div>
-<div id="toast"></div>
-<div id="undoToast">
-  <span class="undo-msg">Order deleted — <span class="undo-count" id="undoCount">60</span>s left</span>
-  <button id="undoBtn">Undo</button>
-</div>
-<div id="toastContainer" class="toast-container"></div>
-
-<!-- Firebase SDKs (required before firebase.js runs) -->
-<!-- App scripts — load order matters -->
-
-
-<!-- Firebase SDKs -->
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-
-<!-- App scripts — load order matters -->
-<script src="js/utils.js?v=2"></script>
-<script src="js/api.js?v=2"></script>
-<script src="js/firebase.js?v=2"></script>
-<script src="js/app.js?v=2"></script>
-<script src="js/dashboard.js?v=2"></script>
-<script src="js/filters.js?v=2"></script>
-<script src="js/panel.js?v=2"></script>
-<script src="js/table.js?v=2"></script>
-<script src="js/payments.js?v=3"></script>
-<script src="js/trading.js?v=2"></script>
-<script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js')
-      .then(function(reg) { console.log('PWA Service Worker registered:', reg.scope); })
-      .catch(function(err) { console.log('SW registration failed:', err); });
-  }
-</script>
+    <script src="js/firebase-config.js"></script>
+    <script src="js/stats.js"></script>
+    <script src="js/chart.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
 </body>
 </html>

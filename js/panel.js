@@ -126,9 +126,9 @@ window.openOrderPanel = function(id) {
   var overlay = $('overlay');
 
   // Reset fields
-  ['f_customer','f_style','f_date','f_grossWt','f_netWt','f_diaQty','f_inCt',
+    ['f_customer','f_style','f_date','f_grossWt','f_netWt','f_diaQty','f_inCt',
    'f_colourStone','f_multiplier','f_diamAmount','f_lCharges','f_memoNo',
-   'f_soldTo','f_salePrice','f_dateSold'].forEach(function(fid) { $(fid).value = ''; });
+   'f_soldTo','f_salePrice','f_dateSold','f_diamondShape'].forEach(function(fid) { $(fid).value = ''; });
   $('f_multiplier').value = '0.595';
   $('f_lCharges').value = '900';
   if ($('f_flatLabor')) $('f_flatLabor').checked = false;

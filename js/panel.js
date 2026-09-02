@@ -179,6 +179,7 @@ window.openOrderPanel = function(id) {
     }
     $('f_customer').value = order[DK.customer] || '';
     $('f_style').value = order[DK.style] || '';
+    $('f_diamondShape').value = order[DK.diamondShape] || '';
     $('f_date').value = order[DK.date] || '';
     $('f_grossWt').value = order[DK.grossWt] || '';
     $('f_netWt').value = order[DK.netWt] || '';

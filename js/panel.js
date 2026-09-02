@@ -126,7 +126,7 @@ window.openOrderPanel = function(id) {
   var overlay = $('overlay');
 
   // Reset fields
-    ['f_customer','f_style','f_date','f_grossWt','f_netWt','f_diaQty','f_inCt',
+  ['f_customer','f_style','f_date','f_grossWt','f_netWt','f_diaQty','f_inCt',
    'f_colourStone','f_multiplier','f_diamAmount','f_lCharges','f_memoNo',
    'f_soldTo','f_salePrice','f_dateSold','f_diamondShape'].forEach(function(fid) { $(fid).value = ''; });
   $('f_multiplier').value = '0.595';
@@ -522,7 +522,7 @@ $('saveBtn').addEventListener('click', async function() {
   }
 
   var data = {};
-    data[DK.customer] = $('f_customer').value.trim().toUpperCase();
+  data[DK.customer] = $('f_customer').value.trim().toUpperCase();
   data[DK.style] = $('f_style').value.trim().toUpperCase();
   data[DK.diamondShape] = $('f_diamondShape').value;
   data[DK.date] = $('f_date').value;

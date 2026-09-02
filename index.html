@@ -12,6 +12,7 @@
 <base target="_blank">
 <base target="_blank">
 <base target="_blank">
+<base target="_blank">
 </head>
 <body>
 
@@ -96,13 +97,13 @@
       <div class="table-wrap">
         <table id="ordersTable">
           <colgroup>
-            <col style="width:5%"><col style="width:7%"><col style="width:10%"><col style="width:8%">
+            <col style="width:5%"><col style="width:7%"><col style="width:10%"><col style="width:7%"><col style="width:8%">
             <col style="width:6%"><col style="width:6%"><col style="width:6%">
             <col style="width:10%"><col style="width:6%"><col style="width:7%"><col style="width:10%">
             <col style="width:8%"><col style="width:10%"><col style="width:7%">
           </colgroup>
           <thead><tr>
-            <th class="num">Sr.</th><th>Customer</th><th>Style No.</th><th>Date</th>
+            <th class="num">Sr.</th><th>Customer</th><th>Style No.</th><th>Jewelry Type</th><th>Date</th>
             <th class="num">Gross Wt</th><th class="num">Net Wt</th><th class="num sortable" onclick="window.sortByColumn('inCt')" style="cursor:pointer;">Carat <span class="sort-icon">↕</span></th>
             <th class="num">Sub Total</th><th class="num">$</th><th>Memo No.</th><th>Sold To</th>
             <th class="num">Sale Price</th><th>Status</th><th>Diamond Shape</th>
@@ -194,6 +195,16 @@
             <label>Style No. *</label>
             <input id="f_style" placeholder="e.g. SLER-0079 I">
             <div class="field-error" id="err_f_style"></div>
+          </div>
+          <div class="field full-width">
+            <label>Jewelry Type</label>
+            <select id="f_jewelryType">
+              <option value="">Select type…</option>
+              <option value="Bracelet">Bracelet</option>
+              <option value="Necklace">Necklace</option>
+              <option value="Ring">Ring</option>
+              <option value="Earring">Earring</option>
+            </select>
           </div>
           <div class="field">
             <label>Diamond Shape</label>

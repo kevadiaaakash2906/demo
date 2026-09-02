@@ -133,9 +133,9 @@ var DK = {
   diamAmount: 'Diam Amount', lCharges: 'L CHARGES', laborAmt: 'Labor Amount',
   subTotal: 'SUB TOTAL', usd: '$', soldTo: 'Sold To', salePrice: 'Sale Price',
   dateSold: 'Date Sold', amountPaid: 'Amount Paid', balanceDue: 'Balance Due',
-  paymentStatus: 'Payment Status', paymentLog: 'Payment Log', memoNo: 'Memo No.'
+  paymentStatus: 'Payment Status', paymentLog: 'Payment Log', memoNo: 'Memo No.',
+  diamondShape: 'Diamond Shape'
 };
-
 function getField(row, key) {
   if (row[key] !== undefined) return row[key];
   if (row[key + ' '] !== undefined) return row[key + ' '];
@@ -354,7 +354,7 @@ function equalizeColumnWidths() {
   var cols = table.querySelectorAll('colgroup col');
   if (!cols.length) return;
 
-  var baseWidths = [5, 7, 10, 8, 6, 6, 6, 9, 5, 7, 11, 8, 12];
+    var baseWidths = [5, 7, 10, 8, 6, 6, 6, 9, 5, 7, 10, 8, 10, 7];
   var total = baseWidths.reduce(function(s, w) { return s + w; }, 0);
 
   cols.forEach(function(col, i) {

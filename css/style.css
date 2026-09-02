@@ -1893,7 +1893,7 @@ select:focus-visible {
    ============================================ */
 #ordersTable,
 #tradingTable {
-  min-width: 1200px;
+  min-width: 1280px;
 }
 
 /* Status column minimum width */

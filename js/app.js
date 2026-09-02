@@ -127,7 +127,7 @@ $('passInput').addEventListener('keydown', function(e) { if (e.key === 'Enter') 
 
 /* ============ DATA KEYS ============ */
 var DK = {
-  sr: 'Sr. No.', customer: 'CUSTOMER', style: 'Style No.', date: 'Date',
+  sr: 'Sr. No.', customer: 'CUSTOMER', style: 'Style No.', jewelryType: 'Jewelry Type', date: 'Date',
   grossWt: 'Gross Wt', diaQty: 'Dia Qty', inCt: 'IN CT', colourStone: 'COLOUR STONE',
   netWt: 'Net Wt', multiplier: 'Multiplier', pgWt: 'Pg Wt', goldAmt: 'Gold Amount',
   diamAmount: 'Diam Amount', lCharges: 'L CHARGES', laborAmt: 'Labor Amount',

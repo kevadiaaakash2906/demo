@@ -126,7 +126,7 @@ window.openOrderPanel = function(id) {
   var overlay = $('overlay');
 
   // Reset fields
-  ['f_customer','f_style','f_date','f_grossWt','f_netWt','f_diaQty','f_inCt',
+  ['f_customer','f_style','f_jewelryType','f_date','f_grossWt','f_netWt','f_diaQty','f_inCt',
    'f_colourStone','f_multiplier','f_diamAmount','f_lCharges','f_memoNo',
    'f_soldTo','f_salePrice','f_dateSold','f_diamondShape'].forEach(function(fid) { var el = $(fid); if (el) el.value = ''; });
   $('f_multiplier').value = '0.595';
@@ -179,6 +179,7 @@ window.openOrderPanel = function(id) {
     }
     $('f_customer').value = order[DK.customer] || '';
     $('f_style').value = order[DK.style] || '';
+    $('f_jewelryType').value = order[DK.jewelryType] || '';
     $('f_diamondShape').value = order[DK.diamondShape] || '';
     $('f_date').value = order[DK.date] || '';
     $('f_grossWt').value = order[DK.grossWt] || '';
@@ -524,6 +525,7 @@ $('saveBtn').addEventListener('click', async function() {
   var data = {};
   data[DK.customer] = $('f_customer').value.trim().toUpperCase();
   data[DK.style] = $('f_style').value.trim().toUpperCase();
+  data[DK.jewelryType] = $('f_jewelryType').value;
   data[DK.diamondShape] = $('f_diamondShape').value;
   data[DK.date] = $('f_date').value;
   data[DK.grossWt] = $('f_grossWt').value || '';

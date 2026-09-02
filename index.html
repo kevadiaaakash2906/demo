@@ -97,16 +97,16 @@
       <div class="table-wrap">
         <table id="ordersTable">
           <colgroup>
-            <col style="width:5%"><col style="width:7%"><col style="width:10%"><col style="width:7%"><col style="width:8%">
-            <col style="width:6%"><col style="width:6%"><col style="width:6%">
-            <col style="width:10%"><col style="width:6%"><col style="width:7%"><col style="width:10%">
-            <col style="width:8%"><col style="width:10%"><col style="width:7%">
+            <col style="width:4%"><col style="width:7%"><col style="width:9%"><col style="width:6%"><col style="width:7%"><col style="width:7%">
+            <col style="width:5%"><col style="width:5%"><col style="width:5%">
+            <col style="width:9%"><col style="width:5%"><col style="width:6%"><col style="width:9%">
+            <col style="width:7%"><col style="width:8%">
           </colgroup>
           <thead><tr>
-            <th class="num">Sr.</th><th>Customer</th><th>Style No.</th><th>Jewelry Type</th><th>Date</th>
+            <th class="num">Sr.</th><th>Customer</th><th>Style No.</th><th>Jewelry Type</th><th>Diamond Shape</th><th>Date</th>
             <th class="num">Gross Wt</th><th class="num">Net Wt</th><th class="num sortable" onclick="window.sortByColumn('inCt')" style="cursor:pointer;">Carat <span class="sort-icon">↕</span></th>
             <th class="num">Sub Total</th><th class="num">$</th><th>Memo No.</th><th>Sold To</th>
-            <th class="num">Sale Price</th><th>Status</th><th>Diamond Shape</th>
+            <th class="num">Sale Price</th><th>Status</th>
           </tr></thead>
           <tbody id="tbody">
             <tr class="skeleton-row"><td colspan="14"><div class="skeleton-cell" style="width:100%"></div></td></tr>
@@ -185,7 +185,7 @@
     <div id="tab-costs" class="tab-content active">
       <div class="section-card">
         <div class="section-card-title">Item Details</div>
-        <div class="fields-grid">
+        <div class="fields-grid compact">
           <div class="field full-width">
             <label>Customer *</label>
             <input id="f_customer" placeholder="e.g. HET">
@@ -196,7 +196,7 @@
             <input id="f_style" placeholder="e.g. SLER-0079 I">
             <div class="field-error" id="err_f_style"></div>
           </div>
-          <div class="field full-width">
+          <div class="field">
             <label>Jewelry Type</label>
             <select id="f_jewelryType">
               <option value="">Select type…</option>
@@ -234,25 +234,13 @@
           <div class="field"><label>Multiplier</label><input id="f_multiplier" type="number" step="0.001" value="0.595"></div>
           <div class="field"><label>Dia Qty</label><input id="f_diaQty" type="number" step="1" placeholder="0"></div>
           <div class="field"><label>IN CT</label><input id="f_inCt" type="number" step="0.01" placeholder="0.00"></div>
-          <div class="field full-width"><label>Colour Stone</label><input id="f_colourStone" type="number" step="1" placeholder="0"></div>
+          <div class="field"><label>Colour Stone</label><input id="f_colourStone" type="number" step="1" placeholder="0"></div>
         </div>
-      </div>
-
-      <div class="sticky-preview">
-        <div class="computed-preview" style="margin:0;">
-          <h4>Live Preview</h4>
-          <div class="computed-row"><span class="label">Pg Wt</span><span class="value" id="prev_pgWt">—</span></div>
-          <div class="computed-row"><span class="label">Gold Amount</span><span class="value" id="prev_goldAmt">—</span></div>
-          <div class="computed-row"><span class="label">Labor Amount</span><span class="value" id="prev_laborAmt">—</span></div>
-          <div class="computed-row"><span class="label">Sub Total</span><span class="value" id="prev_subTotal">—</span></div>
-          <div class="computed-row"><span class="label">USD ($)</span><span class="value" id="prev_usd">—</span></div>
-        </div>
-        <p class="computed-note" style="margin-bottom:0;">Pg Wt = Net Wt × Multiplier | Gold = Pg Wt × Rate | Labor = Net Wt × L Charges | $ = Sub Total ÷ 94</p>
       </div>
 
       <div class="section-card">
         <div class="section-card-title">Cost Breakdown</div>
-        <div class="fields-grid">
+        <div class="fields-grid compact">
           <div class="field"><label>Diamond Amount (₹)</label><input id="f_diamAmount" type="number" step="1" placeholder="0"></div>
           <div class="field"><label>L Charges (₹/g)</label><input id="f_lCharges" type="number" step="1" placeholder="900"></div>
           <div class="field full-width">
@@ -261,6 +249,17 @@
             </label>
           </div>
         </div>
+      </div>
+
+      <div class="panel-preview-bottom">
+        <div class="computed-preview compact" style="margin:0;">
+          <div class="computed-row"><span class="label">Pg Wt</span><span class="value" id="prev_pgWt">—</span></div>
+          <div class="computed-row"><span class="label">Gold Amount</span><span class="value" id="prev_goldAmt">—</span></div>
+          <div class="computed-row"><span class="label">Labor Amount</span><span class="value" id="prev_laborAmt">—</span></div>
+          <div class="computed-row"><span class="label">Sub Total</span><span class="value" id="prev_subTotal">—</span></div>
+          <div class="computed-row"><span class="label">USD ($)</span><span class="value" id="prev_usd">—</span></div>
+        </div>
+        <p class="computed-note" style="margin-bottom:0;font-size:11px;">Pg Wt = Net Wt × Multiplier | Gold = Pg Wt × Rate | Labor = Net Wt × L Charges | $ = Sub Total ÷ 94</p>
       </div>
     </div>
 

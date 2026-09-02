@@ -7,7 +7,6 @@ function renderTable() {
   var ctIcon = sortCol === 'inCt' ? (sortDesc ? '↓' : '↑') : '↕';
 
   // Restore original orders table header
-    // Restore original orders table header
   var theadTr = $('ordersTable').querySelector('thead tr');
   if (theadTr) {
     theadTr.innerHTML =
@@ -16,14 +15,15 @@ function renderTable() {
       '<th class="num">Gross Wt</th><th class="num">Net Wt</th>' +
       '<th class="num sortable" onclick="window.sortByColumn(\'inCt\')" style="cursor:pointer;">Carat <span class="sort-icon">' + ctIcon + '</span></th>' +
       '<th class="num">Sub Total</th><th class="num">$</th><th>Memo No.</th><th>Sold To</th>' +
-      '<th class="num">Sale Price</th><th>Status</th><th>Diamond Shape</th>';
+      '<th class="num">Sale Price</th><th>Status</th>';
   }
   // ... keep everything below this exactly as-is ...
-   // Restore 14-column colgroup
+  // Restore 14-column colgroup
   var colgroup = $('ordersTable').querySelector('colgroup');
   if (colgroup) {
     colgroup.innerHTML = '<col style="width:5%"><col style="width:7%"><col style="width:10%"><col style="width:8%"><col style="width:6%"><col style="width:6%"><col style="width:6%"><col style="width:10%"><col style="width:6%"><col style="width:7%"><col style="width:10%"><col style="width:8%"><col style="width:10%"><col style="width:7%">';
   }
+
   var tbody = $('tbody');
   var filtered = getFilteredOrders();
 
@@ -41,7 +41,7 @@ function renderTable() {
     var msg = window.currentSearchQuery 
       ? 'No orders match "' + escapeHtml(window.currentSearchQuery) + '"' 
       : 'No orders found';
-    tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;padding:40px;color:var(--text-dim)">' + msg + '</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;padding:40px;color:var(--text-dim)">' + msg + '</td></tr>';
     renderCards([]);
     return;
   }
@@ -105,6 +105,7 @@ function renderTable() {
       '<td>' + highlightText(r[DK.soldTo] || '', q) + '</td>' +
       '<td class="num">' + (r[DK.salePrice] ? '$' + fmtMoney(r[DK.salePrice]) : '') + '</td>' +
       '<td><span class="status-badge ' + statusClass + '">' + status + '</span></td>' +
+      '<td>' + escapeHtml(r[DK.diamondShape] || '') + '</td>' +
       '</tr>';
   }).join('');
 
@@ -244,6 +245,7 @@ function renderCards(rows) {
         '<div class="card-row" style="padding:6px 0;"><span class="card-label">Gross Wt</span><span class="card-value">' + (r[DK.grossWt] || '—') + 'g</span></div>' +
         '<div class="card-row" style="padding:6px 0;"><span class="card-label">Net Wt</span><span class="card-value">' + (r[DK.netWt] || '—') + 'g</span></div>' +
         '<div class="card-row" style="padding:6px 0;"><span class="card-label">Dia Qty</span><span class="card-value">' + (r[DK.diaQty] || '—') + '</span></div>' +
+        '<div class="card-row" style="padding:6px 0;"><span class="card-label">Diamond Shape</span><span class="card-value">' + (r[DK.diamondShape] || '—') + '</span></div>' +
         '<div class="card-row" style="padding:6px 0;"><span class="card-label">Colour Stone</span><span class="card-value">' + (r[DK.colourStone] || '—') + '</span></div>' +
         '<div class="card-row" style="padding:6px 0;"><span class="card-label">Sale Price</span><span class="card-value">' + (salePrice ? '$' + fmtMoney(salePrice) : '—') + '</span></div>' +
         '<div class="card-row" style="padding:6px 0;"><span class="card-label">Balance</span><span class="card-value">$' + (r[DK.balanceDue] || '0') + '</span></div>' +
@@ -318,6 +320,7 @@ function renderCards(rows) {
     var bodyRows = '';
     bodyRows += '<div class="card-row"><span class="card-label">Gross Wt</span><span class="card-value">' + (r[DK.grossWt] || '—') + 'g</span></div>';
     bodyRows += '<div class="card-row"><span class="card-label">Dia Qty</span><span class="card-value">' + (r[DK.diaQty] || '—') + '</span></div>';
+    bodyRows += '<div class="card-row"><span class="card-label">Diamond Shape</span><span class="card-value">' + (r[DK.diamondShape] || '—') + '</span></div>';
     if (ROLE !== 'staff') {
       bodyRows += '<div class="card-row"><span class="card-label">IN CT</span><span class="card-value">' + (r[DK.inCt] || '—') + '</span></div>';
     }

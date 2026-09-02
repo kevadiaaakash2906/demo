@@ -15,7 +15,7 @@ function renderTable() {
       '<th class="num">Gross Wt</th><th class="num">Net Wt</th>' +
       '<th class="num sortable" onclick="window.sortByColumn(\'inCt\')" style="cursor:pointer;">Carat <span class="sort-icon">' + ctIcon + '</span></th>' +
       '<th class="num">Sub Total</th><th class="num">$</th><th>Memo No.</th><th>Sold To</th>' +
-      '<th class="num">Sale Price</th><th>Status</th>';
+      '<th class="num">Sale Price</th><th>Status</th><th>Diamond Shape</th>';
   }
   // ... keep everything below this exactly as-is ...
   // Restore 14-column colgroup

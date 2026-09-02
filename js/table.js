@@ -11,17 +11,17 @@ function renderTable() {
   if (theadTr) {
     theadTr.innerHTML =
       '<th class="num sortable" onclick="window.sortByColumn(\'sr\')" style="cursor:pointer;">Sr. <span class="sort-icon">' + srIcon + '</span></th>' +
-      '<th>Customer</th><th>Style No.</th><th>Jewelry Type</th><th>Date</th>' +
+      '<th>Customer</th><th>Style No.</th><th>Jewelry Type</th><th>Diamond Shape</th><th>Date</th>' +
       '<th class="num">Gross Wt</th><th class="num">Net Wt</th>' +
       '<th class="num sortable" onclick="window.sortByColumn(\'inCt\')" style="cursor:pointer;">Carat <span class="sort-icon">' + ctIcon + '</span></th>' +
       '<th class="num">Sub Total</th><th class="num">$</th><th>Memo No.</th><th>Sold To</th>' +
-      '<th class="num">Sale Price</th><th>Status</th><th>Diamond Shape</th>';
+      '<th class="num">Sale Price</th><th>Status</th>';
   }
   // ... keep everything below this exactly as-is ...
   // Restore 15-column colgroup
   var colgroup = $('ordersTable').querySelector('colgroup');
   if (colgroup) {
-    colgroup.innerHTML = '<col style="width:5%"><col style="width:7%"><col style="width:10%"><col style="width:7%"><col style="width:8%"><col style="width:6%"><col style="width:6%"><col style="width:6%"><col style="width:10%"><col style="width:6%"><col style="width:7%"><col style="width:10%"><col style="width:8%"><col style="width:10%"><col style="width:7%">';
+    colgroup.innerHTML = '<col style="width:4%"><col style="width:7%"><col style="width:9%"><col style="width:6%"><col style="width:7%"><col style="width:7%"><col style="width:5%"><col style="width:5%"><col style="width:5%"><col style="width:9%"><col style="width:5%"><col style="width:6%"><col style="width:9%"><col style="width:7%"><col style="width:8%">';
   }
 
   var tbody = $('tbody');
@@ -61,6 +61,7 @@ function renderTable() {
       '<td>' + highlightText(r[DK.customer] || '', q) + '</td>' +
       '<td><strong>' + highlightText(r[DK.style] || '', q) + '</strong></td>' +
       '<td>' + escapeHtml(r[DK.jewelryType] || '') + '</td>' +
+      '<td>' + escapeHtml(r[DK.diamondShape] || '') + '</td>' +
       '<td>' + fmtDate(r[DK.date]) + '</td>' +
       '<td class="num">' + (r[DK.grossWt] || '') + '</td>' +
       '<td class="num">' + (r[DK.netWt] || '') + '</td>' +
@@ -106,7 +107,6 @@ function renderTable() {
       '<td>' + highlightText(r[DK.soldTo] || '', q) + '</td>' +
       '<td class="num">' + (r[DK.salePrice] ? '$' + fmtMoney(r[DK.salePrice]) : '') + '</td>' +
       '<td><span class="status-badge ' + statusClass + '">' + status + '</span></td>' +
-      '<td>' + escapeHtml(r[DK.diamondShape] || '') + '</td>' +
       '</tr>';
   }).join('');
 

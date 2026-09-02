@@ -522,8 +522,9 @@ $('saveBtn').addEventListener('click', async function() {
   }
 
   var data = {};
-  data[DK.customer] = $('f_customer').value.trim().toUpperCase();
+    data[DK.customer] = $('f_customer').value.trim().toUpperCase();
   data[DK.style] = $('f_style').value.trim().toUpperCase();
+  data[DK.diamondShape] = $('f_diamondShape').value;
   data[DK.date] = $('f_date').value;
   data[DK.grossWt] = $('f_grossWt').value || '';
   data[DK.netWt] = $('f_netWt').value;

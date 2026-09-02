@@ -7,6 +7,7 @@ function renderTable() {
   var ctIcon = sortCol === 'inCt' ? (sortDesc ? '↓' : '↑') : '↕';
 
   // Restore original orders table header
+    // Restore original orders table header
   var theadTr = $('ordersTable').querySelector('thead tr');
   if (theadTr) {
     theadTr.innerHTML =
@@ -15,15 +16,14 @@ function renderTable() {
       '<th class="num">Gross Wt</th><th class="num">Net Wt</th>' +
       '<th class="num sortable" onclick="window.sortByColumn(\'inCt\')" style="cursor:pointer;">Carat <span class="sort-icon">' + ctIcon + '</span></th>' +
       '<th class="num">Sub Total</th><th class="num">$</th><th>Memo No.</th><th>Sold To</th>' +
-      '<th class="num">Sale Price</th><th>Status</th>';
+      '<th class="num">Sale Price</th><th>Status</th><th>Diamond Shape</th>';
   }
   // ... keep everything below this exactly as-is ...
-  // Restore 13-column colgroup
+   // Restore 14-column colgroup
   var colgroup = $('ordersTable').querySelector('colgroup');
   if (colgroup) {
-    colgroup.innerHTML = '<col style="width:5%"><col style="width:7%"><col style="width:10%"><col style="width:8%"><col style="width:6%"><col style="width:6%"><col style="width:6%"><col style="width:10%"><col style="width:6%"><col style="width:7%"><col style="width:10%"><col style="width:8%"><col style="width:11%">';
+    colgroup.innerHTML = '<col style="width:5%"><col style="width:7%"><col style="width:10%"><col style="width:8%"><col style="width:6%"><col style="width:6%"><col style="width:6%"><col style="width:10%"><col style="width:6%"><col style="width:7%"><col style="width:10%"><col style="width:8%"><col style="width:10%"><col style="width:7%">';
   }
-
   var tbody = $('tbody');
   var filtered = getFilteredOrders();
 

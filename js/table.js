@@ -11,17 +11,17 @@ function renderTable() {
   if (theadTr) {
     theadTr.innerHTML =
       '<th class="num sortable" onclick="window.sortByColumn(\'sr\')" style="cursor:pointer;">Sr. <span class="sort-icon">' + srIcon + '</span></th>' +
-      '<th>Customer</th><th>Style No.</th><th>Date</th>' +
+      '<th>Customer</th><th>Style No.</th><th>Jewelry Type</th><th>Date</th>' +
       '<th class="num">Gross Wt</th><th class="num">Net Wt</th>' +
       '<th class="num sortable" onclick="window.sortByColumn(\'inCt\')" style="cursor:pointer;">Carat <span class="sort-icon">' + ctIcon + '</span></th>' +
       '<th class="num">Sub Total</th><th class="num">$</th><th>Memo No.</th><th>Sold To</th>' +
       '<th class="num">Sale Price</th><th>Status</th><th>Diamond Shape</th>';
   }
   // ... keep everything below this exactly as-is ...
-  // Restore 14-column colgroup
+  // Restore 15-column colgroup
   var colgroup = $('ordersTable').querySelector('colgroup');
   if (colgroup) {
-    colgroup.innerHTML = '<col style="width:5%"><col style="width:7%"><col style="width:10%"><col style="width:8%"><col style="width:6%"><col style="width:6%"><col style="width:6%"><col style="width:10%"><col style="width:6%"><col style="width:7%"><col style="width:10%"><col style="width:8%"><col style="width:10%"><col style="width:7%">';
+    colgroup.innerHTML = '<col style="width:5%"><col style="width:7%"><col style="width:10%"><col style="width:7%"><col style="width:8%"><col style="width:6%"><col style="width:6%"><col style="width:6%"><col style="width:10%"><col style="width:6%"><col style="width:7%"><col style="width:10%"><col style="width:8%"><col style="width:10%"><col style="width:7%">';
   }
 
   var tbody = $('tbody');
@@ -41,7 +41,7 @@ function renderTable() {
     var msg = window.currentSearchQuery 
       ? 'No orders match "' + escapeHtml(window.currentSearchQuery) + '"' 
       : 'No orders found';
-    tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;padding:40px;color:var(--text-dim)">' + msg + '</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="15" style="text-align:center;padding:40px;color:var(--text-dim)">' + msg + '</td></tr>';
     renderCards([]);
     return;
   }
@@ -60,6 +60,7 @@ function renderTable() {
       '<td class="num">' + sr + '</td>' +
       '<td>' + highlightText(r[DK.customer] || '', q) + '</td>' +
       '<td><strong>' + highlightText(r[DK.style] || '', q) + '</strong></td>' +
+      '<td>' + escapeHtml(r[DK.jewelryType] || '') + '</td>' +
       '<td>' + fmtDate(r[DK.date]) + '</td>' +
       '<td class="num">' + (r[DK.grossWt] || '') + '</td>' +
       '<td class="num">' + (r[DK.netWt] || '') + '</td>' +
@@ -235,6 +236,7 @@ function renderCards(rows) {
         '</div>' +
         '</div>' +
         '<div class="card-summary" style="grid-template-columns:repeat(3,1fr);gap:4px 8px;padding:8px 14px;background:var(--md-surface-1);">' +
+        '<div class="card-sum-row" style="gap:0;"><span style="font-size:10px;">Type</span><span style="font-size:13px;">' + escapeHtml(r[DK.jewelryType] || '—') + '</span></div>' +
         '<div class="card-sum-row" style="gap:0;"><span style="font-size:10px;">IN CT</span><span style="font-size:13px;">' + inCt + '</span></div>' +
         '<div class="card-sum-row" style="gap:0;"><span style="font-size:10px;">USD</span><span style="font-size:13px;">' + usdVal + '</span></div>' +
         '<div class="card-sum-row" style="gap:0;"><span style="font-size:10px;">P / L</span><span style="font-size:13px;color:' + plColor + '">' + plVal + '</span></div>' +
@@ -321,6 +323,7 @@ function renderCards(rows) {
     bodyRows += '<div class="card-row"><span class="card-label">Gross Wt</span><span class="card-value">' + (r[DK.grossWt] || '—') + 'g</span></div>';
     bodyRows += '<div class="card-row"><span class="card-label">Dia Qty</span><span class="card-value">' + (r[DK.diaQty] || '—') + '</span></div>';
     bodyRows += '<div class="card-row"><span class="card-label">Diamond Shape</span><span class="card-value">' + (r[DK.diamondShape] || '—') + '</span></div>';
+    bodyRows += '<div class="card-row"><span class="card-label">Jewelry Type</span><span class="card-value">' + escapeHtml(r[DK.jewelryType] || '—') + '</span></div>';
     if (ROLE !== 'staff') {
       bodyRows += '<div class="card-row"><span class="card-label">IN CT</span><span class="card-value">' + (r[DK.inCt] || '—') + '</span></div>';
     }

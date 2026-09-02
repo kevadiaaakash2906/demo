@@ -1643,17 +1643,17 @@ input[type="checkbox"] {
   display: none;
 }
 
-#ordersTable.seller-view th:nth-child(6),
-#ordersTable.seller-view td:nth-child(6),
-#ordersTable.seller-view th:nth-child(8),
-#ordersTable.seller-view td:nth-child(8) {
+#ordersTable.seller-view th:nth-child(7),
+#ordersTable.seller-view td:nth-child(7),
+#ordersTable.seller-view th:nth-child(9),
+#ordersTable.seller-view td:nth-child(9) {
   display: none !important;
 }
 
-#ordersTable.staff-view th:nth-child(6),
-#ordersTable.staff-view td:nth-child(6),
 #ordersTable.staff-view th:nth-child(7),
-#ordersTable.staff-view td:nth-child(7) {
+#ordersTable.staff-view td:nth-child(7),
+#ordersTable.staff-view th:nth-child(8),
+#ordersTable.staff-view td:nth-child(8) {
   display: none !important;
 }
 

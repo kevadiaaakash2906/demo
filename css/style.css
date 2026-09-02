@@ -75,9 +75,9 @@
   --ease-standard: cubic-bezier(0.4, 0.0, 0.2, 1);
   --ease-decelerate: cubic-bezier(0.0, 0.0, 0.2, 1);
   --ease-accelerate: cubic-bezier(0.4, 0.0, 1, 1);
-  --duration-fast: 150ms;
-  --duration-normal: 200ms;
-  --duration-slow: 300ms;
+  --duration-fast: 100ms;
+  --duration-normal: 150ms;
+  --duration-slow: 200ms;
 
   /* Legacy mapping (for JS compatibility) */
   --bg: var(--md-background);
@@ -158,7 +158,7 @@ body {
   flex-direction: column;
   align-items: center;
   gap: var(--space-5);
-  animation: scaleIn var(--duration-slow) var(--ease-decelerate);
+  animation: scaleIn 200ms var(--ease-decelerate);
 }
 
 @keyframes scaleIn {
@@ -555,7 +555,7 @@ body {
    ============================================ */
 main {
   padding: var(--space-5);
-  max-width: 1600px;
+  max-width: 1920px;
   margin: 0 auto;
 }
 
@@ -621,8 +621,8 @@ main {
   border-radius: var(--radius-md);
   padding: var(--space-5);
   box-shadow: var(--shadow-0);
-  transition: box-shadow var(--duration-normal) var(--ease-standard),
-              transform var(--duration-normal) var(--ease-standard);
+  transition: box-shadow 120ms var(--ease-standard),
+              transform 120ms var(--ease-standard);
 }
 
 .kpi-card:hover {
@@ -857,6 +857,9 @@ main {
   0%   { background-position: 200% 0; }
   100% { background-position: -200% 0; }
 }
+.skeleton-cell {
+  animation-duration: 1s !important;
+}
 
 /* ============================================
    PAGINATION
@@ -1084,7 +1087,7 @@ main {
   background: var(--md-surface);
   box-shadow: var(--shadow-4);
   transform: translateX(100%);
-  transition: transform var(--duration-slow) var(--ease-decelerate);
+  transition: transform 180ms var(--ease-decelerate);
   z-index: 300;
   display: flex;
   flex-direction: column;
@@ -1406,7 +1409,7 @@ input[type="checkbox"] {
   font-size: 13px;
   font-weight: 500;
   pointer-events: auto;
-  animation: toastSlide var(--duration-normal) var(--ease-decelerate);
+  animation: toastSlide 150ms var(--ease-decelerate);
 }
 
 .toast.error {
@@ -1478,7 +1481,7 @@ input[type="checkbox"] {
   pointer-events: none;
   z-index: 9998;
   opacity: 0;
-  transition: opacity 0.3s;
+  transition: opacity 150ms;
 }
 
 #screenFx.flash {
@@ -1632,49 +1635,68 @@ input[type="checkbox"] {
 }
 /* ============================================
    ROLE-BASED COLUMN HIDING (Orders)
+   Column order: 1=Sr 2=Customer 3=Style 4=Type 5=Shape 6=Date 7=Gross 8=Net 9=Carat 10=Sub 11=$ 12=Memo 13=SoldTo 14=Sale 15=Status
    ============================================ */
 #ordersTable.seller-view,
-#ordersTable.staff-view {
+#ordersTable.staff-view,
+#ordersTable.customer-view {
   table-layout: auto !important;
 }
 
 #ordersTable.seller-view colgroup,
-#ordersTable.staff-view colgroup {
+#ordersTable.staff-view colgroup,
+#ordersTable.customer-view colgroup {
   display: none;
 }
 
-#ordersTable.seller-view th:nth-child(7),
-#ordersTable.seller-view td:nth-child(7),
-#ordersTable.seller-view th:nth-child(9),
-#ordersTable.seller-view td:nth-child(9) {
+/* Seller: hide Net Wt (8), Sub Total (10) */
+#ordersTable.seller-view th:nth-child(8),
+#ordersTable.seller-view td:nth-child(8),
+#ordersTable.seller-view th:nth-child(10),
+#ordersTable.seller-view td:nth-child(10) {
   display: none !important;
 }
 
-#ordersTable.staff-view th:nth-child(7),
-#ordersTable.staff-view td:nth-child(7),
+/* Staff: hide Net Wt (8), Carat (9), Memo No. (12) */
 #ordersTable.staff-view th:nth-child(8),
-#ordersTable.staff-view td:nth-child(8) {
+#ordersTable.staff-view td:nth-child(8),
+#ordersTable.staff-view th:nth-child(9),
+#ordersTable.staff-view td:nth-child(9),
+#ordersTable.staff-view th:nth-child(12),
+#ordersTable.staff-view td:nth-child(12) {
   display: none !important;
 }
 
-.order-card.seller-view .card-sum-row:nth-child(1),
-.order-card.seller-view .card-sum-row:nth-child(2) {
+/* Customer: hide Memo No. (12) */
+#ordersTable.customer-view th:nth-child(12),
+#ordersTable.customer-view td:nth-child(12) {
+  display: none !important;
+}
+
+/* ===== Card hiding ===== */
+/* Seller card: hide Net Wt (was row 1) and Sub Total (was row 2) summary rows */
+.order-card.seller-view .card-sum-row:nth-child(4),
+.order-card.seller-view .card-sum-row:nth-child(5) {
   display: none;
 }
 
 .order-card.seller-view .card-summary {
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(3, 1fr);
 }
 
-.order-card.staff-view .card-sum-row:nth-child(1) {
+/* Staff card: hide Net Wt (row 1), Carat (row 2), Memo (row 6) summary rows */
+.order-card.staff-view .card-sum-row:nth-child(4),
+.order-card.staff-view .card-sum-row:nth-child(5),
+.order-card.staff-view .card-sum-row:nth-child(8) {
   display: none;
 }
 
 .order-card.staff-view .card-summary {
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
 }
 
-.order-card.staff-view .card-row:nth-child(3) {
+/* Customer card: hide Memo row in body */
+.order-card.customer-view .card-row.memo-row {
   display: none;
 }
 
@@ -1893,7 +1915,7 @@ select:focus-visible {
    ============================================ */
 #ordersTable,
 #tradingTable {
-  min-width: 1280px;
+  min-width: 1600px;
 }
 
 /* Status column minimum width */
@@ -2272,13 +2294,68 @@ body.panel-open {
 #panel, #tradePanel, #expensePanel, #paymentSearchModal {
   padding-bottom: env(safe-area-inset-bottom);
 }
+
+/* ── Compact panel fields ── */
+.fields-grid.compact {
+  gap: var(--space-2) var(--space-3);
+}
+.fields-grid.compact .field {
+  margin-bottom: var(--space-2);
+}
+.fields-grid.compact .field label {
+  margin-bottom: 3px;
+  font-size: 11px;
+}
+.fields-grid.compact input,
+.fields-grid.compact select {
+  padding: 7px 10px;
+  font-size: 14px;
+}
+
+/* ── Bottom Live Preview ── */
+.panel-preview-bottom {
+  background: var(--md-surface-variant);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-4);
+}
+.panel-preview-bottom .computed-preview.compact {
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: var(--space-2) var(--space-4);
+}
+.panel-preview-bottom .computed-preview.compact .computed-row {
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 4px 0;
+  border-bottom: none;
+  gap: 2px;
+}
+.panel-preview-bottom .computed-preview.compact .computed-row .label {
+  font-size: 11px;
+}
+.panel-preview-bottom .computed-preview.compact .computed-row .value {
+  font-size: 15px;
+}
+
+@media (max-width: 900px) {
+  .panel-preview-bottom .computed-preview.compact {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
 /* ============================================
    PANEL LAYOUT REDESIGN
    ============================================ */
 
 /* Wider panel for complex forms */
 @media (min-width: 901px) {
-  #panel { max-width: 640px; }
+  #panel { max-width: 720px; }
 }
 
 /* ── Tabs ── */
@@ -2313,7 +2390,7 @@ body.panel-open {
 .tab-content { display: none; animation: fadeIn var(--duration-normal) var(--ease-standard); }
 .tab-content.active { display: block; }
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(4px); }
+  from { opacity: 0; transform: translateY(2px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
@@ -2345,15 +2422,9 @@ body.panel-open {
   .fields-grid { grid-template-columns: 1fr; }
 }
 
-/* ── Sticky Live Preview ── */
+/* ── Sticky Live Preview (deprecated — now at bottom) ── */
 .sticky-preview {
-  position: sticky;
-  top: 41px;
-  background: var(--md-surface);
-  z-index: 4;
-  padding: var(--space-3) var(--space-5);
-  margin: 0 calc(-1 * var(--space-5)) var(--space-3);
-  border-bottom: 1px solid var(--md-outline-variant);
+  display: none;
 }
 
 /* ── Compact Installment Chips ── */

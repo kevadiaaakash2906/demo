@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="css/style.css?v=3">
 <base target="_blank">
 <base target="_blank">
+<base target="_blank">
 </head>
 <body>
 
@@ -97,18 +98,18 @@
             <col style="width:5%"><col style="width:7%"><col style="width:10%"><col style="width:8%">
             <col style="width:6%"><col style="width:6%"><col style="width:6%">
             <col style="width:10%"><col style="width:6%"><col style="width:7%"><col style="width:10%">
-            <col style="width:8%"><col style="width:10%"><col style="width:7%">
+            <col style="width:8%"><col style="width:11%">
           </colgroup>
           <thead><tr>
             <th class="num">Sr.</th><th>Customer</th><th>Style No.</th><th>Date</th>
             <th class="num">Gross Wt</th><th class="num">Net Wt</th><th class="num sortable" onclick="window.sortByColumn('inCt')" style="cursor:pointer;">Carat <span class="sort-icon">↕</span></th>
             <th class="num">Sub Total</th><th class="num">$</th><th>Memo No.</th><th>Sold To</th>
-            <th class="num">Sale Price</th><th>Status</th><th>Diamond Shape</th>
+            <th class="num">Sale Price</th><th>Status</th>
           </tr></thead>
           <tbody id="tbody">
-            <tr class="skeleton-row"><td colspan="14"><div class="skeleton-cell" style="width:100%"></div></td></tr>
-            <tr class="skeleton-row"><td colspan="14"><div class="skeleton-cell" style="width:100%"></div></td></tr>
-            <tr class="skeleton-row"><td colspan="14"><div class="skeleton-cell" style="width:100%"></div></td></tr>
+            <tr class="skeleton-row"><td colspan="13"><div class="skeleton-cell" style="width:100%"></div></td></tr>
+            <tr class="skeleton-row"><td colspan="13"><div class="skeleton-cell" style="width:100%"></div></td></tr>
+            <tr class="skeleton-row"><td colspan="13"><div class="skeleton-cell" style="width:100%"></div></td></tr>
           </tbody>
         </table>
 
@@ -172,14 +173,15 @@
 
   <!-- Tabs -->
   <div class="panel-tabs">
-    <button class="panel-tab active" data-tab="tab-costs">Cost</button>
-    <button class="panel-tab" data-tab="tab-sale">Payment</button>
+    <button class="panel-tab active" data-tab="tab-specs">Specs</button>
+    <button class="panel-tab" data-tab="tab-costs">Costs</button>
+    <button class="panel-tab" data-tab="tab-sale">Sale & Payment</button>
   </div>
 
   <div class="panel-body">
 
-    <!-- ===== TAB 1: COST ===== -->
-    <div id="tab-costs" class="tab-content active">
+    <!-- ===== TAB 1: SPECS ===== -->
+    <div id="tab-specs" class="tab-content active">
       <div class="section-card">
         <div class="section-card-title">Item Details</div>
         <div class="fields-grid">
@@ -193,24 +195,6 @@
             <input id="f_style" placeholder="e.g. SLER-0079 I">
             <div class="field-error" id="err_f_style"></div>
           </div>
-          <div class="field">
-            <label>Diamond Shape</label>
-            <select id="f_diamondShape">
-              <option value="">Select shape…</option>
-              <option value="Baguette">Baguette</option>
-              <option value="Cushion">Cushion</option>
-              <option value="Emerald">Emerald</option>
-              <option value="Heart">Heart</option>
-              <option value="Marquise">Marquise</option>
-              <option value="Oval">Oval</option>
-              <option value="Pear">Pear</option>
-              <option value="Princess">Princess</option>
-              <option value="Radiant">Radiant</option>
-              <option value="Round">Round</option>
-              <option value="Rose Cut">Rose Cut</option>
-              <option value="Mix">Mix</option>
-            </select>
-          </div>
           <div class="field"><label>Date</label><input id="f_date" type="date"></div>
           <div class="field"><label>Gross Wt (g)</label><input id="f_grossWt" type="number" step="0.001" placeholder="0.000"></div>
           <div class="field"><label>Net Wt (g) *</label><input id="f_netWt" type="number" step="0.001" placeholder="0.000"><div class="field-error" id="err_f_netWt"></div></div>
@@ -220,7 +204,10 @@
           <div class="field full-width"><label>Colour Stone</label><input id="f_colourStone" type="number" step="1" placeholder="0"></div>
         </div>
       </div>
+    </div>
 
+    <!-- ===== TAB 2: COSTS ===== -->
+    <div id="tab-costs" class="tab-content">
       <div class="sticky-preview">
         <div class="computed-preview" style="margin:0;">
           <h4>Live Preview</h4>
@@ -247,7 +234,7 @@
       </div>
     </div>
 
-    <!-- ===== TAB 2: SALE & PAYMENT ===== -->
+    <!-- ===== TAB 3: SALE & PAYMENT ===== -->
     <div id="tab-sale" class="tab-content">
       <div class="section-card">
         <div class="section-card-title">Sale Details</div>

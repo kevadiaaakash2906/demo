@@ -24,7 +24,7 @@ try {
 }
 
 var db = window.firebase.firestore();
-var SHEET_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbxmjsl1fKIBLT7LG3zlnHIpRtE1BiDBL0Nmpq6yTk3ZU81AGvJnxvwEsL2kDip3Pk8QLQ/exec';
+var SHEET_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbxOAsr95tNPqUzVCa2p4NFLQ-XfGCLvw4C-zCgZhWuFE5OYFE6L4bq-6T-5Nifx8Z_eeg/exec';
 
 var authReadyPromise = new Promise(function(resolve) {
   var unsub = window.firebase.auth().onAuthStateChanged(function(user) {

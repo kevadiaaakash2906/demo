@@ -578,6 +578,38 @@ $('saveBtn').addEventListener('click', async function() {
         await syncMemoPayments(memoNo, currentInstallments, editingId);
       }
 
+      // ── BULK SYNC: update Jewelry Type & Diamond Shape for all orders with same Style No. ──
+      var styleNo = data[DK.style];
+      var newType = data[DK.jewelryType];
+      var newShape = data[DK.diamondShape];
+      if (styleNo) {
+        var matchingOrders = ORDERS.filter(function(o) {
+          return o[DK.style] === styleNo && o._id !== editingId;
+        });
+        var syncCount = 0;
+        for (var i = 0; i < matchingOrders.length; i++) {
+          var mo = matchingOrders[i];
+          var needsUpdate = false;
+          var updateData = {};
+          if (newType && mo[DK.jewelryType] !== newType) {
+            updateData[DK.jewelryType] = newType;
+            needsUpdate = true;
+          }
+          if (newShape && mo[DK.diamondShape] !== newShape) {
+            updateData[DK.diamondShape] = newShape;
+            needsUpdate = true;
+          }
+          if (needsUpdate) {
+            await window.updateOrder(mo._id, updateData);
+            syncCount++;
+          }
+        }
+        if (syncCount > 0) {
+          showToast('Synced ' + syncCount + ' other order(s) with style "' + styleNo + '"', 'info');
+        }
+      }
+      // ── END BULK SYNC ──
+
       showToast('Order #' + data[DK.sr] + ' updated successfully', 'success');
     } else {
       var nextSr = ORDERS.length > 0 ? Math.max.apply(null, ORDERS.map(function(r) { return parseInt(r[DK.sr]) || 0; })) + 1 : 1;

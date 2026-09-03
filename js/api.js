@@ -3,7 +3,7 @@
 // ============================================================
 
 // ---------- Configure this ----------
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxgMq8IcuxZS4E6ZhnK2MnZlbMqnMfVA1TGb9v1_Dy7NThrFRbAKPqtgtBgpC6mfjJB1w/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxmjsl1fKIBLT7LG3zlnHIpRtE1BiDBL0Nmpq6yTk3ZU81AGvJnxvwEsL2kDip3Pk8QLQ/exec';
 // -------------------------------------
 
   // ---------- JSONP helper ----------

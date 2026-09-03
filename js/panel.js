@@ -600,6 +600,7 @@ $('saveBtn').addEventListener('click', async function() {
             needsUpdate = true;
           }
           if (needsUpdate) {
+            updateData[DK.sr] = mo[DK.sr];
             await window.updateOrder(mo._id, updateData);
             syncCount++;
           }

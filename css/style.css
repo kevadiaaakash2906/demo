@@ -1290,41 +1290,9 @@ input[type="checkbox"] {
 }
 
 /* ─── Installments ─── */
-.installments-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  margin-bottom: var(--space-3);
-}
-
-.installment-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  background: var(--md-surface-variant);
-  border-radius: var(--radius-xs);
-  font-size: 13px;
-}
-
-.installment-item button {
-  background: none;
-  border: none;
-  color: var(--md-error);
-  font-size: 12px;
-  cursor: pointer;
-  padding: 2px 6px;
-  border-radius: var(--radius-xs);
-  transition: background var(--duration-fast);
-}
-
-.installment-item button:hover {
-  background: var(--md-error-container);
-}
-
-.installment-add-row {
-  margin-bottom: var(--space-2);
-}
+/* List-style rendering removed — Order and Trading both use the chip
+   component now (.installment-chips / .installment-chip, defined below
+   in the PANEL LAYOUT REDESIGN section) for a consistent look. */
 
 /* ============================================
    PAYMENT SEARCH MODAL
@@ -2319,6 +2287,9 @@ body.panel-open {
   border-radius: var(--radius-md);
   padding: var(--space-3) var(--space-4);
   margin-bottom: var(--space-4);
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
 }
 .panel-preview-bottom .computed-preview.compact {
   background: transparent;
@@ -2446,6 +2417,24 @@ body.panel-open {
   cursor: pointer; font-size: 16px; line-height: 1; padding: 0 2px;
 }
 .installment-chip button:hover { opacity: 1; }
+
+/* ── Sticky Payment Summary card (bottom of a scrollable tab) ── */
+.sticky-preview-card {
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
+  background: var(--md-surface-1);
+}
+
+/* ── Running balance tag next to "+ Add installment" ── */
+.remaining-balance-tag {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--md-on-surface-variant);
+  white-space: nowrap;
+}
+.remaining-balance-tag.balance-zero { color: var(--md-success); }
+.remaining-balance-tag.balance-over { color: var(--md-error); }
 
 /* ── Memo Banner (top of panel) ── */
 .panel-memo-banner {

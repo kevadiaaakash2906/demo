@@ -24,12 +24,18 @@ window.openExpensePanel = function(id) {
     $('e_seller').value = exp[EXPENSE_KEYS.seller] || '';
     $('e_notes').value = exp[EXPENSE_KEYS.notes] || '';
 
+    var isReimbursed = exp[EXPENSE_KEYS.reimbursed] === true || exp[EXPENSE_KEYS.reimbursed] === 'true';
+    $('e_reimbursed').checked = isReimbursed;
+    $('e_reimbursementDate').value = exp[EXPENSE_KEYS.reimbursementDate] || '';
+    updateReimbursementUI();
+
     $('deleteExpenseBtn').style.display = (ROLE === 'staff') ? 'inline-flex' : 'none';
   } else {
     $('expensePanelTitle').textContent = 'New Expense';
     $('e_date').value = new Date().toISOString().split('T')[0];
     $('e_seller').value = '';
     $('deleteExpenseBtn').style.display = 'none';
+    updateReimbursementUI();
   }
 
   $('expenseOverlay').style.display = 'block';
@@ -38,11 +44,29 @@ window.openExpensePanel = function(id) {
 };
 
 function resetExpensePanel() {
-  ['e_date','e_description','e_amount','e_seller','e_notes'].forEach(function(id) { $(id).value = ''; });
+  ['e_date','e_description','e_amount','e_seller','e_notes','e_reimbursementDate'].forEach(function(id) { $(id).value = ''; });
   $('e_category').value = 'Travel';
+  $('e_reimbursed').checked = false;
   $('expenseSaveMsg').textContent = '';
   document.querySelectorAll('[id^="err_e_"]').forEach(function(el) { el.textContent = ''; });
+  updateReimbursementUI();
 }
+
+/* ============ REIMBURSEMENT ============ */
+function updateReimbursementUI() {
+  var checked = $('e_reimbursed').checked;
+  $('e_reimbursementDateWrap').style.display = checked ? 'block' : 'none';
+  if (checked && !$('e_reimbursementDate').value) {
+    $('e_reimbursementDate').value = new Date().toISOString().split('T')[0];
+  }
+  var badge = $('expensePanelStatusBadge');
+  if (badge) {
+    badge.className = 'status-badge ' + (checked ? 'status-paid' : 'status-not-sold');
+    badge.textContent = checked ? 'Reimbursed' : 'Not Reimbursed';
+    badge.style.display = 'inline-flex';
+  }
+}
+$('e_reimbursed').addEventListener('change', updateReimbursementUI);
 
 $('closeExpensePanel').addEventListener('click', closeExpensePanel);
 $('expenseOverlay').addEventListener('click', closeExpensePanel);
@@ -82,6 +106,8 @@ $('saveExpenseBtn').addEventListener('click', async function() {
   data[EXPENSE_KEYS.amount] = parseFloat($('e_amount').value).toString();
   data[EXPENSE_KEYS.seller] = $('e_seller').value.trim();
   data[EXPENSE_KEYS.notes] = $('e_notes').value.trim();
+  data[EXPENSE_KEYS.reimbursed] = $('e_reimbursed').checked;
+  data[EXPENSE_KEYS.reimbursementDate] = $('e_reimbursed').checked ? ($('e_reimbursementDate').value || '') : '';
 
   try {
     if (editingExpenseId) {

@@ -12,6 +12,10 @@ window.openTradePanel = function() {
   $('tradePanelTitle').textContent = 'New Trade';
   $('deleteTradeBtn').style.display = 'none';
   $('t_date').value = new Date().toISOString().split('T')[0];
+  activateFirstTab($('tradePanel'));
+
+  var badge = $('tradePanelStatusBadge');
+  if (badge) badge.style.display = 'none';
 
   $('tradeOverlay').style.display = 'block';
   $('tradePanel').classList.add('open');
@@ -30,6 +34,7 @@ window.openEditTrade = function(id) {
   currentTradeInstallments = [];
 
   resetTradePanel();
+  activateFirstTab($('tradePanel'));
   $('tradePanelTitle').textContent = 'Edit Trade #' + trade[SHEET_KEYS.sr];
 
   $('t_item').value = trade[SHEET_KEYS.item] || '';
@@ -97,6 +102,18 @@ function updateTradePreview() {
   $('t_prev_amountPaid').textContent = '$' + fmtMoney(totalPaid);
   $('t_prev_balanceDue').textContent = sale ? '$' + fmtMoney(balance) : '—';
   $('t_prev_paymentStatus').textContent = status;
+  renderRemainingBalanceTag('t_remainingBalance', sale, totalPaid);
+
+  var badge = $('tradePanelStatusBadge');
+  if (badge) {
+    var statusClass = {
+      'Not Sold': 'status-not-sold', 'Unpaid': 'status-unpaid',
+      'Partial': 'status-partial', 'Paid': 'status-paid'
+    }[status] || 'status-not-sold';
+    badge.className = 'status-badge ' + statusClass;
+    badge.textContent = status;
+    badge.style.display = 'inline-flex';
+  }
 }
 
 /* ============ INSTALLMENTS ============ */
@@ -119,10 +136,8 @@ function renderTradeInstallments() {
   var list = $('tradeInstallmentsList');
   if (!currentTradeInstallments.length) { list.innerHTML = ''; return; }
   list.innerHTML = currentTradeInstallments.map(function(inst, i) {
-    return '<div class="installment-item">' +
-      '<span>$' + fmtMoney(inst.amount) + ' · ' + inst.date + '</span>' +
-      '<button onclick="window.removeTradeInst(' + i + ')">&times;</button>' +
-      '</div>';
+    return '<span class="installment-chip">$' + fmtMoney(inst.amount) + ' · ' + inst.date +
+      '<button onclick="window.removeTradeInst(' + i + ')">&times;</button></span>';
   }).join('');
 }
 

@@ -92,6 +92,30 @@ function haptic(type) {
   }
 }
 
+/* ============ SHARED PAYMENT UI HELPERS ============ */
+// Updates a "Remaining: $X" / "Fully paid" / "Overpaid by $X" tag next to an
+// installment add-row. billTotal <= 0 means nothing is sold yet, so the tag clears.
+function renderRemainingBalanceTag(elId, billTotal, totalPaid) {
+  var el = $(elId);
+  if (!el) return;
+  if (!billTotal) {
+    el.textContent = '';
+    el.className = 'remaining-balance-tag';
+    return;
+  }
+  var remaining = billTotal - totalPaid;
+  if (remaining < 0) {
+    el.textContent = 'Overpaid by $' + fmtMoney(Math.abs(remaining));
+    el.className = 'remaining-balance-tag balance-over';
+  } else if (remaining === 0) {
+    el.textContent = 'Fully paid';
+    el.className = 'remaining-balance-tag balance-zero';
+  } else {
+    el.textContent = 'Remaining: $' + fmtMoney(remaining);
+    el.className = 'remaining-balance-tag';
+  }
+}
+
 /* ============ EXPOSE GLOBALLY ============ */
 window.$ = $;
 window.fmtDate = fmtDate;
@@ -102,3 +126,4 @@ window.highlightText = highlightText;
 window.showToast = showToast;
 window.dismissToast = dismissToast;
 window.haptic = haptic;
+window.renderRemainingBalanceTag = renderRemainingBalanceTag;

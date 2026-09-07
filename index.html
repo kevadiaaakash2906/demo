@@ -208,24 +208,44 @@
           </div>
           <div class="field">
             <label>Diamond Shape</label>
-            <select id="f_diamondShape">
+            <div class="field-row">
+              <select id="f_diamondShapeBase">
+                <option value="">Select shape…</option>
+              </select>
+              <select id="f_diamondShapeVariant" disabled>
+                <option value="">Select shape first…</option>
+              </select>
+            </div>
+            <!-- Hidden: keeps the real stored value; panel.js/table.js read/write this id unchanged -->
+            <select id="f_diamondShape" style="display:none">
               <option value="">Select shape…</option>
-              <option value="Fancy Mix">Fancy Mix</option>
-              <option value="Oval">Oval</option>
-              <option value="Marquise">Marquise</option>
-              <option value="Emerald">Emerald</option>
-              <option value="Pear">Pear</option>
-              <option value="Round">Round</option>
-              <option value="Emerald Bezel">Emerald Bezel</option>
-              <option value="Oval Bezel">Oval Bezel</option>
+              <option value="Round">Round</option>           
               <option value="Round Bezel">Round Bezel</option>
-              <option value="Pear Bezel">Pear Bezel</option>
-              <option value="Marquise Bezel">Marquise Bezel</option>
-              <option value="Fancy Mix Bezel">Fancy Mix Bezel</option>
+              <option value="Oval East/West">Oval East/West</option>
+              <option value="Oval North/South">Oval North/South</option>
+              <option value="Oval Bezel East/West">Oval Bezel East/West</option>
+              <option value="Oval Bezel North/South">Oval Bezel North/South</option>
+              <option value="Marquise East/West">Marquise East/West</option>
+              <option value="Marquise North/South">Marquise North/South</option>
+              <option value="Marquise Bezel East/West">Marquise Bezel East/West</option>
+              <option value="Marquise Bezel North/South">Marquise Bezel North/South</option>
+              <option value="Emerald East/West">Emerald East/West</option>
+              <option value="Emerald North/South">Emerald North/South</option>
+              <option value="Emerald Bezel East/West">Emerald Bezel East/West</option>
+              <option value="Emerald Bezel North/South">Emerald Bezel North/South</option>
+              <option value="Pear East/West">Pear East/West</option>
+              <option value="Pear North/South">Pear North/South</option>
+              <option value="Pear Bezel East/West">Pear Bezel East/West</option>
+              <option value="Pear Bezel North/South">Pear Bezel North/South</option>
+              <option value="Radiant East/West">Radiant East/West</option>
+              <option value="Radiant North/South">Radiant North/South</option>
+              <option value="Radiant Bezel East/West">Radiant Bezel East/West</option>
+              <option value="Radiant Bezel North/South">Radiant Bezel North/South</option>
               <option value="Cushion">Cushion</option>
-              <option value="Radiant">Radiant</option>
               <option value="Cushion Bezel">Cushion Bezel</option>
-              <option value="Radiant Bezel">Radiant Bezel</option>
+              <option value="Cushion Half Bezel">Cushion Half Bezel</option>
+              <option value="Fancy Mix">Fancy Mix</option>
+              <option value="Fancy Mix Bezel">Fancy Mix Bezel</option>
             </select>
           </div>
           <div class="field"><label>Date</label><input id="f_date" type="date"></div>
@@ -412,7 +432,8 @@
 
 <!-- App scripts — load order matters -->
 <script src="js/utils.js?v=3"></script>
-<script src="js/api.js?v=4"></script>
+<script src="js/diamond-shape.js?v=1"></script>
+<script src="js/api.js?v=3"></script>
 <script src="js/firebase.js?v=3"></script>
 <script src="js/app.js?v=3"></script>
 <script src="js/dashboard.js?v=3"></script>

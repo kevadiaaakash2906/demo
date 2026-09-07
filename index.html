@@ -135,17 +135,17 @@
 
        <table id="expensesTable" style="display:none;">
   <colgroup>
-    <col style="width:7%"><col style="width:12%"><col style="width:12%">
-    <col style="width:30%"><col style="width:12%"><col style="width:15%">
-    <col style="width:12%">
+    <col style="width:6%"><col style="width:11%"><col style="width:11%">
+    <col style="width:26%"><col style="width:11%"><col style="width:13%">
+    <col style="width:11%"><col style="width:11%">
   </colgroup>
   <thead><tr>
     <th class="num">Sr.</th><th>Date</th><th>Category</th><th>Description</th>
-    <th class="num">Amount</th><th>Seller</th><th>Notes</th>
+    <th class="num">Amount</th><th>Seller</th><th>Notes</th><th>Reimbursed</th>
   </tr></thead>
   <tbody id="expenseTbody">
-    <tr class="skeleton-row"><td colspan="7"><div class="skeleton-cell" style="width:100%"></div></td></tr>
-    <tr class="skeleton-row"><td colspan="7"><div class="skeleton-cell" style="width:100%"></div></td></tr>
+    <tr class="skeleton-row"><td colspan="8"><div class="skeleton-cell" style="width:100%"></div></td></tr>
+    <tr class="skeleton-row"><td colspan="8"><div class="skeleton-cell" style="width:100%"></div></td></tr>
   </tbody>
 </table>
       </div>
@@ -303,11 +303,14 @@
           <div class="field"><input id="f_instAmount" type="number" step="1" min="0" placeholder="Amount $"></div>
           <div class="field"><input id="f_instDate" type="date"></div>
         </div>
-        <button class="btn secondary small" id="addInstallmentBtn" type="button" style="width:100%;margin-top:var(--space-2);">+ Add installment</button>
+        <div class="installment-add-row" style="display:flex;align-items:center;gap:var(--space-3);margin-top:var(--space-2);">
+          <button class="btn secondary small" id="addInstallmentBtn" type="button" style="flex:1;">+ Add installment</button>
+          <span id="f_remainingBalance" class="remaining-balance-tag"></span>
+        </div>
         <div class="field-error" id="err_f_installment"></div>
       </div>
 
-      <div class="section-card">
+      <div class="section-card sticky-preview-card">
         <div class="section-card-title">Payment Summary</div>
         <div class="computed-preview" style="margin:0;">
           <div class="computed-row"><span class="label">Amount Paid</span><span class="value" id="prev_amountPaid">$0</span></div>
@@ -330,42 +333,72 @@
 <!-- ============ TRADING PANEL ============ -->
 <div id="tradeOverlay"></div>
 <div id="tradePanel">
-  <div class="panel-head"><h2 id="tradePanelTitle">New Trade</h2><button id="closeTradePanel">&times;</button></div>
+  <div class="panel-head">
+    <h2 id="tradePanelTitle">New Trade</h2>
+    <span id="tradePanelStatusBadge" class="status-badge status-not-sold" style="display:none;">Not Sold</span>
+    <button id="closeTradePanel">&times;</button>
+  </div>
+
+  <div class="panel-tabs">
+    <button class="panel-tab active" data-tab="tab-trade-costs">Cost</button>
+    <button class="panel-tab" data-tab="tab-trade-payment">Payment</button>
+  </div>
+
   <div class="panel-body">
-    <div class="field-row">
-      <div class="field"><label>Item *</label><input id="t_item" placeholder="e.g. Diamond Bracelet"><div class="field-error" id="err_t_item"></div></div>
-      <div class="field"><label>Vendor *</label><input id="t_vendor" placeholder="e.g. Rakesh Jewellers"><div class="field-error" id="err_t_vendor"></div></div>
-    </div>
-    <div class="field-row">
-      <div class="field"><label>Date</label><input id="t_date" type="date"></div>
-      <div class="field"><label>Purchase Price ($) *</label><input id="t_purchasePrice" type="number" step="1" placeholder="0"><div class="field-error" id="err_t_purchasePrice"></div></div>
-    </div>
-    <div class="section-divider">Sale &amp; Payment</div>
-    <div class="field"><label>Memo No.</label><input id="t_memoNo" placeholder="e.g. MEMO-014"></div>
-    <div class="field"><label>Sold To (Buyer)</label><input id="t_soldTo" placeholder="e.g. Priya Shah"></div>
-    <div class="field-row">
-      <div class="field"><label>Sale Price ($)</label><input id="t_salePrice" type="number" step="1" placeholder="0"><div class="field-error" id="err_t_salePrice"></div></div>
-      <div class="field"><label>Date Sold</label><input id="t_dateSold" type="date"></div>
-    </div>
-    <div class="field">
-      <label>Installments</label>
-      <div id="tradeInstallmentsList" class="installments-list"></div>
-      <div class="field-row installment-add-row">
-        <div class="field"><input id="t_instAmount" type="number" step="1" min="0" placeholder="Amount $"></div>
-        <div class="field"><input id="t_instDate" type="date"></div>
+
+    <!-- ===== TAB 1: COST ===== -->
+    <div id="tab-trade-costs" class="tab-content active">
+      <div class="section-card">
+        <div class="section-card-title">Item Details</div>
+        <div class="fields-grid">
+          <div class="field full-width"><label>Item *</label><input id="t_item" placeholder="e.g. Diamond Bracelet"><div class="field-error" id="err_t_item"></div></div>
+          <div class="field full-width"><label>Vendor *</label><input id="t_vendor" placeholder="e.g. Rakesh Jewellers"><div class="field-error" id="err_t_vendor"></div></div>
+          <div class="field"><label>Date</label><input id="t_date" type="date"></div>
+          <div class="field"><label>Purchase Price ($) *</label><input id="t_purchasePrice" type="number" step="1" placeholder="0"><div class="field-error" id="err_t_purchasePrice"></div></div>
+          <div class="field full-width"><label>Notes</label><input id="t_notes" placeholder="Any notes…"></div>
+        </div>
       </div>
-      <button class="btn secondary small" id="addTradeInstallmentBtn" type="button" style="width:100%">+ Add installment</button>
-      <div class="field-error" id="err_t_installment"></div>
     </div>
-    <div class="computed-preview">
-      <h4>Payment Preview</h4>
-      <div class="computed-row"><span class="label">Profit / Loss</span><span class="value" id="t_prev_profit" style="color:var(--text-dim)">—</span></div>
-      <div class="computed-row"><span class="label">Amount Paid</span><span class="value" id="t_prev_amountPaid">—</span></div>
-      <div class="computed-row"><span class="label">Balance Due</span><span class="value" id="t_prev_balanceDue">—</span></div>
-      <div class="computed-row"><span class="label">Payment Status</span><span class="value" id="t_prev_paymentStatus">—</span></div>
+
+    <!-- ===== TAB 2: PAYMENT ===== -->
+    <div id="tab-trade-payment" class="tab-content">
+      <div class="section-card">
+        <div class="section-card-title">Sale Details</div>
+        <div class="fields-grid">
+          <div class="field"><label>Memo No.</label><input id="t_memoNo" placeholder="e.g. MEMO-014"></div>
+          <div class="field"><label>Sold To (Buyer)</label><input id="t_soldTo" placeholder="e.g. Priya Shah"></div>
+          <div class="field"><label>Sale Price ($)</label><input id="t_salePrice" type="number" step="1" placeholder="0"><div class="field-error" id="err_t_salePrice"></div></div>
+          <div class="field"><label>Date Sold</label><input id="t_dateSold" type="date"></div>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-card-title">Installments</div>
+        <div id="tradeInstallmentsList" class="installment-chips"></div>
+        <div class="fields-grid">
+          <div class="field"><input id="t_instAmount" type="number" step="1" min="0" placeholder="Amount $"></div>
+          <div class="field"><input id="t_instDate" type="date"></div>
+        </div>
+        <div class="installment-add-row" style="display:flex;align-items:center;gap:var(--space-3);margin-top:var(--space-2);">
+          <button class="btn secondary small" id="addTradeInstallmentBtn" type="button" style="flex:1;">+ Add installment</button>
+          <span id="t_remainingBalance" class="remaining-balance-tag"></span>
+        </div>
+        <div class="field-error" id="err_t_installment"></div>
+      </div>
+
+      <div class="section-card sticky-preview-card">
+        <div class="section-card-title">Payment Summary</div>
+        <div class="computed-preview" style="margin:0;">
+          <div class="computed-row"><span class="label">Profit / Loss</span><span class="value" id="t_prev_profit" style="color:var(--text-dim)">—</span></div>
+          <div class="computed-row"><span class="label">Amount Paid</span><span class="value" id="t_prev_amountPaid">—</span></div>
+          <div class="computed-row"><span class="label">Balance Due</span><span class="value" id="t_prev_balanceDue">—</span></div>
+          <div class="computed-row"><span class="label">Payment Status</span><span class="value" id="t_prev_paymentStatus">—</span></div>
+        </div>
+      </div>
+
+      <div id="tradeSaveMsg"></div>
     </div>
-    <div class="field"><label>Notes</label><input id="t_notes" placeholder="Any notes…"></div>
-    <div id="tradeSaveMsg"></div>
+
   </div>
   <div class="panel-foot">
     <button id="deleteTradeBtn" style="display:none;"><span id="deleteTradeText">Delete</span></button>
@@ -376,29 +409,50 @@
 <!-- ============ EXPENSES PANEL ============ -->
 <div id="expenseOverlay"></div>
 <div id="expensePanel">
-  <div class="panel-head"><h2 id="expensePanelTitle">New Expense</h2><button id="closeExpensePanel">&times;</button></div>
+  <div class="panel-head">
+    <h2 id="expensePanelTitle">New Expense</h2>
+    <span id="expensePanelStatusBadge" class="status-badge status-not-sold" style="display:none;">Not Reimbursed</span>
+    <button id="closeExpensePanel">&times;</button>
+  </div>
   <div class="panel-body">
-    <div class="field-row">
-      <div class="field"><label>Date *</label><input id="e_date" type="date"><div class="field-error" id="err_e_date"></div></div>
-      <div class="field"><label>Category *</label>
-        <select id="e_category">
-          <option value="Travel">Travel</option>
-          <option value="Food">Food</option>
-          <option value="Accommodation">Accommodation</option>
-          <option value="Marketing">Marketing</option>
-          <option value="Office">Office</option>
-          <option value="Shipping">Shipping</option>
-          <option value="Misc">Misc</option>
-        </select>
-        <div class="field-error" id="err_e_category"></div>
+    <div class="section-card">
+      <div class="section-card-title">Expense Details</div>
+      <div class="fields-grid">
+        <div class="field"><label>Date *</label><input id="e_date" type="date"><div class="field-error" id="err_e_date"></div></div>
+        <div class="field"><label>Category *</label>
+          <select id="e_category">
+            <option value="Travel">Travel</option>
+            <option value="Food">Food</option>
+            <option value="Accommodation">Accommodation</option>
+            <option value="Marketing">Marketing</option>
+            <option value="Office">Office</option>
+            <option value="Shipping">Shipping</option>
+            <option value="Misc">Misc</option>
+          </select>
+          <div class="field-error" id="err_e_category"></div>
+        </div>
+        <div class="field full-width"><label>Description</label><input id="e_description" placeholder="e.g. Flight to Mumbai"></div>
+        <div class="field"><label>Amount ($) *</label><input id="e_amount" type="number" step="0.01" placeholder="0.00"><div class="field-error" id="err_e_amount"></div></div>
+        <div class="field"><label>Seller</label><input id="e_seller" placeholder="e.g. Aakash"></div>
+        <div class="field full-width"><label>Notes</label><input id="e_notes" placeholder="Any notes…"></div>
       </div>
     </div>
-    <div class="field"><label>Description</label><input id="e_description" placeholder="e.g. Flight to Mumbai"></div>
-    <div class="field-row">
-      <div class="field"><label>Amount ($) *</label><input id="e_amount" type="number" step="0.01" placeholder="0.00"><div class="field-error" id="err_e_amount"></div></div>
-      <div class="field"><label>Seller</label><input id="e_seller" placeholder="e.g. Aakash"></div>
+
+    <div class="section-card">
+      <div class="section-card-title">Reimbursement</div>
+      <div class="fields-grid">
+        <div class="field full-width">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;text-transform:none;letter-spacing:0;font-weight:400;color:var(--md-on-surface-variant);">
+            <input type="checkbox" id="e_reimbursed" style="width:16px;height:16px;"> Reimbursed
+          </label>
+        </div>
+        <div class="field full-width" id="e_reimbursementDateWrap" style="display:none;">
+          <label>Reimbursement Date</label>
+          <input id="e_reimbursementDate" type="date">
+        </div>
+      </div>
     </div>
-    <div class="field"><label>Notes</label><input id="e_notes" placeholder="Any notes…"></div>
+
     <div id="expenseSaveMsg"></div>
   </div>
   <div class="panel-foot">

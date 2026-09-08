@@ -2291,7 +2291,7 @@ body.panel-open {
   bottom: 0;
   z-index: 4;
 }
-.panel-preview-bottom .computed-preview.compact {
+.computed-preview.compact {
   background: transparent;
   border: none;
   padding: 0;
@@ -2300,22 +2300,22 @@ body.panel-open {
   grid-template-columns: repeat(5, 1fr);
   gap: var(--space-2) var(--space-4);
 }
-.panel-preview-bottom .computed-preview.compact .computed-row {
+.computed-preview.compact .computed-row {
   flex-direction: column;
   align-items: flex-start;
   padding: 4px 0;
   border-bottom: none;
   gap: 2px;
 }
-.panel-preview-bottom .computed-preview.compact .computed-row .label {
+.computed-preview.compact .computed-row .label {
   font-size: 11px;
 }
-.panel-preview-bottom .computed-preview.compact .computed-row .value {
+.computed-preview.compact .computed-row .value {
   font-size: 15px;
 }
 
 @media (max-width: 900px) {
-  .panel-preview-bottom .computed-preview.compact {
+  .computed-preview.compact {
     grid-template-columns: repeat(3, 1fr);
   }
 }
@@ -2424,6 +2424,11 @@ body.panel-open {
   bottom: 0;
   z-index: 4;
   background: var(--md-surface-1);
+  padding: var(--space-2) var(--space-4);
+  margin-bottom: 0;
+}
+.sticky-preview-card .section-card-title {
+  margin-bottom: 4px;
 }
 
 /* ── Running balance tag next to "+ Add installment" ── */
@@ -2441,15 +2446,36 @@ body.panel-open {
   background: var(--md-primary-container);
   color: var(--md-on-primary-container);
   border-radius: var(--radius-md);
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-2) var(--space-4);
   margin: var(--space-3) var(--space-5) var(--space-2);
   font-size: 14px; font-weight: 500;
 }
-.panel-memo-banner .memo-row {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 2px 0; font-size: 13px;
+.memo-compact-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
 }
-.panel-memo-banner .memo-row strong { font-weight: 600; }
+.memo-compact-title {
+  font-weight: 600;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.memo-compact-stat {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+.memo-compact-stat .label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.75;
+}
+.memo-compact-stat .value {
+  font-size: 13px;
+  font-weight: 600;
+}
 
 /* ── Sticky Footer ── */
 .panel-foot {

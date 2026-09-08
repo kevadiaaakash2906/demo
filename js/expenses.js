@@ -59,12 +59,6 @@ function updateReimbursementUI() {
   if (checked && !$('e_reimbursementDate').value) {
     $('e_reimbursementDate').value = new Date().toISOString().split('T')[0];
   }
-  var badge = $('expensePanelStatusBadge');
-  if (badge) {
-    badge.className = 'status-badge ' + (checked ? 'status-paid' : 'status-not-sold');
-    badge.textContent = checked ? 'Reimbursed' : 'Not Reimbursed';
-    badge.style.display = 'inline-flex';
-  }
 }
 $('e_reimbursed').addEventListener('change', updateReimbursementUI);
 

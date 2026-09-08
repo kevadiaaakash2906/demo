@@ -222,11 +222,13 @@ window.openOrderPanel = function(id) {
                   mTrades.reduce(function(s,t){return s+(parseFloat(t[SHEET_KEYS.salePrice])||0);},0);
       var mPaid = currentInstallments.reduce(function(s,i){return s+(parseFloat(i.amount)||0);},0);
       var mBal = mBill - mPaid;
-      memoBanner.innerHTML = '<div style="font-weight:600;margin-bottom:2px;">Memo ' + escapeHtml(memoNoVal) + '</div>' +
-        '<div class="memo-row"><span>Items</span><strong>' + (mOrders.length + mTrades.length) + '</strong></div>' +
-        '<div class="memo-row"><span>Total Bill</span><strong>$' + fmtMoney(mBill) + '</strong></div>' +
-        '<div class="memo-row"><span>Total Paid</span><strong>$' + fmtMoney(mPaid) + '</strong></div>' +
-        '<div class="memo-row"><span>Balance</span><strong style="color:' + (mBal>0?'var(--error)':'var(--success)') + '">$' + fmtMoney(Math.abs(mBal)) + '</strong></div>';
+      memoBanner.innerHTML = '<div class="memo-compact-row">' +
+        '<span class="memo-compact-title">Memo ' + escapeHtml(memoNoVal) + '</span>' +
+        '<span class="memo-compact-stat"><span class="label">Items</span><span class="value">' + (mOrders.length + mTrades.length) + '</span></span>' +
+        '<span class="memo-compact-stat"><span class="label">Bill</span><span class="value">$' + fmtMoney(mBill) + '</span></span>' +
+        '<span class="memo-compact-stat"><span class="label">Paid</span><span class="value">$' + fmtMoney(mPaid) + '</span></span>' +
+        '<span class="memo-compact-stat"><span class="label">Balance</span><span class="value" style="color:' + (mBal>0?'var(--error)':'var(--success)') + '">$' + fmtMoney(Math.abs(mBal)) + '</span></span>' +
+        '</div>';
       memoBanner.style.display = 'block';
     }
     if (!order[DK.soldTo]) {

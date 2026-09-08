@@ -213,24 +213,6 @@ window.openOrderPanel = function(id) {
     $('f_memoNo').value = order[DK.memoNo] || '';
     $('f_soldTo').value = order[DK.soldTo] || '';
 
-    // Memo banner
-    var memoNoVal = order[DK.memoNo];
-    if (memoNoVal && memoBanner) {
-      var mOrders = getMemoOrders(memoNoVal);
-      var mTrades = getMemoTrades(memoNoVal);
-      var mBill = mOrders.reduce(function(s,o){return s+(parseFloat(o[DK.salePrice])||0);},0) +
-                  mTrades.reduce(function(s,t){return s+(parseFloat(t[SHEET_KEYS.salePrice])||0);},0);
-      var mPaid = currentInstallments.reduce(function(s,i){return s+(parseFloat(i.amount)||0);},0);
-      var mBal = mBill - mPaid;
-      memoBanner.innerHTML = '<div class="memo-compact-row">' +
-        '<span class="memo-compact-title">Memo ' + escapeHtml(memoNoVal) + '</span>' +
-        '<span class="memo-compact-stat"><span class="label">Items</span><span class="value">' + (mOrders.length + mTrades.length) + '</span></span>' +
-        '<span class="memo-compact-stat"><span class="label">Bill</span><span class="value">$' + fmtMoney(mBill) + '</span></span>' +
-        '<span class="memo-compact-stat"><span class="label">Paid</span><span class="value">$' + fmtMoney(mPaid) + '</span></span>' +
-        '<span class="memo-compact-stat"><span class="label">Balance</span><span class="value" style="color:' + (mBal>0?'var(--error)':'var(--success)') + '">$' + fmtMoney(Math.abs(mBal)) + '</span></span>' +
-        '</div>';
-      memoBanner.style.display = 'block';
-    }
     if (!order[DK.soldTo]) {
       var memoNo = order[DK.memoNo];
       if (memoNo) {
@@ -374,8 +356,33 @@ function updatePreview() {
   }
 }
 
+/* ============ MEMO BANNER (top, header area) ============ */
+function updateMemoBanner() {
+  var memoBanner = $('panelMemoBanner');
+  if (!memoBanner) return;
+  var memoNoVal = $('f_memoNo').value.trim().toUpperCase();
+  if (!memoNoVal) { memoBanner.style.display = 'none'; memoBanner.innerHTML = ''; return; }
+
+  var mOrders = getMemoOrders(memoNoVal);
+  var mTrades = getMemoTrades(memoNoVal);
+  var mBill = mOrders.reduce(function(s,o){return s+(parseFloat(o[DK.salePrice])||0);},0) +
+              mTrades.reduce(function(s,t){return s+(parseFloat(t[SHEET_KEYS.salePrice])||0);},0);
+  var mPaid = currentInstallments.reduce(function(s,i){return s+(parseFloat(i.amount)||0);},0);
+  var mBal = mBill - mPaid;
+
+  memoBanner.innerHTML = '<div class="memo-compact-row">' +
+    '<span class="memo-compact-title">Memo ' + escapeHtml(memoNoVal) + '</span>' +
+    '<span class="memo-compact-stat"><span class="label">Items</span><span class="value">' + (mOrders.length + mTrades.length) + '</span></span>' +
+    '<span class="memo-compact-stat"><span class="label">Bill</span><span class="value">$' + fmtMoney(mBill) + '</span></span>' +
+    '<span class="memo-compact-stat"><span class="label">Paid</span><span class="value">$' + fmtMoney(mPaid) + '</span></span>' +
+    '<span class="memo-compact-stat"><span class="label">Balance</span><span class="value" style="color:' + (mBal>0?'var(--error)':'var(--success)') + '">$' + fmtMoney(Math.abs(mBal)) + '</span></span>' +
+    '</div>';
+  memoBanner.style.display = 'block';
+}
+
 /* ============ MEMO SUMMARY ============ */
 function updateMemoSummary() {
+  updateMemoBanner();
   var memoNo = $('f_memoNo').value.trim().toUpperCase();
   var el = $('memoSummary');
   if (!memoNo) { el.style.display = 'none'; el.textContent = ''; return; }

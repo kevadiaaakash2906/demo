@@ -659,14 +659,13 @@ function renderExpenseTable() {
     var msg = window.currentSearchQuery
       ? 'No expenses match "' + escapeHtml(window.currentSearchQuery) + '"'
       : 'No expenses found';
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-dim)">' + msg + '</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-dim)">' + msg + '</td></tr>';
     renderExpenseCards([]);
     return;
   }
 
   tbody.innerHTML = pageRows.map(function(r) {
     var amount = parseFloat(r[K.amount]) || 0;
-    var reimbursed = r[K.reimbursed] === true || r[K.reimbursed] === 'true';
 
     return '<tr data-id="' + r._id + '" style="cursor:pointer">' +
       '<td class="num">' + r[K.sr] + '</td>' +
@@ -674,9 +673,6 @@ function renderExpenseTable() {
       '<td><span class="type-badge" style="background:var(--md-surface-variant);color:var(--md-on-surface);">' + escapeHtml(r[K.category] || 'Misc') + '</span></td>' +
       '<td>' + highlightText(r[K.description] || '', q) + '</td>' +
       '<td class="num">$' + fmtMoney(amount) + '</td>' +
-      '<td>' + highlightText(r[K.seller] || '', q) + '</td>' +
-      '<td>' + escapeHtml(r[K.notes] || '') + '</td>' +
-      '<td><span class="status-badge ' + (reimbursed ? 'status-paid' : 'status-not-sold') + '">' + (reimbursed ? 'Yes' : 'No') + '</span></td>' +
       '</tr>';
   }).join('');
 
@@ -702,7 +698,6 @@ function renderExpenseCards(rows) {
 
   container.innerHTML = rows.map(function(r) {
     var amount = parseFloat(r[K.amount]) || 0;
-    var reimbursed = r[K.reimbursed] === true || r[K.reimbursed] === 'true';
 
     return '<div class="order-card expense-card" data-id="' + r._id + '">' +
       '<div class="card-header">' +
@@ -713,7 +708,6 @@ function renderExpenseCards(rows) {
       '<div class="card-header-right">' +
       '<span class="card-sr-badge">#' + r[K.sr] + '</span>' +
       '<span class="card-value">$' + fmtMoney(amount) + '</span>' +
-      '<span class="status-badge ' + (reimbursed ? 'status-paid' : 'status-not-sold') + '" style="margin-top:4px;">' + (reimbursed ? 'Reimbursed' : 'Not Reimbursed') + '</span>' +
       '</div>' +
       '</div>' +
       '<div class="card-actions" onclick="event.stopPropagation();if(ROLE!==\'customer\'&&window.openExpensePanel)window.openExpensePanel(String(r._id))">Open</div>' +

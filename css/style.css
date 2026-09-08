@@ -2287,9 +2287,6 @@ body.panel-open {
   border-radius: var(--radius-md);
   padding: var(--space-3) var(--space-4);
   margin-bottom: var(--space-4);
-  position: sticky;
-  bottom: 0;
-  z-index: 4;
 }
 .computed-preview.compact {
   background: transparent;
@@ -2418,14 +2415,9 @@ body.panel-open {
 }
 .installment-chip button:hover { opacity: 1; }
 
-/* ── Sticky Payment Summary card (bottom of a scrollable tab) ── */
+/* ── Payment Summary card (Order tab-sale, Trading tab-trade-payment) ── */
 .sticky-preview-card {
-  position: sticky;
-  bottom: 0;
-  z-index: 4;
-  background: var(--md-surface-1);
   padding: var(--space-2) var(--space-4);
-  margin-bottom: 0;
 }
 .sticky-preview-card .section-card-title {
   margin-bottom: 4px;
@@ -2446,34 +2438,38 @@ body.panel-open {
   background: var(--md-primary-container);
   color: var(--md-on-primary-container);
   border-radius: var(--radius-md);
-  padding: var(--space-2) var(--space-4);
-  margin: var(--space-3) var(--space-5) var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  margin: var(--space-3) var(--space-5);
   font-size: 14px; font-weight: 500;
 }
 .memo-compact-row {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: var(--space-2) var(--space-4);
+  gap: var(--space-3) var(--space-5);
 }
 .memo-compact-title {
   font-weight: 600;
   font-size: 13px;
   white-space: nowrap;
+  padding-right: var(--space-2);
+  border-right: 1px solid var(--md-on-primary-container);
+  opacity: 0.9;
 }
 .memo-compact-stat {
   display: flex;
   flex-direction: column;
+  gap: 3px;
   line-height: 1.2;
 }
 .memo-compact-stat .label {
   font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  opacity: 0.75;
+  letter-spacing: 0.05em;
+  opacity: 0.7;
 }
 .memo-compact-stat .value {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
 }
 

@@ -606,51 +606,61 @@ main {
 }
 
 /* ============================================
-   KPI CARDS
+   KPI STAT STRIP
    ============================================ */
 .kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: var(--space-4);
-  margin-bottom: var(--space-5);
-}
-
-.kpi-card {
+  display: flex;
+  align-items: stretch;
+  flex-wrap: wrap;
+  gap: 0;
   background: var(--md-surface);
   border: 1px solid var(--md-outline-variant);
   border-radius: var(--radius-md);
-  padding: var(--space-5);
   box-shadow: var(--shadow-0);
-  transition: box-shadow 120ms var(--ease-standard),
-              transform 120ms var(--ease-standard);
+  margin-bottom: var(--space-5);
+  overflow: hidden;
+}
+
+.kpi-card {
+  flex: 1 1 180px;
+  padding: var(--space-4) var(--space-5);
+  border-right: 1px solid var(--md-outline-variant);
+  transition: background 120ms var(--ease-standard);
+}
+
+.kpi-card:last-child {
+  border-right: none;
 }
 
 .kpi-card:hover {
-  box-shadow: var(--shadow-2);
-  transform: translateY(-2px);
+  background: rgba(32,33,36,0.03);
 }
 
 .kpi-label {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--md-on-surface-variant);
-  margin-bottom: var(--space-2);
+  margin-bottom: 4px;
+  white-space: nowrap;
 }
 
 .kpi-value {
   font-family: var(--font-mono);
-  font-size: 28px;
-  font-weight: 500;
+  font-size: 22px;
+  font-weight: 600;
   color: var(--md-on-surface);
   line-height: 1.2;
 }
 
 .kpi-sub {
-  font-size: 14px;
+  font-size: 12px;
   color: var(--md-on-surface-variant);
-  margin-top: var(--space-1);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ============================================
@@ -1290,9 +1300,41 @@ input[type="checkbox"] {
 }
 
 /* ─── Installments ─── */
-/* List-style rendering removed — Order and Trading both use the chip
-   component now (.installment-chips / .installment-chip, defined below
-   in the PANEL LAYOUT REDESIGN section) for a consistent look. */
+.installments-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.installment-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--md-surface-variant);
+  border-radius: var(--radius-xs);
+  font-size: 13px;
+}
+
+.installment-item button {
+  background: none;
+  border: none;
+  color: var(--md-error);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+  transition: background var(--duration-fast);
+}
+
+.installment-item button:hover {
+  background: var(--md-error-container);
+}
+
+.installment-add-row {
+  margin-bottom: var(--space-2);
+}
 
 /* ============================================
    PAYMENT SEARCH MODAL
@@ -1534,13 +1576,17 @@ input[type="checkbox"] {
     gap: var(--space-3);
   }
 
-  /* Mobile: KPI cards in 3 columns, 2 rows */
+  /* Mobile: stat strip scrolls horizontally instead of wrapping into boxes */
   .kpi-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--space-3);
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: var(--radius-md);
   }
 
   .kpi-card {
+    flex: 0 0 auto;
+    min-width: 128px;
     padding: var(--space-3);
   }
 
@@ -2288,7 +2334,7 @@ body.panel-open {
   padding: var(--space-3) var(--space-4);
   margin-bottom: var(--space-4);
 }
-.computed-preview.compact {
+.panel-preview-bottom .computed-preview.compact {
   background: transparent;
   border: none;
   padding: 0;
@@ -2297,22 +2343,22 @@ body.panel-open {
   grid-template-columns: repeat(5, 1fr);
   gap: var(--space-2) var(--space-4);
 }
-.computed-preview.compact .computed-row {
+.panel-preview-bottom .computed-preview.compact .computed-row {
   flex-direction: column;
   align-items: flex-start;
   padding: 4px 0;
   border-bottom: none;
   gap: 2px;
 }
-.computed-preview.compact .computed-row .label {
+.panel-preview-bottom .computed-preview.compact .computed-row .label {
   font-size: 11px;
 }
-.computed-preview.compact .computed-row .value {
+.panel-preview-bottom .computed-preview.compact .computed-row .value {
   font-size: 15px;
 }
 
 @media (max-width: 900px) {
-  .computed-preview.compact {
+  .panel-preview-bottom .computed-preview.compact {
     grid-template-columns: repeat(3, 1fr);
   }
 }
@@ -2415,63 +2461,20 @@ body.panel-open {
 }
 .installment-chip button:hover { opacity: 1; }
 
-/* ── Payment Summary card (Order tab-sale, Trading tab-trade-payment) ── */
-.sticky-preview-card {
-  padding: var(--space-2) var(--space-4);
-}
-.sticky-preview-card .section-card-title {
-  margin-bottom: 4px;
-}
-
-/* ── Running balance tag next to "+ Add installment" ── */
-.remaining-balance-tag {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--md-on-surface-variant);
-  white-space: nowrap;
-}
-.remaining-balance-tag.balance-zero { color: var(--md-success); }
-.remaining-balance-tag.balance-over { color: var(--md-error); }
-
 /* ── Memo Banner (top of panel) ── */
 .panel-memo-banner {
   background: var(--md-primary-container);
   color: var(--md-on-primary-container);
   border-radius: var(--radius-md);
   padding: var(--space-3) var(--space-4);
-  margin: var(--space-3) var(--space-5);
+  margin: var(--space-3) var(--space-5) var(--space-2);
   font-size: 14px; font-weight: 500;
 }
-.memo-compact-row {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-3) var(--space-5);
+.panel-memo-banner .memo-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 2px 0; font-size: 13px;
 }
-.memo-compact-title {
-  font-weight: 600;
-  font-size: 13px;
-  white-space: nowrap;
-  padding-right: var(--space-2);
-  border-right: 1px solid var(--md-on-primary-container);
-  opacity: 0.9;
-}
-.memo-compact-stat {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  line-height: 1.2;
-}
-.memo-compact-stat .label {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  opacity: 0.7;
-}
-.memo-compact-stat .value {
-  font-size: 14px;
-  font-weight: 600;
-}
+.panel-memo-banner .memo-row strong { font-weight: 600; }
 
 /* ── Sticky Footer ── */
 .panel-foot {

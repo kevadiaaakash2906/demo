@@ -7,7 +7,7 @@
 <title>VINÉRE Ledger — Orders</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=4">
+<link rel="stylesheet" href="css/style.css?v=5">
 <base target="_blank">
 <base target="_blank">
 <base target="_blank">
@@ -55,6 +55,8 @@
       <button class="btn small" id="newExpenseBtn" style="display:none;">+ Expense</button>
     </div>
   </header>
+
+  <div id="offlineBanner">You're offline — changes won't save until your connection is back.</div>
 
   <main>
     <div id="ordersView">
@@ -195,6 +197,7 @@
             <label>Style No. *</label>
             <input id="f_style" placeholder="e.g. SLER-0079 I">
             <div class="field-error" id="err_f_style"></div>
+            <div class="field-hint" id="hint_f_style"></div>
           </div>
           <div class="field">
             <label>Jewelry Type</label>
@@ -249,11 +252,11 @@
             </select>
           </div>
           <div class="field"><label>Date</label><input id="f_date" type="date"></div>
-          <div class="field"><label>Gross Wt (g)</label><input id="f_grossWt" type="number" step="0.001" placeholder="0.000"></div>
+          <div class="field"><label>Gross Wt (g)</label><input id="f_grossWt" type="number" step="0.001" placeholder="0.000"><div class="field-error" id="err_f_grossWt"></div></div>
           <div class="field"><label>Net Wt (g) *</label><input id="f_netWt" type="number" step="0.001" placeholder="0.000"><div class="field-error" id="err_f_netWt"></div></div>
-          <div class="field"><label>Multiplier</label><input id="f_multiplier" type="number" step="0.001" value="0.595"></div>
-          <div class="field"><label>Dia Qty</label><input id="f_diaQty" type="number" step="1" placeholder="0"></div>
-          <div class="field"><label>IN CT</label><input id="f_inCt" type="number" step="0.01" placeholder="0.00"></div>
+          <div class="field"><label>Multiplier</label><input id="f_multiplier" type="number" step="0.001" value="0.595"><div class="field-error" id="err_f_multiplier"></div></div>
+          <div class="field"><label>Dia Qty</label><input id="f_diaQty" type="number" step="1" placeholder="0"><div class="field-error" id="err_f_diaQty"></div></div>
+          <div class="field"><label>IN CT</label><input id="f_inCt" type="number" step="0.01" placeholder="0.00"><div class="field-error" id="err_f_inCt"></div></div>
           <div class="field"><label>Colour Stone</label><input id="f_colourStone" type="number" step="1" placeholder="0"></div>
         </div>
       </div>
@@ -261,8 +264,8 @@
       <div class="section-card">
         <div class="section-card-title">Cost Breakdown</div>
         <div class="fields-grid compact">
-          <div class="field"><label>Diamond Amount (₹)</label><input id="f_diamAmount" type="number" step="1" placeholder="0"></div>
-          <div class="field"><label>L Charges (₹/g)</label><input id="f_lCharges" type="number" step="1" placeholder="900"></div>
+          <div class="field"><label>Diamond Amount (₹)</label><input id="f_diamAmount" type="number" step="1" placeholder="0"><div class="field-error" id="err_f_diamAmount"></div></div>
+          <div class="field"><label>L Charges (₹/g)</label><input id="f_lCharges" type="number" step="1" placeholder="900"><div class="field-error" id="err_f_lCharges"></div></div>
           <div class="field full-width">
             <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;text-transform:none;letter-spacing:0;font-weight:400;color:var(--md-on-surface-variant);">
               <input type="checkbox" id="f_flatLabor" style="width:16px;height:16px;"> Flat labor — fixed amount (don't multiply by weight)
@@ -288,7 +291,7 @@
       <div class="section-card">
         <div class="section-card-title">Sale Details</div>
         <div class="fields-grid">
-          <div class="field"><label>Memo No.</label><input id="f_memoNo" placeholder="e.g. MEMO-014"></div>
+          <div class="field"><label>Memo No.</label><input id="f_memoNo" placeholder="e.g. MEMO-014"><div class="field-hint" id="hint_f_memoNo"></div></div>
           <div class="field"><label>Sold To (Buyer)</label><input id="f_soldTo" placeholder="e.g. Priya Shah"></div>
           <div class="field"><label>Sale Price ($)</label><input id="f_salePrice" type="number" step="1" placeholder="0"><div class="field-error" id="err_f_salePrice"></div></div>
           <div class="field"><label>Date Sold</label><input id="f_dateSold" type="date"></div>
@@ -431,18 +434,18 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
 <!-- App scripts — load order matters -->
-<script src="js/utils.js?v=3"></script>
+<script src="js/utils.js?v=4"></script>
 <script src="js/diamond-shape.js?v=1"></script>
 <script src="js/api.js?v=3"></script>
-<script src="js/firebase.js?v=3"></script>
-<script src="js/app.js?v=3"></script>
+<script src="js/firebase.js?v=4"></script>
+<script src="js/app.js?v=4"></script>
 <script src="js/dashboard.js?v=3"></script>
 <script src="js/filters.js?v=3"></script>
-<script src="js/panel.js?v=3"></script>
+<script src="js/panel.js?v=4"></script>
 <script src="js/table.js?v=3"></script>
 <script src="js/payments.js?v=3"></script>
-<script src="js/trading.js?v=3"></script>
-<script src="js/expenses.js?v=1"></script>
+<script src="js/trading.js?v=4"></script>
+<script src="js/expenses.js?v=2"></script>
 <button id="mobileFab" class="mobile-fab" style="display:none;">+</button>
 </body>
 </html>

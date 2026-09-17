@@ -235,6 +235,7 @@ function normalizeRow(row) {
 
 async function doFetchOrders() {
   try {
+    await flushPendingDelete();
     var result = await window.fetchOrders();
     ORDERS = result.rows.map(normalizeRow);
     console.log('Loaded', ORDERS.length, 'orders');
@@ -246,6 +247,7 @@ async function doFetchOrders() {
 
 async function doFetchTrading() {
   try {
+    await flushPendingDelete();
     var result = await window.fetchTrading();
     TRADING = result.rows.map(normalizeRow);
   } catch (err) {
@@ -256,6 +258,7 @@ async function doFetchTrading() {
 
 async function doFetchExpenses() {
   try {
+    await flushPendingDelete();
     var result = await window.fetchExpenses();
     EXPENSES = result.rows.map(normalizeRow);
   } catch (err) {

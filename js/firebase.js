@@ -150,20 +150,42 @@ async function deleteExpense(id, srNo) {
   syncToSheet({ 'Sr. No.': srNo, _action: 'delete', _collection: 'expenses' });
 }
 
-/* ============ SHEET SYNC ============ */
-function syncToSheet(payload) {
+/* ============ SHEET SYNC ============
+   NOTE: this request uses mode: 'no-cors', so the browser only ever sees an
+   opaque response — it resolves successfully as soon as the request reaches
+   the server, even if the Apps Script itself throws an error on that end.
+   A "Synced" toast here means the request was delivered, not that the sheet
+   update necessarily succeeded server-side. What we CAN detect and handle
+   here is a real network failure or a hang, which is what the timeout and
+   retry below are for. */
+function syncToSheet(payload, attempt) {
+  attempt = attempt || 1;
   var url = SHEET_WEBHOOK_URL + '?secret=vinere-sync-2026';
+  var controller = new AbortController();
+  var timeoutId = setTimeout(function() { controller.abort(); }, 10000);
+
   fetch(url, {
     method: 'POST',
     mode: 'no-cors',
     headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload),
+    signal: controller.signal
   })
   .then(function() {
+    clearTimeout(timeoutId);
     if (window.showToast) showToast('Synced to Google Sheet', 'success', 2500);
   })
   .catch(function(err) {
-    if (window.showToast) showToast('Sheet sync failed', 'error', 4000);
+    clearTimeout(timeoutId);
+    // One retry for a transient blip before we bother the user about it.
+    if (attempt < 2 && navigator.onLine) {
+      setTimeout(function() { syncToSheet(payload, attempt + 1); }, 2000);
+      return;
+    }
+    if (window.showToast) {
+      var msg = err.name === 'AbortError' ? 'Sheet sync timed out — will not retry automatically' : 'Sheet sync failed — check your connection';
+      showToast(msg, 'error', 4000);
+    }
     console.error('Sync failed', err);
   });
 }

@@ -37,11 +37,13 @@ window.showApp = function(role) {
   var newTradeBtn = document.getElementById('newTradeBtn');
   var newExpenseBtn = document.getElementById('newExpenseBtn');
   var insightsBtn = document.getElementById('insightsBtn');
+  var buyersBtn = document.getElementById('buyersBtn');
   if (newOrderBtn) newOrderBtn.style.display = (isStaff || isSeller) ? 'inline-flex' : 'none';
   if (receivePaymentBtn) receivePaymentBtn.style.display = (isStaff || isSeller) ? 'inline-flex' : 'none';
   if (newTradeBtn) newTradeBtn.style.display = (isStaff || isSeller) ? 'inline-flex' : 'none';
   if (newExpenseBtn) newExpenseBtn.style.display = (isStaff || isSeller) ? 'inline-flex' : 'none';
   if (insightsBtn) insightsBtn.style.display = (isStaff || isSeller) ? 'inline-flex' : 'none';
+  if (buyersBtn) buyersBtn.style.display = (isStaff || isSeller) ? 'inline-flex' : 'none';
 
   document.body.classList.remove('staff-role', 'seller-role', 'customer-role');
   if (isStaff) document.body.classList.add('staff-role');
@@ -136,7 +138,7 @@ var DK = {
   subTotal: 'SUB TOTAL', usd: '$', soldTo: 'Sold To', salePrice: 'Sale Price',
   dateSold: 'Date Sold', amountPaid: 'Amount Paid', balanceDue: 'Balance Due',
   paymentStatus: 'Payment Status', paymentLog: 'Payment Log', memoNo: 'Memo No.',
-  diamondShape: 'Diamond Shape'
+  diamondShape: 'Diamond Shape', buyerId: 'Buyer ID'
 };
 
 function getField(row, key) {
@@ -154,7 +156,7 @@ var SHEET_KEYS = {
   purchasePrice: 'Purchase Price', salePrice: 'Sale Price', dateSold: 'Date Sold',
   soldTo: 'Sold To', amountPaid: 'Amount Paid', balanceDue: 'Balance Due',
   paymentStatus: 'Payment Status', paymentLog: 'Payment Log', profit: 'Profit / Loss', notes: 'Notes',
-  memoNo: 'Memo No.'
+  memoNo: 'Memo No.', buyerId: 'Buyer ID'
 };
 
 var EXPENSE_KEYS = {
@@ -163,10 +165,15 @@ var EXPENSE_KEYS = {
   reimbursementDate: 'Reimbursement Date', notes: 'Notes'
 };
 
+var BUYER_KEYS = {
+  name: 'Name', phone: 'Phone', email: 'Email', address: 'Address', notes: 'Notes'
+};
+
 /* ============ GLOBAL STATE ============ */
 var ORDERS = [];
 var TRADING = [];
 var EXPENSES = [];
+var BUYERS = [];
 var currentSearchQuery = '';
 var GOLD_RATE = 16000;
 window.GOLD_RATE = GOLD_RATE;
@@ -184,6 +191,7 @@ async function initApp() {
   await doFetchOrders();
   await doFetchTrading();
   await doFetchExpenses();
+  await doFetchBuyers();
   await loadGoldRate();
   renderAll();
   initSwipeGestures();
@@ -263,6 +271,17 @@ async function doFetchExpenses() {
   } catch (err) {
     console.error('Fetch expenses failed', err);
     showToast('Failed to load expenses', 'error');
+  }
+}
+
+async function doFetchBuyers() {
+  try {
+    var result = await window.fetchBuyers();
+    BUYERS = result.rows;
+    if (window.refreshBuyerDatalist) window.refreshBuyerDatalist();
+  } catch (err) {
+    console.error('Fetch buyers failed', err);
+    showToast('Failed to load buyers', 'error');
   }
 }
 

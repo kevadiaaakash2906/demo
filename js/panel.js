@@ -143,7 +143,7 @@ window.openOrderPanel = function(id) {
   // Reset fields
   ['f_customer','f_style','f_jewelryType','f_date','f_grossWt','f_netWt','f_diaQty','f_inCt',
    'f_colourStone','f_multiplier','f_diamAmount','f_lCharges','f_memoNo',
-   'f_soldTo','f_salePrice','f_dateSold','f_diamondShape'].forEach(function(fid) { var el = $(fid); if (el) el.value = ''; });
+   'f_soldTo','f_salePrice','f_dateSold','f_diamondShape','f_soldToBuyerId'].forEach(function(fid) { var el = $(fid); if (el) el.value = ''; });
   if (window.syncDiamondShapePicker) window.syncDiamondShapePicker();
   $('f_multiplier').value = '0.595';
   $('f_lCharges').value = '900';
@@ -212,6 +212,7 @@ window.openOrderPanel = function(id) {
     }
     $('f_memoNo').value = order[DK.memoNo] || '';
     $('f_soldTo').value = order[DK.soldTo] || '';
+    $('f_soldToBuyerId').value = order[DK.buyerId] || '';
 
     if (!order[DK.soldTo]) {
       var memoNo = order[DK.memoNo];
@@ -219,6 +220,11 @@ window.openOrderPanel = function(id) {
         var buyer = getMemoBuyer(memoNo);
         if (buyer) $('f_soldTo').value = buyer;
       }
+    }
+    // Backfill the link for older records saved before buyerId existed.
+    if (!$('f_soldToBuyerId').value && $('f_soldTo').value && typeof findBuyerByName === 'function') {
+      var matchedBuyer = findBuyerByName($('f_soldTo').value);
+      if (matchedBuyer) $('f_soldToBuyerId').value = matchedBuyer._id;
     }
     $('f_salePrice').value = order[DK.salePrice] || '';
     $('f_dateSold').value = order[DK.dateSold] || '';
@@ -571,6 +577,7 @@ $('saveBtn').addEventListener('click', async function() {
   data['Gold Rate'] = goldRate.toString();
   data[DK.memoNo] = $('f_memoNo').value.trim().toUpperCase();
   data[DK.soldTo] = $('f_soldTo').value.trim();
+  data[DK.buyerId] = $('f_soldToBuyerId').value || '';
   data[DK.salePrice] = salePrice ? salePrice.toString() : '';
   data[DK.dateSold] = $('f_dateSold').value || '';
   // ── MEMO-AWARE BALANCE ──

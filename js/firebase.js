@@ -185,6 +185,41 @@ async function saveSettings(rate) {
   syncToSheet({ _collection: 'settings', rate: rate });
 }
 
+/* ============ BUYERS ============ */
+async function fetchBuyers() {
+  await ensureAuth();
+  var snap = await db.collection('buyers').get();
+  var rows = snap.docs.map(function(d) { return { _id: d.id, ...d.data() }; });
+  return { rows: rows };
+}
+
+async function addBuyer(data, customId) {
+  await ensureAuth();
+  var id = customId || db.collection('buyers').doc().id;
+  await db.collection('buyers').doc(id).set({
+    ...data,
+    createdAt: window.firebase.firestore.FieldValue.serverTimestamp(),
+    updatedAt: window.firebase.firestore.FieldValue.serverTimestamp()
+  });
+  syncToSheet({ ...data, _collection: 'buyers', _id: id });
+  return id;
+}
+
+async function updateBuyer(id, data) {
+  await ensureAuth();
+  await db.collection('buyers').doc(id).set({
+    ...data,
+    updatedAt: window.firebase.firestore.FieldValue.serverTimestamp()
+  }, { merge: true });
+  syncToSheet({ ...data, _collection: 'buyers', _id: id });
+}
+
+async function deleteBuyer(id) {
+  await ensureAuth();
+  await db.collection('buyers').doc(id).delete();
+  syncToSheet({ _id: id, _action: 'delete', _collection: 'buyers' });
+}
+
 /* ============ EXPOSE GLOBALLY ============ */
 window.db = db;
 window.fetchOrders = fetchOrders;
@@ -201,3 +236,7 @@ window.updateExpense = updateExpense;
 window.deleteExpense = deleteExpense;
 window.fetchSettings = fetchSettings;
 window.saveSettings = saveSettings;
+window.fetchBuyers = fetchBuyers;
+window.addBuyer = addBuyer;
+window.updateBuyer = updateBuyer;
+window.deleteBuyer = deleteBuyer;

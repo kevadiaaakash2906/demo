@@ -44,6 +44,11 @@ window.openEditTrade = function(id) {
   $('t_salePrice').value = trade[SHEET_KEYS.salePrice] || '';
   $('t_dateSold').value = trade[SHEET_KEYS.dateSold] || '';
   $('t_soldTo').value = trade[SHEET_KEYS.soldTo] || '';
+  $('t_soldToBuyerId').value = trade[SHEET_KEYS.buyerId] || '';
+  if (!$('t_soldToBuyerId').value && $('t_soldTo').value && typeof findBuyerByName === 'function') {
+    var matchedTradeBuyer = findBuyerByName($('t_soldTo').value);
+    if (matchedTradeBuyer) $('t_soldToBuyerId').value = matchedTradeBuyer._id;
+  }
   $('t_notes').value = trade[SHEET_KEYS.notes] || '';
   $('t_memoNo').value = trade[SHEET_KEYS.memoNo] || '';
 
@@ -60,7 +65,7 @@ window.openEditTrade = function(id) {
 };
 
 function resetTradePanel() {
-  ['t_item','t_vendor','t_date','t_purchasePrice','t_salePrice','t_dateSold','t_soldTo','t_notes','t_memoNo'].forEach(function(id) { $(id).value = ''; });
+  ['t_item','t_vendor','t_date','t_purchasePrice','t_salePrice','t_dateSold','t_soldTo','t_notes','t_memoNo','t_soldToBuyerId'].forEach(function(id) { $(id).value = ''; });
   currentTradeInstallments = [];
   renderTradeInstallments();
   updateTradePreview();
@@ -236,6 +241,7 @@ $('saveTradeBtn').addEventListener('click', async function() {
   data[SHEET_KEYS.salePrice] = salePrice ? salePrice.toString() : '';
   data[SHEET_KEYS.dateSold] = $('t_dateSold').value || '';
   data[SHEET_KEYS.soldTo] = $('t_soldTo').value.trim();
+  data[SHEET_KEYS.buyerId] = $('t_soldToBuyerId').value || '';
   data[SHEET_KEYS.amountPaid] = totalPaid.toString();
   data[SHEET_KEYS.balanceDue] = (salePrice - totalPaid).toString();
   data[SHEET_KEYS.paymentStatus] = status;

@@ -36,10 +36,12 @@ window.showApp = function(role) {
   var receivePaymentBtn = document.getElementById('receivePaymentBtn');
   var newTradeBtn = document.getElementById('newTradeBtn');
   var newExpenseBtn = document.getElementById('newExpenseBtn');
+  var insightsBtn = document.getElementById('insightsBtn');
   if (newOrderBtn) newOrderBtn.style.display = (isStaff || isSeller) ? 'inline-flex' : 'none';
   if (receivePaymentBtn) receivePaymentBtn.style.display = (isStaff || isSeller) ? 'inline-flex' : 'none';
   if (newTradeBtn) newTradeBtn.style.display = (isStaff || isSeller) ? 'inline-flex' : 'none';
   if (newExpenseBtn) newExpenseBtn.style.display = (isStaff || isSeller) ? 'inline-flex' : 'none';
+  if (insightsBtn) insightsBtn.style.display = (isStaff || isSeller) ? 'inline-flex' : 'none';
 
   document.body.classList.remove('staff-role', 'seller-role', 'customer-role');
   if (isStaff) document.body.classList.add('staff-role');

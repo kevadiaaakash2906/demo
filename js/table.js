@@ -104,7 +104,7 @@ function renderTable() {
       return r[DK.usd] ? '$' + parseFloat(r[DK.usd]).toFixed(2) : '';
     })() + '</td>' +
       '<td>' + highlightText(r[DK.memoNo] || '', q) + '</td>' +
-      '<td>' + highlightText(r[DK.soldTo] || '', q) + '</td>' +
+      '<td>' + (r[DK.soldTo] ? '<span class="soldto-link" data-customer="' + escapeHtml(r[DK.soldTo]) + '">' + highlightText(r[DK.soldTo], q) + '</span>' : '') + '</td>' +
       '<td class="num">' + (r[DK.salePrice] ? '$' + fmtMoney(r[DK.salePrice]) : '') + '</td>' +
       '<td><span class="status-badge ' + statusClass + '">' + status + '</span></td>' +
       '</tr>';
@@ -113,6 +113,13 @@ function renderTable() {
   tbody.querySelectorAll('tr[data-id]').forEach(function(tr) {
     tr.addEventListener('click', function() {
       if (window.openOrderPanel) window.openOrderPanel(tr.dataset.id);
+    });
+  });
+
+  tbody.querySelectorAll('.soldto-link').forEach(function(el) {
+    el.addEventListener('click', function(e) {
+      e.stopPropagation();
+      if (window.openCustomerProfile) window.openCustomerProfile(el.dataset.customer);
     });
   });
 
@@ -402,7 +409,7 @@ function renderTradeTable() {
       '<td class="num">$' + fmtMoney(purchase) + '</td>' +
       '<td>' + highlightText(r[K.memoNo] || '', q) + '</td>' +
       '<td class="num">' + (sale ? '$' + fmtMoney(sale) : '') + '</td>' +
-      '<td>' + highlightText(r[K.soldTo] || '', q) + '</td>' +
+      '<td>' + (r[K.soldTo] ? '<span class="soldto-link" data-customer="' + escapeHtml(r[K.soldTo]) + '">' + highlightText(r[K.soldTo], q) + '</span>' : '') + '</td>' +
       '<td><span class="status-badge ' + statusClass + '">' + status + '</span></td>' +
       '<td class="num" style="color:' + (profit >= 0 ? 'var(--success)' : 'var(--error)') + '">' +
       (sale ? (profit >= 0 ? '+' : '-') + '$' + fmtMoney(Math.abs(profit)) : '') + '</td>' +
@@ -412,6 +419,13 @@ function renderTradeTable() {
   tbody.querySelectorAll('tr[data-id]').forEach(function(tr) {
     tr.addEventListener('click', function() {
       if (window.openEditTrade) window.openEditTrade(tr.dataset.id);
+    });
+  });
+
+  tbody.querySelectorAll('.soldto-link').forEach(function(el) {
+    el.addEventListener('click', function(e) {
+      e.stopPropagation();
+      if (window.openCustomerProfile) window.openCustomerProfile(el.dataset.customer);
     });
   });
 

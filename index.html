@@ -49,6 +49,7 @@
         <span id="resultCount" class="result-count"></span>
       </div>
       <button class="btn secondary small" id="refreshBtn" title="Refresh">↻</button>
+      <button class="btn secondary small" id="insightsBtn" title="Vendor profitability & best sellers">Insights</button>
       <button class="btn secondary small" id="receivePaymentBtn">Payment</button>
       <button class="btn small" id="newOrderBtn">+ Order</button>
       <button class="btn small" id="newTradeBtn" style="display:none;">+ Trade</button>
@@ -472,6 +473,30 @@
   </div>
 </div>
 
+<!-- ============ CUSTOMER PROFILE ============ -->
+<div id="customerProfileOverlay" class="side-modal-overlay"></div>
+<div id="customerProfileModal" class="side-modal">
+  <div class="panel-head"><h2 id="customerProfileName">Customer</h2><button id="closeCustomerProfile">&times;</button></div>
+  <div class="side-modal-body">
+    <div class="kpi-grid" id="customerProfileKPIs"></div>
+    <div id="customerProfileItems"></div>
+  </div>
+</div>
+
+<!-- ============ INSIGHTS ============ -->
+<div id="insightsOverlay" class="side-modal-overlay"></div>
+<div id="insightsModal" class="side-modal side-modal-wide">
+  <div class="panel-head"><h2>Insights</h2><button id="closeInsights">&times;</button></div>
+  <div class="insights-tabs">
+    <button class="insights-tab-btn active" data-target="insightsVendorsTab">Vendor Profitability</button>
+    <button class="insights-tab-btn" data-target="insightsBestSellersTab">Best Sellers</button>
+  </div>
+  <div class="side-modal-body">
+    <div id="insightsVendorsTab" class="insights-tab-content active"></div>
+    <div id="insightsBestSellersTab" class="insights-tab-content"></div>
+  </div>
+</div>
+
 <div id="screenFx"></div>
 <div id="toast"></div>
 <div id="undoToast">
@@ -498,6 +523,7 @@
 <script src="js/payments.js?v=3"></script>
 <script src="js/trading.js?v=3"></script>
 <script src="js/expenses.js?v=1"></script>
+<script src="js/insights.js?v=1"></script>
 <button id="mobileFab" class="mobile-fab" style="display:none;">+</button>
 </body>
 </html>

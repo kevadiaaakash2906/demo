@@ -102,22 +102,42 @@ function openPaymentForm(id, type) {
   var item = collection.find(function(r) { return r._id === id; });
   if (!item) return;
 
+  var memoNo = item[K.memoNo];
+
   var amount = prompt('Record payment for ' + label + ' #' + item[K.sr] + ' — ' + (item[K.style] || item[K.item]) + '\nBalance Due: $' + fmtMoney(item[K.balanceDue]) + '\n\nEnter amount received:');
   if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) return;
 
   var date = prompt('Payment date (YYYY-MM-DD):', new Date().toISOString().split('T')[0]);
   if (!date) return;
 
-  var installments = [];
-  try { installments = JSON.parse(item[K.paymentLog] || '[]'); } catch(e) { installments = []; }
+  // IMPORTANT: for a memo item, start from the memo-wide aggregated log
+  // (every payment recorded against ANY item in this memo), not just this
+  // item's own log. Otherwise syncMemoPayments below overwrites every
+  // sibling item with an incomplete list and erases their payment history.
+  var installments;
+  if (memoNo && typeof getAggregatedPaymentLog === 'function') {
+    installments = getAggregatedPaymentLog(memoNo);
+  } else {
+    try { installments = JSON.parse(item[K.paymentLog] || '[]'); } catch(e) { installments = []; }
+  }
   installments.push({ amount: parseFloat(amount), date: date });
 
   var totalPaid = installments.reduce(function(s, i) { return s + i.amount; }, 0);
-  var salePrice = parseFloat(item[K.salePrice]) || 0;
-  var balance = salePrice - totalPaid;
+
+  // For a memo item, compare against the memo's combined bill, not this
+  // single item's own sale price.
+  var billTotal = parseFloat(item[K.salePrice]) || 0;
+  if (memoNo && typeof getMemoOrders === 'function' && typeof getMemoTrades === 'function') {
+    var mOrders = getMemoOrders(memoNo);
+    var mTrades = getMemoTrades(memoNo);
+    billTotal = mOrders.reduce(function(s, o) { return s + (parseFloat(o[DK.salePrice]) || 0); }, 0) +
+                mTrades.reduce(function(s, t) { return s + (parseFloat(t[SHEET_KEYS.salePrice]) || 0); }, 0);
+  }
+
+  var balance = billTotal - totalPaid;
 
   var status = 'Unpaid';
-  if (totalPaid >= salePrice) status = 'Paid';
+  if (totalPaid >= billTotal) status = 'Paid';
   else if (totalPaid > 0) status = 'Partial';
 
   var data = {};

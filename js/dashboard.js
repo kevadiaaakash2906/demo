@@ -2,6 +2,33 @@
    VINÉRE — Dashboard / KPI Cards
    ============================================ */
 
+// Splits a memo's actual payments proportionally between its Orders-side
+// bill and its Trading-side bill, so each tab's Collected/Outstanding only
+// reflects that tab's own share of a memo that spans both collections.
+// Example: Memo 63 = $7,300 in orders + $3,000 in trades = $10,300 bill,
+// fully paid ($10,300). On the Trading tab, trades are 3000/10300 = ~29%
+// of the bill, so this tab is credited ~29% of the $10,300 paid (~$2,912),
+// leaving its own $3,000 slice ~$88 "outstanding" in proportional terms —
+// even though, in reality, the whole memo is paid off.
+function getMemoOwnShareCollectedOutstanding(memo) {
+  var orders = getMemoOrders(memo);
+  var trades = getMemoTrades(memo);
+  var ordersBill = orders.reduce(function(s, o) { return s + (parseFloat(o[DK.salePrice]) || 0); }, 0);
+  var tradesBill = trades.reduce(function(s, t) { return s + (parseFloat(t[SHEET_KEYS.salePrice]) || 0); }, 0);
+  var totalBill = ordersBill + tradesBill;
+  var totalPaid = getAggregatedPaymentLog(memo).reduce(function(s, p) { return s + (parseFloat(p.amount) || 0); }, 0);
+
+  function share(ownBill) {
+    if (totalBill <= 0) return { collected: 0, outstanding: 0 };
+    var ratio = ownBill / totalBill;
+    var collected = Math.min(ownBill, totalPaid * ratio);
+    var outstanding = Math.max(0, ownBill - collected);
+    return { collected: collected, outstanding: outstanding };
+  }
+
+  return { orders: share(ordersBill), trades: share(tradesBill), ordersBill: ordersBill, tradesBill: tradesBill };
+}
+
 function renderKPIs() {
   var sold = ORDERS.filter(function(r) { return String(r[DK.salePrice] || '').trim() !== ''; });
   var notSold = ORDERS.filter(function(r) { return String(r[DK.salePrice] || '').trim() === ''; });
@@ -10,17 +37,7 @@ function renderKPIs() {
   var totalCost = sold.reduce(function(s, r) { return s + (parseFloat(r[DK.usd]) || 0); }, 0);
   var profit = totalRevenue - totalCost;
 
-  // ── MEMO-AWARE COLLECTED / OUTSTANDING ──
-  var memoPaids = {};
-  ORDERS.forEach(function(r) {
-    var memo = r[DK.memoNo];
-    if (memo && !memoPaids[memo]) {
-      var log = [];
-      try { log = JSON.parse(r[DK.paymentLog] || '[]'); } catch(e) {}
-      memoPaids[memo] = log.reduce(function(s, p) { return s + (parseFloat(p.amount) || 0); }, 0);
-    }
-  });
-
+  // ── MEMO-AWARE COLLECTED / OUTSTANDING (Orders' own share only) ──
   var totalCollected = 0;
   var totalOutstanding = 0;
   var seenMemos = {};
@@ -30,10 +47,9 @@ function renderKPIs() {
     if (memo) {
       if (!seenMemos[memo]) {
         seenMemos[memo] = true;
-        var memoBill = ORDERS.reduce(function(s, o) { return s + (o[DK.memoNo] === memo ? (parseFloat(o[DK.salePrice]) || 0) : 0); }, 0);
-        var paid = memoPaids[memo] || 0;
-        totalCollected += paid;
-        totalOutstanding += Math.max(0, memoBill - paid);
+        var share = getMemoOwnShareCollectedOutstanding(memo).orders;
+        totalCollected += share.collected;
+        totalOutstanding += share.outstanding;
       }
     } else {
       totalCollected += parseFloat(r[DK.amountPaid]) || 0;
@@ -95,17 +111,7 @@ function renderTradeKPIs() {
   var totalSales = sold.reduce(function(s, r) { return s + (parseFloat(r[K.salePrice]) || 0); }, 0);
   var netPL = sold.reduce(function(s, r) { return s + ((parseFloat(r[K.salePrice]) || 0) - (parseFloat(r[K.purchasePrice]) || 0)); }, 0);
 
-  // ── MEMO-AWARE COLLECTED / OUTSTANDING ──
-  var memoPaids = {};
-  TRADING.forEach(function(r) {
-    var memo = r[K.memoNo];
-    if (memo && !memoPaids[memo]) {
-      var log = [];
-      try { log = JSON.parse(r[K.paymentLog] || '[]'); } catch(e) {}
-      memoPaids[memo] = log.reduce(function(s, p) { return s + (parseFloat(p.amount) || 0); }, 0);
-    }
-  });
-
+  // ── MEMO-AWARE COLLECTED / OUTSTANDING (Trading's own share only) ──
   var collected = 0;
   var outstanding = 0;
   var seenMemos = {};
@@ -115,10 +121,9 @@ function renderTradeKPIs() {
     if (memo) {
       if (!seenMemos[memo]) {
         seenMemos[memo] = true;
-        var memoBill = TRADING.reduce(function(s, t) { return s + (t[K.memoNo] === memo ? (parseFloat(t[K.salePrice]) || 0) : 0); }, 0);
-        var paid = memoPaids[memo] || 0;
-        collected += paid;
-        outstanding += Math.max(0, memoBill - paid);
+        var share = getMemoOwnShareCollectedOutstanding(memo).trades;
+        collected += share.collected;
+        outstanding += share.outstanding;
       }
     } else {
       collected += parseFloat(r[K.amountPaid]) || 0;

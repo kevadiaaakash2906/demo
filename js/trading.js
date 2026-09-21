@@ -12,6 +12,10 @@ window.openTradePanel = function() {
   $('tradePanelTitle').textContent = 'New Trade';
   $('deleteTradeBtn').style.display = 'none';
   $('t_date').value = new Date().toISOString().split('T')[0];
+  activateFirstTab($('tradePanel'));
+
+  var badge = $('tradePanelStatusBadge');
+  if (badge) badge.style.display = 'none';
 
   $('tradeOverlay').style.display = 'block';
   $('tradePanel').classList.add('open');
@@ -30,6 +34,7 @@ window.openEditTrade = function(id) {
   currentTradeInstallments = [];
 
   resetTradePanel();
+  activateFirstTab($('tradePanel'));
   $('tradePanelTitle').textContent = 'Edit Trade #' + trade[SHEET_KEYS.sr];
 
   $('t_item').value = trade[SHEET_KEYS.item] || '';
@@ -74,20 +79,58 @@ function closeTradePanel() {
 }
 
 /* ============ LIVE PREVIEW ============ */
-['t_purchasePrice','t_salePrice'].forEach(function(id) {
+['t_purchasePrice','t_salePrice','t_memoNo'].forEach(function(id) {
   $(id).addEventListener('input', updateTradePreview);
 });
 
+/* ============ MEMO BANNER (top, header area) ============ */
+function updateTradeMemoBanner() {
+  var memoBanner = $('tradePanelMemoBanner');
+  var memoNoVal = $('t_memoNo').value.trim().toUpperCase();
+  if (!memoNoVal) {
+    if (memoBanner) { memoBanner.style.display = 'none'; memoBanner.innerHTML = ''; }
+    return null;
+  }
+
+  var mOrders = getMemoOrders(memoNoVal);
+  var mTrades = getMemoTrades(memoNoVal);
+  var mBill = mOrders.reduce(function(s,o){return s+(parseFloat(o[DK.salePrice])||0);},0) +
+              mTrades.reduce(function(s,t){return s+(parseFloat(t[SHEET_KEYS.salePrice])||0);},0);
+  var mPaid = getAggregatedPaymentLog(memoNoVal).reduce(function(s,i){return s+(parseFloat(i.amount)||0);},0);
+  var mBal = mBill - mPaid;
+
+  if (memoBanner) {
+    memoBanner.innerHTML = '<div class="memo-compact-row">' +
+      '<span class="memo-compact-title">Memo ' + escapeHtml(memoNoVal) + '</span>' +
+      '<span class="memo-compact-stat"><span class="label">Items</span><span class="value">' + (mOrders.length + mTrades.length) + '</span></span>' +
+      '<span class="memo-compact-stat"><span class="label">Bill</span><span class="value">$' + fmtMoney(mBill) + '</span></span>' +
+      '<span class="memo-compact-stat"><span class="label">Paid</span><span class="value">$' + fmtMoney(mPaid) + '</span></span>' +
+      '<span class="memo-compact-stat"><span class="label">Balance</span><span class="value" style="color:' + (mBal>0?'var(--error)':'var(--success)') + '">$' + fmtMoney(Math.abs(mBal)) + '</span></span>' +
+      '</div>';
+    memoBanner.style.display = 'block';
+  }
+
+  return { bill: mBill, paid: mPaid, balance: mBal };
+}
+
 function updateTradePreview() {
+  var memoInfo = updateTradeMemoBanner();
   var purchase = parseFloat($('t_purchasePrice').value) || 0;
   var sale = parseFloat($('t_salePrice').value) || 0;
   var profit = sale ? sale - purchase : 0;
 
   var totalPaid = currentTradeInstallments.reduce(function(s, i) { return s + (parseFloat(i.amount) || 0); }, 0);
-  var balance = sale ? sale - totalPaid : 0;
+
+  // For a memo item, currentTradeInstallments holds the WHOLE memo's
+  // installments (via getAggregatedPaymentLog), so it must be compared
+  // against the memo's combined bill — not this single item's own
+  // salePrice — or every item but the last-paid one looks "overpaid".
+  var billForComparison = memoInfo ? memoInfo.bill : sale;
+  var balance = billForComparison ? billForComparison - totalPaid : 0;
+
   var status = 'Not Sold';
   if (sale) {
-    if (totalPaid >= sale) status = 'Paid';
+    if (totalPaid >= billForComparison) status = 'Paid';
     else if (totalPaid > 0) status = 'Partial';
     else status = 'Unpaid';
   }
@@ -97,6 +140,18 @@ function updateTradePreview() {
   $('t_prev_amountPaid').textContent = '$' + fmtMoney(totalPaid);
   $('t_prev_balanceDue').textContent = sale ? '$' + fmtMoney(balance) : '—';
   $('t_prev_paymentStatus').textContent = status;
+  renderRemainingBalanceTag('t_remainingBalance', billForComparison, totalPaid);
+
+  var badge = $('tradePanelStatusBadge');
+  if (badge) {
+    var statusClass = {
+      'Not Sold': 'status-not-sold', 'Unpaid': 'status-unpaid',
+      'Partial': 'status-partial', 'Paid': 'status-paid'
+    }[status] || 'status-not-sold';
+    badge.className = 'status-badge ' + statusClass;
+    badge.textContent = status;
+    badge.style.display = 'inline-flex';
+  }
 }
 
 /* ============ INSTALLMENTS ============ */
@@ -119,10 +174,8 @@ function renderTradeInstallments() {
   var list = $('tradeInstallmentsList');
   if (!currentTradeInstallments.length) { list.innerHTML = ''; return; }
   list.innerHTML = currentTradeInstallments.map(function(inst, i) {
-    return '<div class="installment-item">' +
-      '<span>$' + fmtMoney(inst.amount) + ' · ' + inst.date + '</span>' +
-      '<button onclick="window.removeTradeInst(' + i + ')">&times;</button>' +
-      '</div>';
+    return '<span class="installment-chip">$' + fmtMoney(inst.amount) + ' · ' + inst.date +
+      '<button onclick="window.removeTradeInst(' + i + ')">&times;</button></span>';
   }).join('');
 }
 
@@ -145,14 +198,11 @@ $('saveTradeBtn').addEventListener('click', async function() {
   if (!$('t_vendor').value.trim()) { $('err_t_vendor').textContent = 'Required'; valid = false; }
 
   var purchaseStr = $('t_purchasePrice').value.trim();
-  if (purchaseStr === '' || isNaN(parseFloat(purchaseStr)) || parseFloat(purchaseStr) <= 0) {
-    $('err_t_purchasePrice').textContent = 'Enter an amount greater than 0'; valid = false;
+  if (purchaseStr === '' || isNaN(parseFloat(purchaseStr)) || parseFloat(purchaseStr) < 0) {
+    $('err_t_purchasePrice').textContent = 'Enter valid amount'; valid = false;
   }
 
   var saleStr = $('t_salePrice').value.trim();
-  if (saleStr !== '' && (isNaN(parseFloat(saleStr)) || parseFloat(saleStr) < 0)) {
-    $('err_t_salePrice').textContent = 'Must be 0 or more'; valid = false;
-  }
   var totalPaid = currentTradeInstallments.reduce(function(s, i) { return s + (parseFloat(i.amount) || 0); }, 0);
   var salePrice = saleStr === '' ? 0 : parseFloat(saleStr) || 0;
 
@@ -193,7 +243,6 @@ $('saveTradeBtn').addEventListener('click', async function() {
   data[SHEET_KEYS.notes] = $('t_notes').value.trim();
   data[SHEET_KEYS.memoNo] = $('t_memoNo').value.trim().toUpperCase();
 
-  setBusy($('saveTradeBtn'), true, 'Saving…');
   try {
     if (editingTradeId) {
       var existing = TRADING.find(function(r) { return r._id === editingTradeId; });
@@ -211,11 +260,8 @@ $('saveTradeBtn').addEventListener('click', async function() {
     renderAll();
   } catch (err) {
     console.error(err);
-    var msg = describeError(err, 'Failed to save trade. Please try again.');
-    $('tradeSaveMsg').textContent = msg;
-    showToast(msg, 'error');
-  } finally {
-    setBusy($('saveTradeBtn'), false);
+    $('tradeSaveMsg').textContent = 'Error saving. Try again.';
+    showToast('Failed to save trade. Please try again.', 'error');
   }
 });
 
@@ -285,39 +331,29 @@ async function renumberTradesAfterDelete(deletedSr) {
   }
 }
 
-function doDeleteTrade() {
+async function doDeleteTrade() {
   if (!editingTradeId) return;
-  var idx = TRADING.findIndex(function(r) { return r._id === editingTradeId; });
-  if (idx === -1) return;
-  var trade = TRADING[idx];
-  var srNo = trade[SHEET_KEYS.sr];
+  var trade = TRADING.find(function(r) { return r._id === editingTradeId; });
+  var srNo = trade ? trade[SHEET_KEYS.sr] : '';
 
-  TRADING.splice(idx, 1);
-  closeTradePanel();
-  renderAll();
+  try {
+    await window.deleteTrading(editingTradeId, srNo);
 
-  scheduleSoftDelete(
-    'Trade #' + srNo + ' deleted',
-    function undo() {
-      TRADING.splice(idx, 0, trade);
-      renderAll();
-      showToast('Trade #' + srNo + ' restored', 'success');
-    },
-    async function commit() {
-      try {
-        await window.deleteTrading(trade._id, srNo);
-        if (srNo) await renumberTradesAfterDelete(srNo);
-        showToast('Trade #' + srNo + ' deleted', 'success');
-        await doFetchTrading();
-        renderAll();
-      } catch (err) {
-        console.error(err);
-        showToast(describeError(err, 'Failed to delete trade — refreshing list'), 'error');
-        await doFetchTrading();
-        renderAll();
-      }
+    // Remove deleted item from in-memory array immediately
+    TRADING = TRADING.filter(function(r) { return r._id !== editingTradeId; });
+
+    if (srNo) {
+      await renumberTradesAfterDelete(srNo);
     }
-  );
+
+    showToast('Trade deleted', 'success');
+    closeTradePanel();
+    await doFetchTrading();
+    renderAll();
+  } catch (err) {
+    console.error(err);
+    showToast('Failed to delete trade', 'error');
+  }
 }
 
 $('deleteTradeBtn').addEventListener('mousedown', startDeleteTradeTimer);

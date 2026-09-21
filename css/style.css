@@ -1700,6 +1700,27 @@ input[type="checkbox"] {
 }
 
 /* ============================================
+   LAPTOP-WIDTH SCREENS (e.g. 1366px, 1440px)
+   The orders/trading tables are normally locked to a
+   1600px minimum width so columns never squish — great
+   on a big desktop monitor, but wider than most laptop
+   screens, forcing a horizontal scrollbar (or manual
+   browser zoom) just to see the whole table.
+   Between the mobile card-view breakpoint (900px) and
+   1600px, drop the hard floor and shrink the table font
+   slightly instead, so the existing %-based column
+   widths shrink proportionally and the full table fits
+   without scrolling or zooming.
+   ============================================ */
+@media (min-width: 901px) and (max-width: 1600px) {
+  #ordersTable,
+  #tradingTable {
+    min-width: 0;
+    font-size: 13px;
+  }
+}
+
+/* ============================================
    ACCESSIBILITY
    ============================================ */
 @media (prefers-reduced-motion: reduce) {

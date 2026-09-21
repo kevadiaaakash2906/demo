@@ -50,6 +50,7 @@
       </div>
       <button class="btn secondary small" id="refreshBtn" title="Refresh">↻</button>
       <button class="btn secondary small" id="insightsBtn" title="Vendor profitability & best sellers">Insights</button>
+      <button class="btn secondary small" id="buyersBtn" title="Buyer directory">Buyers</button>
       <button class="btn secondary small" id="receivePaymentBtn">Payment</button>
       <button class="btn small" id="newOrderBtn">+ Order</button>
       <button class="btn small" id="newTradeBtn" style="display:none;">+ Trade</button>
@@ -289,7 +290,7 @@
         <div class="section-card-title">Sale Details</div>
         <div class="fields-grid">
           <div class="field"><label>Memo No.</label><input id="f_memoNo" placeholder="e.g. MEMO-014"></div>
-          <div class="field"><label>Sold To (Buyer)</label><input id="f_soldTo" placeholder="e.g. Priya Shah"></div>
+          <div class="field"><label>Sold To (Buyer)</label><input id="f_soldTo" list="buyersDatalist" autocomplete="off" placeholder="e.g. Priya Shah"><input type="hidden" id="f_soldToBuyerId"></div>
           <div class="field"><label>Sale Price ($)</label><input id="f_salePrice" type="number" step="1" placeholder="0"><div class="field-error" id="err_f_salePrice"></div></div>
           <div class="field"><label>Date Sold</label><input id="f_dateSold" type="date"></div>
         </div>
@@ -369,7 +370,7 @@
         <div class="section-card-title">Sale Details</div>
         <div class="fields-grid">
           <div class="field"><label>Memo No.</label><input id="t_memoNo" placeholder="e.g. MEMO-014"></div>
-          <div class="field"><label>Sold To (Buyer)</label><input id="t_soldTo" placeholder="e.g. Priya Shah"></div>
+          <div class="field"><label>Sold To (Buyer)</label><input id="t_soldTo" list="buyersDatalist" autocomplete="off" placeholder="e.g. Priya Shah"><input type="hidden" id="t_soldToBuyerId"></div>
           <div class="field"><label>Sale Price ($)</label><input id="t_salePrice" type="number" step="1" placeholder="0"><div class="field-error" id="err_t_salePrice"></div></div>
           <div class="field"><label>Date Sold</label><input id="t_dateSold" type="date"></div>
         </div>
@@ -497,6 +498,55 @@
   </div>
 </div>
 
+<!-- Suggestions for the Sold To fields; populated at runtime from BUYERS -->
+<datalist id="buyersDatalist"></datalist>
+
+<!-- ============ BUYERS ============ -->
+<div id="buyersOverlay" class="side-modal-overlay"></div>
+<div id="buyersModal" class="side-modal side-modal-wide">
+  <div class="panel-head"><h2>Buyers</h2><button id="closeBuyers">&times;</button></div>
+  <div class="side-modal-body">
+    <div style="display:flex;gap:var(--space-3);margin-bottom:var(--space-4);">
+      <input type="text" id="buyerSearchInput" class="filter-pill" placeholder="Search buyers…" style="flex:1;" autocomplete="off">
+      <button class="btn small" id="newBuyerBtn">+ Buyer</button>
+    </div>
+    <div id="buyerListContainer"></div>
+  </div>
+</div>
+
+<!-- ============ BUYER EDIT PANEL ============ -->
+<div id="buyerFormOverlay" class="side-modal-overlay"></div>
+<div id="buyerFormModal" class="side-modal">
+  <div class="panel-head"><h2 id="buyerFormTitle">New Buyer</h2><button id="closeBuyerForm">&times;</button></div>
+  <div class="side-modal-body">
+    <div class="field">
+      <label>Name</label>
+      <input id="b_name" placeholder="e.g. Priya Shah">
+      <div class="field-error" id="err_b_name"></div>
+    </div>
+    <div class="field">
+      <label>Phone</label>
+      <input id="b_phone" placeholder="e.g. +91 98765 43210">
+    </div>
+    <div class="field">
+      <label>Email</label>
+      <input id="b_email" placeholder="optional">
+    </div>
+    <div class="field">
+      <label>Address</label>
+      <input id="b_address" placeholder="optional">
+    </div>
+    <div class="field">
+      <label>Notes</label>
+      <textarea id="b_notes" rows="3" placeholder="ring size, preferences, etc."></textarea>
+    </div>
+    <div style="display:flex;gap:var(--space-3);margin-top:var(--space-4);">
+      <button class="btn" id="deleteBuyerBtn" style="display:none;background:var(--error);color:#fff;"><span>Delete</span></button>
+      <button class="btn" id="saveBuyerBtn" style="flex:1;">Save</button>
+    </div>
+  </div>
+</div>
+
 <div id="screenFx"></div>
 <div id="toast"></div>
 <div id="undoToast">
@@ -524,6 +574,7 @@
 <script src="js/trading.js?v=3"></script>
 <script src="js/expenses.js?v=1"></script>
 <script src="js/insights.js?v=1"></script>
+<script src="js/buyers.js?v=1"></script>
 <button id="mobileFab" class="mobile-fab" style="display:none;">+</button>
 </body>
 </html>

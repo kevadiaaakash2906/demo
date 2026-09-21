@@ -1718,6 +1718,24 @@ input[type="checkbox"] {
     min-width: 0;
     font-size: 13px;
   }
+
+  /* Header buttons/search/stats were overflowing off the right edge on
+     laptop-width screens with no way to wrap or shrink, so the newest
+     buttons (Insights, Buyers) got clipped. Drop the redundant stats
+     row (duplicated by the KPI cards below), shrink search, and allow
+     wrapping as a safety net so nothing is ever invisible. */
+  .topbar {
+    flex-wrap: wrap;
+    row-gap: var(--space-2);
+  }
+
+  .header-stats {
+    display: none;
+  }
+
+  #search {
+    width: 160px;
+  }
 }
 
 /* ============================================

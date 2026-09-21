@@ -122,14 +122,19 @@ function renderBuyerList(filterQuery) {
   container.innerHTML = rows.map(function(b) {
     var name = b[BUYER_KEYS.name] || '(unnamed)';
     var stats = getBuyerStats(name);
-    return '<div class="customer-item-row" style="align-items:flex-start;">' +
-      '<span>' +
-        '<span class="soldto-link" data-customer="' + escapeHtml(name) + '" style="font-weight:500;">' + escapeHtml(name) + '</span><br>' +
-        '<span style="color:var(--text-dim);font-size:12px;">' + escapeHtml(b[BUYER_KEYS.phone] || 'No phone on file') + '</span><br>' +
-        '<span style="color:var(--text-dim);font-size:12px;">' + stats.itemCount + ' item(s) &middot; $' + fmtMoney(stats.totalBill) + ' billed' +
-        (stats.totalOutstanding > 0.01 ? ' &middot; <span style="color:var(--warning)">$' + fmtMoney(stats.totalOutstanding) + ' due</span>' : '') +
-        '</span>' +
-      '</span>' +
+    var dueHtml = stats.totalOutstanding > 0.01
+      ? '<div class="buyer-row-stat"><span class="label">Due</span><span class="value due">$' + fmtMoney(stats.totalOutstanding) + '</span></div>'
+      : '';
+    return '<div class="buyer-row">' +
+      '<div class="buyer-row-identity">' +
+        '<span class="soldto-link buyer-row-name" data-customer="' + escapeHtml(name) + '">' + escapeHtml(name) + '</span>' +
+        '<span class="buyer-row-phone">' + escapeHtml(b[BUYER_KEYS.phone] || 'No phone on file') + '</span>' +
+      '</div>' +
+      '<div class="buyer-row-stats">' +
+        '<div class="buyer-row-stat"><span class="label">Items</span><span class="value">' + stats.itemCount + '</span></div>' +
+        '<div class="buyer-row-stat"><span class="label">Billed</span><span class="value">$' + fmtMoney(stats.totalBill) + '</span></div>' +
+        dueHtml +
+      '</div>' +
       '<button class="btn secondary small" data-edit-buyer="' + b._id + '">Edit</button>' +
       '</div>';
   }).join('');

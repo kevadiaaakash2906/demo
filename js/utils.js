@@ -83,104 +83,36 @@ function dismissToast(toast) {
   });
 }
 
-/* ============ BUTTON BUSY STATE ============ */
-// Disables a button and swaps its label while an async action runs,
-// preventing double-submits and giving the user feedback that something is happening.
-function setBusy(btn, busy, busyLabel) {
-  if (!btn) return;
-  if (busy) {
-    if (btn.dataset.busyOrigLabel == null) btn.dataset.busyOrigLabel = btn.innerHTML;
-    btn.disabled = true;
-    btn.classList.add('busy');
-    btn.innerHTML = '<span>' + escapeHtml(busyLabel || 'Working…') + '</span>';
-  } else {
-    btn.disabled = false;
-    btn.classList.remove('busy');
-    if (btn.dataset.busyOrigLabel != null) {
-      btn.innerHTML = btn.dataset.busyOrigLabel;
-      delete btn.dataset.busyOrigLabel;
-    }
-  }
-}
-
-/* ============ FRIENDLY ERROR MESSAGES ============ */
-// Translates raw Firebase/network errors into something a user can actually act on.
-function describeError(err, fallback) {
-  if (!navigator.onLine) return "You're offline — check your connection and try again.";
-  var code = err && err.code;
-  if (code === 'permission-denied') return "You don't have permission to do that.";
-  if (code === 'unavailable' || code === 'deadline-exceeded') return 'Server is taking too long to respond. Please try again.';
-  if (code === 'unauthenticated') return 'Your session expired — please log in again.';
-  if (err && err.name === 'AbortError') return 'Request timed out. Please try again.';
-  return fallback || 'Something went wrong. Please try again.';
-}
-
-/* ============ SOFT DELETE / UNDO ============ */
-// A delete doesn't hit the server immediately: the row disappears from the UI right away,
-// and an Undo toast gives the user a real window to reverse it before anything is written.
-// If undo isn't clicked in time, `commit` performs the actual backend delete.
-var _pendingDelete = null;
-
-function scheduleSoftDelete(label, undoFn, commitFn, seconds) {
-  seconds = seconds || 6;
-  var toast = $('undoToast');
-  if (!toast) { commitFn(); return; }
-
-  // Only one undo window at a time — if another delete is already pending, finalize it now.
-  if (_pendingDelete) _pendingDelete.finish(true);
-
-  var remaining = seconds;
-
-  function render() {
-    toast.innerHTML = '<span class="undo-msg">' + escapeHtml(label) + ' — <span class="undo-count">' +
-      remaining + '</span>s to undo</span><button id="undoBtn">Undo</button>';
-    $('undoBtn').onclick = function() { finish(false); };
-  }
-
-  function finish(commit) {
-    clearInterval(tick);
-    toast.classList.remove('show');
-    _pendingDelete = null;
-    if (commit) return commitFn(); else undoFn();
-  }
-
-  render();
-  toast.classList.add('show');
-
-  var tick = setInterval(function() {
-    remaining--;
-    if (remaining <= 0) { finish(true); return; }
-    render();
-  }, 1000);
-
-  _pendingDelete = { finish: finish };
-}
-
-// Forces any pending soft-delete to commit immediately. Call this before any
-// full re-fetch of the underlying list (ORDERS/TRADING/EXPENSES) — otherwise
-// a refetch would pull the not-yet-deleted record back from Firestore and
-// make it reappear while its undo toast is still showing.
-function flushPendingDelete() {
-  if (_pendingDelete) return Promise.resolve(_pendingDelete.finish(true));
-  return Promise.resolve();
-}
-
-/* ============ ONLINE / OFFLINE ============ */
-function updateOnlineStatus() {
-  var banner = document.getElementById('offlineBanner');
-  if (!banner) return;
-  banner.classList.toggle('show', !navigator.onLine);
-}
-window.addEventListener('online', function() { updateOnlineStatus(); showToast('Back online', 'success', 2000); });
-window.addEventListener('offline', function() { updateOnlineStatus(); showToast("You're offline", 'warning', 3000); });
-updateOnlineStatus();
-
 /* ============ HAPTIC FEEDBACK (mobile) ============ */
 function haptic(type) {
   if (navigator.vibrate) {
     if (type === 'success') navigator.vibrate(40);
     else if (type === 'error') navigator.vibrate([50, 50, 50]);
     else if (type === 'light') navigator.vibrate(20);
+  }
+}
+
+/* ============ SHARED PAYMENT UI HELPERS ============ */
+// Updates a "Remaining: $X" / "Fully paid" / "Overpaid by $X" tag next to an
+// installment add-row. billTotal <= 0 means nothing is sold yet, so the tag clears.
+function renderRemainingBalanceTag(elId, billTotal, totalPaid) {
+  var el = $(elId);
+  if (!el) return;
+  if (!billTotal) {
+    el.textContent = '';
+    el.className = 'remaining-balance-tag';
+    return;
+  }
+  var remaining = billTotal - totalPaid;
+  if (remaining < 0) {
+    el.textContent = 'Overpaid by $' + fmtMoney(Math.abs(remaining));
+    el.className = 'remaining-balance-tag balance-over';
+  } else if (remaining === 0) {
+    el.textContent = 'Fully paid';
+    el.className = 'remaining-balance-tag balance-zero';
+  } else {
+    el.textContent = 'Remaining: $' + fmtMoney(remaining);
+    el.className = 'remaining-balance-tag';
   }
 }
 
@@ -194,8 +126,4 @@ window.highlightText = highlightText;
 window.showToast = showToast;
 window.dismissToast = dismissToast;
 window.haptic = haptic;
-window.setBusy = setBusy;
-window.describeError = describeError;
-window.scheduleSoftDelete = scheduleSoftDelete;
-window.flushPendingDelete = flushPendingDelete;
-window.updateOnlineStatus = updateOnlineStatus;
+window.renderRemainingBalanceTag = renderRemainingBalanceTag;

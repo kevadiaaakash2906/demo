@@ -7,15 +7,29 @@ var currentInstallments = [];
 var readOnly = false;
 var panelGoldRate = null;   // snapshot for this editing session — never changes while panel is open
 /* ============ TABS ============ */
-document.querySelectorAll('.panel-tab').forEach(function(tab) {
-  tab.addEventListener('click', function() {
-    document.querySelectorAll('.panel-tab').forEach(function(t) { t.classList.remove('active'); });
-    document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
-    tab.classList.add('active');
-    var target = document.getElementById(tab.dataset.tab);
-    if (target) target.classList.add('active');
+// Scoped per .panel-tabs container so multiple tabbed panels (Order, Trading)
+// don't clobber each other's active state when both exist in the DOM.
+document.querySelectorAll('.panel-tabs').forEach(function(tabBar) {
+  var tabs = tabBar.querySelectorAll('.panel-tab');
+  var panelRoot = tabBar.closest('#panel, #tradePanel, #expensePanel') || document;
+  tabs.forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      tabs.forEach(function(t) { t.classList.remove('active'); });
+      panelRoot.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+      tab.classList.add('active');
+      var target = document.getElementById(tab.dataset.tab);
+      if (target) target.classList.add('active');
+    });
   });
 });
+
+function activateFirstTab(panelEl) {
+  var tabs = panelEl.querySelectorAll('.panel-tab');
+  var contents = panelEl.querySelectorAll('.tab-content');
+  if (!tabs.length) return;
+  tabs.forEach(function(t, i) { t.classList.toggle('active', i === 0); });
+  contents.forEach(function(c, i) { c.classList.toggle('active', i === 0); });
+}
 /* ============ MEMO HELPERS ============ */
 function getMemoOrders(memoNo) {
   if (!memoNo) return [];
@@ -124,6 +138,7 @@ window.openOrderPanel = function(id) {
 
   var panel = $('panel');
   var overlay = $('overlay');
+  activateFirstTab(panel);
 
   // Reset fields
   ['f_customer','f_style','f_jewelryType','f_date','f_grossWt','f_netWt','f_diaQty','f_inCt',
@@ -198,22 +213,6 @@ window.openOrderPanel = function(id) {
     $('f_memoNo').value = order[DK.memoNo] || '';
     $('f_soldTo').value = order[DK.soldTo] || '';
 
-    // Memo banner
-    var memoNoVal = order[DK.memoNo];
-    if (memoNoVal && memoBanner) {
-      var mOrders = getMemoOrders(memoNoVal);
-      var mTrades = getMemoTrades(memoNoVal);
-      var mBill = mOrders.reduce(function(s,o){return s+(parseFloat(o[DK.salePrice])||0);},0) +
-                  mTrades.reduce(function(s,t){return s+(parseFloat(t[SHEET_KEYS.salePrice])||0);},0);
-      var mPaid = currentInstallments.reduce(function(s,i){return s+(parseFloat(i.amount)||0);},0);
-      var mBal = mBill - mPaid;
-      memoBanner.innerHTML = '<div style="font-weight:600;margin-bottom:2px;">Memo ' + escapeHtml(memoNoVal) + '</div>' +
-        '<div class="memo-row"><span>Items</span><strong>' + (mOrders.length + mTrades.length) + '</strong></div>' +
-        '<div class="memo-row"><span>Total Bill</span><strong>$' + fmtMoney(mBill) + '</strong></div>' +
-        '<div class="memo-row"><span>Total Paid</span><strong>$' + fmtMoney(mPaid) + '</strong></div>' +
-        '<div class="memo-row"><span>Balance</span><strong style="color:' + (mBal>0?'var(--error)':'var(--success)') + '">$' + fmtMoney(Math.abs(mBal)) + '</strong></div>';
-      memoBanner.style.display = 'block';
-    }
     if (!order[DK.soldTo]) {
       var memoNo = order[DK.memoNo];
       if (memoNo) {
@@ -244,8 +243,6 @@ window.openOrderPanel = function(id) {
 
   setReadOnly(readOnly);
   updatePreview();
-  checkStyleHint();
-  checkMemoHint();
 
   overlay.style.display = 'block';
   panel.classList.add('open');
@@ -288,43 +285,7 @@ $('f_memoNo').addEventListener('input', function() {
   }
   updatePreview();
   updateMemoSummary();
-  checkMemoHint();
 });
-
-/* ============ DUPLICATE / DATA-INTEGRITY HINTS (non-blocking) ============ */
-function checkStyleHint() {
-  var el = $('hint_f_style');
-  if (!el) return;
-  var style = $('f_style').value.trim().toUpperCase();
-  if (!style) { el.textContent = ''; el.className = 'field-hint'; return; }
-  var matches = ORDERS.filter(function(o) { return o._id !== editingId && (o[DK.style] || '').trim().toUpperCase() === style; });
-  if (matches.length) {
-    el.textContent = 'Style "' + style + '" used in ' + matches.length + ' other order(s) — Jewelry Type/Diamond Shape stay in sync across them.';
-    el.className = 'field-hint';
-  } else {
-    el.textContent = '';
-    el.className = 'field-hint';
-  }
-}
-
-function checkMemoHint() {
-  var el = $('hint_f_memoNo');
-  if (!el) return;
-  var memoNo = $('f_memoNo').value.trim().toUpperCase();
-  if (!memoNo) { el.textContent = ''; el.className = 'field-hint'; return; }
-  var buyer = getMemoBuyer(memoNo);
-  var currentBuyer = $('f_soldTo').value.trim();
-  if (buyer && currentBuyer && buyer.toLowerCase() !== currentBuyer.toLowerCase()) {
-    el.textContent = 'Memo "' + memoNo + '" is already linked to buyer "' + buyer + '" — double-check this is the same sale.';
-    el.className = 'field-hint warn';
-  } else {
-    el.textContent = '';
-    el.className = 'field-hint';
-  }
-}
-
-$('f_style').addEventListener('input', checkStyleHint);
-$('f_soldTo').addEventListener('input', checkMemoHint);
 
 function updatePreview() {
   var netWt = parseFloat($('f_netWt').value) || 0;
@@ -376,6 +337,7 @@ function updatePreview() {
   $('prev_amountPaid').textContent = totalPaid ? '$' + fmtMoney(totalPaid) : '$0';
   $('prev_balanceDue').textContent = salePrice ? '$' + fmtMoney(balance) : '—';
   $('prev_paymentStatus').textContent = status;
+  renderRemainingBalanceTag('f_remainingBalance', memoNoPreview ? memoTotalBillPreview : salePrice, totalPaid);
   updateMemoSummary();
 
   // Visual indicator of which rate is being used
@@ -394,8 +356,33 @@ function updatePreview() {
   }
 }
 
+/* ============ MEMO BANNER (top, header area) ============ */
+function updateMemoBanner() {
+  var memoBanner = $('panelMemoBanner');
+  if (!memoBanner) return;
+  var memoNoVal = $('f_memoNo').value.trim().toUpperCase();
+  if (!memoNoVal) { memoBanner.style.display = 'none'; memoBanner.innerHTML = ''; return; }
+
+  var mOrders = getMemoOrders(memoNoVal);
+  var mTrades = getMemoTrades(memoNoVal);
+  var mBill = mOrders.reduce(function(s,o){return s+(parseFloat(o[DK.salePrice])||0);},0) +
+              mTrades.reduce(function(s,t){return s+(parseFloat(t[SHEET_KEYS.salePrice])||0);},0);
+  var mPaid = currentInstallments.reduce(function(s,i){return s+(parseFloat(i.amount)||0);},0);
+  var mBal = mBill - mPaid;
+
+  memoBanner.innerHTML = '<div class="memo-compact-row">' +
+    '<span class="memo-compact-title">Memo ' + escapeHtml(memoNoVal) + '</span>' +
+    '<span class="memo-compact-stat"><span class="label">Items</span><span class="value">' + (mOrders.length + mTrades.length) + '</span></span>' +
+    '<span class="memo-compact-stat"><span class="label">Bill</span><span class="value">$' + fmtMoney(mBill) + '</span></span>' +
+    '<span class="memo-compact-stat"><span class="label">Paid</span><span class="value">$' + fmtMoney(mPaid) + '</span></span>' +
+    '<span class="memo-compact-stat"><span class="label">Balance</span><span class="value" style="color:' + (mBal>0?'var(--error)':'var(--success)') + '">$' + fmtMoney(Math.abs(mBal)) + '</span></span>' +
+    '</div>';
+  memoBanner.style.display = 'block';
+}
+
 /* ============ MEMO SUMMARY ============ */
 function updateMemoSummary() {
+  updateMemoBanner();
   var memoNo = $('f_memoNo').value.trim().toUpperCase();
   var el = $('memoSummary');
   if (!memoNo) { el.style.display = 'none'; el.textContent = ''; return; }
@@ -509,24 +496,7 @@ $('saveBtn').addEventListener('click', async function() {
 
   if (!$('f_customer').value.trim()) { $('err_f_customer').textContent = 'Required'; valid = false; }
   if (!$('f_style').value.trim()) { $('err_f_style').textContent = 'Required'; valid = false; }
-
-  var netWtStr = $('f_netWt').value.trim();
-  if (!netWtStr) { $('err_f_netWt').textContent = 'Required'; valid = false; }
-  else if (isNaN(parseFloat(netWtStr)) || parseFloat(netWtStr) <= 0) { $('err_f_netWt').textContent = 'Must be greater than 0'; valid = false; }
-
-  var grossWtStr = $('f_grossWt').value.trim();
-  if (grossWtStr && (isNaN(parseFloat(grossWtStr)) || parseFloat(grossWtStr) < 0)) { $('err_f_grossWt').textContent = 'Must be 0 or more'; valid = false; }
-
-  // Numeric sanity checks — real errors instead of the field silently defaulting to 0
-  [['f_diaQty','err_f_diaQty'], ['f_inCt','err_f_inCt'], ['f_diamAmount','err_f_diamAmount'], ['f_lCharges','err_f_lCharges']].forEach(function(pair) {
-    var v = $(pair[0]).value.trim();
-    if (v && (isNaN(parseFloat(v)) || parseFloat(v) < 0)) { $(pair[1]).textContent = 'Must be 0 or more'; valid = false; }
-  });
-  var multStr = $('f_multiplier').value.trim();
-  if (multStr && (isNaN(parseFloat(multStr)) || parseFloat(multStr) <= 0)) { $('err_f_multiplier').textContent = 'Must be greater than 0'; valid = false; }
-
-  var salePriceStr = $('f_salePrice').value.trim();
-  if (salePriceStr && (isNaN(parseFloat(salePriceStr)) || parseFloat(salePriceStr) < 0)) { $('err_f_salePrice').textContent = 'Must be 0 or more'; valid = false; }
+  if (!$('f_netWt').value.trim()) { $('err_f_netWt').textContent = 'Required'; valid = false; }
 
   var netWt = parseFloat($('f_netWt').value) || 0;
   var grossWt = parseFloat($('f_grossWt').value) || 0;
@@ -624,7 +594,6 @@ $('saveBtn').addEventListener('click', async function() {
   data[DK.paymentLog] = JSON.stringify(currentInstallments);
   data._flatLabor = isFlatLaborSave;
 
-  setBusy($('saveBtn'), true, 'Saving…');
   try {
     if (editingId) {
       var existing = ORDERS.find(function(r) { return r._id === editingId; });
@@ -681,11 +650,8 @@ $('saveBtn').addEventListener('click', async function() {
     renderAll();
   } catch (err) {
     console.error(err);
-    var msg = describeError(err, 'Failed to save order. Please try again.');
-    $('saveMsg').textContent = msg;
-    showToast(msg, 'error');
-  } finally {
-    setBusy($('saveBtn'), false);
+    $('saveMsg').textContent = 'Error saving. Try again.';
+    showToast('Failed to save order. Please try again.', 'error');
   }
 });
 
@@ -752,41 +718,27 @@ async function renumberOrdersAfterDelete(deletedSr) {
   }
 }
 
-function doDeleteOrder() {
+async function doDeleteOrder() {
   if (!editingId) return;
-  var idx = ORDERS.findIndex(function(r) { return r._id === editingId; });
-  if (idx === -1) return;
-  var order = ORDERS[idx];
-  var srNo = order[DK.sr];
+  var order = ORDERS.find(function(r) { return r._id === editingId; });
+  var srNo = order ? order[DK.sr] : '';
 
-  // Optimistically remove from view right away; nothing is written to the
-  // server until the undo window expires.
-  ORDERS.splice(idx, 1);
-  closePanel();
-  renderAll();
+  try {
+    await window.deleteOrder(editingId, srNo);
+    ORDERS = ORDERS.filter(function(r) { return r._id !== editingId; });
 
-  scheduleSoftDelete(
-    'Order #' + srNo + ' deleted',
-    function undo() {
-      ORDERS.splice(idx, 0, order);
-      renderAll();
-      showToast('Order #' + srNo + ' restored', 'success');
-    },
-    async function commit() {
-      try {
-        await window.deleteOrder(order._id, srNo);
-        if (srNo) await renumberOrdersAfterDelete(srNo);
-        showToast('Order #' + srNo + ' deleted', 'success');
-        await doFetchOrders();
-        renderAll();
-      } catch (err) {
-        console.error(err);
-        showToast(describeError(err, 'Failed to delete order — refreshing list'), 'error');
-        await doFetchOrders();
-        renderAll();
-      }
+    if (srNo) {
+      await renumberOrdersAfterDelete(srNo);
     }
-  );
+
+    showToast('Order deleted', 'success');
+    closePanel();
+    await doFetchOrders();
+    renderAll();
+  } catch (err) {
+    console.error(err);
+    showToast('Failed to delete order', 'error');
+  }
 }
 
 $('deleteBtn').addEventListener('mousedown', startDeleteTimer);

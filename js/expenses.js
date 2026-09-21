@@ -24,12 +24,18 @@ window.openExpensePanel = function(id) {
     $('e_seller').value = exp[EXPENSE_KEYS.seller] || '';
     $('e_notes').value = exp[EXPENSE_KEYS.notes] || '';
 
+    var isReimbursed = exp[EXPENSE_KEYS.reimbursed] === true || exp[EXPENSE_KEYS.reimbursed] === 'true';
+    $('e_reimbursed').checked = isReimbursed;
+    $('e_reimbursementDate').value = exp[EXPENSE_KEYS.reimbursementDate] || '';
+    updateReimbursementUI();
+
     $('deleteExpenseBtn').style.display = (ROLE === 'staff') ? 'inline-flex' : 'none';
   } else {
     $('expensePanelTitle').textContent = 'New Expense';
     $('e_date').value = new Date().toISOString().split('T')[0];
     $('e_seller').value = '';
     $('deleteExpenseBtn').style.display = 'none';
+    updateReimbursementUI();
   }
 
   $('expenseOverlay').style.display = 'block';
@@ -38,11 +44,23 @@ window.openExpensePanel = function(id) {
 };
 
 function resetExpensePanel() {
-  ['e_date','e_description','e_amount','e_seller','e_notes'].forEach(function(id) { $(id).value = ''; });
+  ['e_date','e_description','e_amount','e_seller','e_notes','e_reimbursementDate'].forEach(function(id) { $(id).value = ''; });
   $('e_category').value = 'Travel';
+  $('e_reimbursed').checked = false;
   $('expenseSaveMsg').textContent = '';
   document.querySelectorAll('[id^="err_e_"]').forEach(function(el) { el.textContent = ''; });
+  updateReimbursementUI();
 }
+
+/* ============ REIMBURSEMENT ============ */
+function updateReimbursementUI() {
+  var checked = $('e_reimbursed').checked;
+  $('e_reimbursementDateWrap').style.display = checked ? 'block' : 'none';
+  if (checked && !$('e_reimbursementDate').value) {
+    $('e_reimbursementDate').value = new Date().toISOString().split('T')[0];
+  }
+}
+$('e_reimbursed').addEventListener('change', updateReimbursementUI);
 
 $('closeExpensePanel').addEventListener('click', closeExpensePanel);
 $('expenseOverlay').addEventListener('click', closeExpensePanel);
@@ -62,8 +80,8 @@ $('saveExpenseBtn').addEventListener('click', async function() {
 
   var valid = true;
   if (!$('e_category').value) { $('err_e_category').textContent = 'Required'; valid = false; }
-  if (!$('e_amount').value.trim() || isNaN(parseFloat($('e_amount').value)) || parseFloat($('e_amount').value) <= 0) {
-    $('err_e_amount').textContent = 'Enter an amount greater than 0'; valid = false;
+  if (!$('e_amount').value.trim() || isNaN(parseFloat($('e_amount').value)) || parseFloat($('e_amount').value) < 0) {
+    $('err_e_amount').textContent = 'Enter valid amount'; valid = false;
   }
   if (!$('e_date').value) { $('err_e_date').textContent = 'Required'; valid = false; }
 
@@ -82,8 +100,9 @@ $('saveExpenseBtn').addEventListener('click', async function() {
   data[EXPENSE_KEYS.amount] = parseFloat($('e_amount').value).toString();
   data[EXPENSE_KEYS.seller] = $('e_seller').value.trim();
   data[EXPENSE_KEYS.notes] = $('e_notes').value.trim();
+  data[EXPENSE_KEYS.reimbursed] = $('e_reimbursed').checked;
+  data[EXPENSE_KEYS.reimbursementDate] = $('e_reimbursed').checked ? ($('e_reimbursementDate').value || '') : '';
 
-  setBusy($('saveExpenseBtn'), true, 'Saving…');
   try {
     if (editingExpenseId) {
       var existing = EXPENSES.find(function(r) { return r._id === editingExpenseId; });
@@ -101,11 +120,8 @@ $('saveExpenseBtn').addEventListener('click', async function() {
     renderAll();
   } catch (err) {
     console.error(err);
-    var msg = describeError(err, 'Failed to save expense. Please try again.');
-    $('expenseSaveMsg').textContent = msg;
-    showToast(msg, 'error');
-  } finally {
-    setBusy($('saveExpenseBtn'), false);
+    $('expenseSaveMsg').textContent = 'Error saving. Try again.';
+    showToast('Failed to save expense. Please try again.', 'error');
   }
 });
 
@@ -172,39 +188,27 @@ async function renumberExpensesAfterDelete(deletedSr) {
   }
 }
 
-function doDeleteExpense() {
+async function doDeleteExpense() {
   if (!editingExpenseId) return;
-  var idx = EXPENSES.findIndex(function(r) { return r._id === editingExpenseId; });
-  if (idx === -1) return;
-  var exp = EXPENSES[idx];
-  var srNo = exp[EXPENSE_KEYS.sr];
+  var exp = EXPENSES.find(function(r) { return r._id === editingExpenseId; });
+  var srNo = exp ? exp[EXPENSE_KEYS.sr] : '';
 
-  EXPENSES.splice(idx, 1);
-  closeExpensePanel();
-  renderAll();
+  try {
+    await window.deleteExpense(editingExpenseId, srNo);
+    EXPENSES = EXPENSES.filter(function(r) { return r._id !== editingExpenseId; });
 
-  scheduleSoftDelete(
-    'Expense #' + srNo + ' deleted',
-    function undo() {
-      EXPENSES.splice(idx, 0, exp);
-      renderAll();
-      showToast('Expense #' + srNo + ' restored', 'success');
-    },
-    async function commit() {
-      try {
-        await window.deleteExpense(exp._id, srNo);
-        if (srNo) await renumberExpensesAfterDelete(srNo);
-        showToast('Expense #' + srNo + ' deleted', 'success');
-        await doFetchExpenses();
-        renderAll();
-      } catch (err) {
-        console.error(err);
-        showToast(describeError(err, 'Failed to delete expense — refreshing list'), 'error');
-        await doFetchExpenses();
-        renderAll();
-      }
+    if (srNo) {
+      await renumberExpensesAfterDelete(srNo);
     }
-  );
+
+    showToast('Expense deleted', 'success');
+    closeExpensePanel();
+    await doFetchExpenses();
+    renderAll();
+  } catch (err) {
+    console.error(err);
+    showToast('Failed to delete expense', 'error');
+  }
 }
 
 $('deleteExpenseBtn').addEventListener('mousedown', startDeleteExpenseTimer);

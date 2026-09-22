@@ -1885,12 +1885,16 @@ input[type="checkbox"] {
   text-decoration-color: var(--md-primary);
 }
 
-/* ============ BUYER DIRECTORY ROW ============ */
+/* ============ BUYER DIRECTORY ROW ============
+   A real grid with fixed-width numeric columns, so Items/Billed/Due line
+   up vertically across every row regardless of how long a buyer's name
+   is — a flex row with space-between let long names shove the numbers
+   around unpredictably row to row. */
 .buyer-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(120px, 1.6fr) 56px 96px 96px 64px;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
+  column-gap: var(--space-4);
   padding: 14px 4px;
   border-bottom: 1px solid var(--md-outline-variant);
 }
@@ -1912,10 +1916,11 @@ input[type="checkbox"] {
   color: var(--text-dim);
 }
 
+/* On desktop this wrapper doesn't create its own box — its three stat
+   children sit directly in the parent grid's fixed columns. On mobile
+   (below) it becomes a real flex row instead, spanning both columns. */
 .buyer-row-stats {
-  display: flex;
-  gap: var(--space-5);
-  flex-shrink: 0;
+  display: contents;
 }
 
 .buyer-row-stat {
@@ -1939,6 +1944,11 @@ input[type="checkbox"] {
   font-variant-numeric: tabular-nums;
 }
 
+.buyer-row-stat .value.empty {
+  color: var(--text-dim);
+  font-weight: 400;
+}
+
 /* A readable, WCAG-friendlier amber for small "due" text — the shared
    --warning token (#FBBC04) is too light against white at this size. */
 .buyer-row-stat .value.due {
@@ -1947,13 +1957,14 @@ input[type="checkbox"] {
 
 @media (max-width: 640px) {
   .buyer-row {
-    flex-wrap: wrap;
+    grid-template-columns: 1fr auto;
+    row-gap: 8px;
   }
   .buyer-row-stats {
-    order: 3;
-    width: 100%;
-    justify-content: flex-start;
+    display: flex;
+    grid-column: 1 / -1;
     gap: var(--space-4);
+    justify-content: flex-start;
   }
   .buyer-row-stat {
     text-align: left;

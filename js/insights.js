@@ -29,8 +29,8 @@ window.openCustomerProfile = function(name) {
   var modal = $('customerProfileModal');
   if (!overlay || !modal) return;
 
-  var orders = ORDERS.filter(function(o) { return (o[DK.soldTo] || '').trim() === name.trim(); });
-  var trades = TRADING.filter(function(t) { return (t[SHEET_KEYS.soldTo] || '').trim() === name.trim(); });
+  var orders = ORDERS.filter(function(o) { return (o[DK.soldTo] || '').trim().toLowerCase() === name.trim().toLowerCase(); });
+  var trades = TRADING.filter(function(t) { return (t[SHEET_KEYS.soldTo] || '').trim().toLowerCase() === name.trim().toLowerCase(); });
 
   var totalBill = 0, totalCollected = 0, totalOutstanding = 0;
   var items = [];

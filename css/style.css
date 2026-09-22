@@ -609,10 +609,26 @@ main {
    KPI CARDS
    ============================================ */
 .kpi-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.kpi-group-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  margin-bottom: var(--space-2);
+  padding-left: 2px;
+}
+
+.kpi-group-cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: var(--space-4);
-  margin-bottom: var(--space-5);
 }
 
 .kpi-card {
@@ -625,9 +641,28 @@ main {
               transform 120ms var(--ease-standard);
 }
 
+/* The single most actionable number (what needs following up on) gets a
+   visual accent so it doesn't read as "just another card" among six. */
+.kpi-card.kpi-accent {
+  border-left: 4px solid var(--warning);
+}
+
 .kpi-card:hover {
   box-shadow: var(--shadow-2);
   transform: translateY(-2px);
+}
+
+.kpi-section-head {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--space-2);
+}
+
+.filter-bar-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
 }
 
 .kpi-label {
@@ -728,6 +763,48 @@ main {
 #ordersTable tbody tr:active td,
 #tradingTable tbody tr:active td {
   background: rgba(26,115,232,0.06);
+}
+
+/* ============================================
+   STICKY FIRST/LAST COLUMNS
+   Keeps the row identifier (Sr.) and the outcome column
+   (Status / P/L) visible while scrolling through the
+   wide middle columns, instead of losing all context.
+   ============================================ */
+.sticky-col-left {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+}
+
+.sticky-col-right {
+  position: sticky;
+  right: 0;
+  z-index: 2;
+}
+
+thead .sticky-col-left,
+thead .sticky-col-right {
+  z-index: 3;
+  background: var(--md-surface-variant);
+}
+
+tbody .sticky-col-left,
+tbody .sticky-col-right {
+  background: var(--md-surface);
+}
+
+/* Hover/active states already restyle td backgrounds via an ID-scoped
+   selector, which naturally wins over the plain-class rules above since
+   an ID selector always outranks a class selector — so the sticky cells
+   still pick up the hover tint correctly without extra rules here. */
+
+.sticky-col-left {
+  box-shadow: 2px 0 4px -2px rgba(0,0,0,0.12);
+}
+
+.sticky-col-right {
+  box-shadow: -2px 0 4px -2px rgba(0,0,0,0.12);
 }
 /* Expenses table */
 #expensesTable {
@@ -1534,8 +1611,8 @@ input[type="checkbox"] {
     gap: var(--space-3);
   }
 
-  /* Mobile: KPI cards in 3 columns, 2 rows */
-  .kpi-grid {
+  /* Mobile: KPI cards in 3 columns, 2 rows, per group */
+  .kpi-group-cards {
     grid-template-columns: repeat(3, 1fr);
     gap: var(--space-3);
   }

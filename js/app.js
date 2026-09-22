@@ -174,6 +174,33 @@ var ORDERS = [];
 var TRADING = [];
 var EXPENSES = [];
 var BUYERS = [];
+
+// KPI display mode: 'expanded' (default, full cards) or 'compact' (the
+// condensed header-stats strip). Persisted so the choice sticks across visits.
+var KPI_COMPACT = localStorage.getItem('kpiCompact') === '1';
+
+function toggleKpiCompact() {
+  KPI_COMPACT = !KPI_COMPACT;
+  localStorage.setItem('kpiCompact', KPI_COMPACT ? '1' : '0');
+  renderAll();
+}
+window.toggleKpiCompact = toggleKpiCompact;
+
+// Filters row (Gold Rate + status/sold-to/memo filters) is collapsed by
+// default to keep the table closer to the top; persisted per-browser.
+var FILTERS_OPEN = localStorage.getItem('filtersOpen') === '1';
+function toggleFiltersBar() {
+  FILTERS_OPEN = !FILTERS_OPEN;
+  localStorage.setItem('filtersOpen', FILTERS_OPEN ? '1' : '0');
+  applyFiltersBarState();
+}
+function applyFiltersBarState() {
+  var content = $('filterBarContent');
+  var btn = $('filtersToggleBtn');
+  if (content) content.style.display = FILTERS_OPEN ? 'flex' : 'none';
+  if (btn) btn.textContent = FILTERS_OPEN ? 'Hide Filters' : 'Filters';
+}
+window.toggleFiltersBar = toggleFiltersBar;
 var currentSearchQuery = '';
 var GOLD_RATE = 16000;
 window.GOLD_RATE = GOLD_RATE;
@@ -193,6 +220,7 @@ async function initApp() {
   await doFetchExpenses();
   await doFetchBuyers();
   await loadGoldRate();
+  applyFiltersBarState();
   renderAll();
   initSwipeGestures();
   initPullToRefresh();
@@ -364,6 +392,26 @@ function renderAll() {
   });
 
   $('receivePaymentBtn').style.display = (ROLE !== 'customer' && currentView !== 'expenses') ? 'inline-flex' : 'none';
+
+  // ── KPI DISPLAY MODE ── overrides whatever the per-tab logic above just
+  // set, so the choice applies uniformly regardless of which tab is active.
+  if (KPI_COMPACT) {
+    ['kpiGrid', 'tradeKpiGrid', 'expenseKpiGrid'].forEach(function(id) {
+      var el = $(id); if (el) el.style.display = 'none';
+    });
+    $('headerStats').style.display = 'flex';
+  } else {
+    $('headerStats').style.display = 'none';
+  }
+  var kpiToggleBtn = $('kpiCompactToggle');
+  if (kpiToggleBtn) kpiToggleBtn.textContent = KPI_COMPACT ? 'Expand' : 'Compact';
+
+  var rateNoteCollapsed = $('rateNoteCollapsed');
+  if (rateNoteCollapsed) {
+    rateNoteCollapsed.textContent = (currentView === 'orders' && !FILTERS_OPEN)
+      ? 'Gold rate: ₹' + (GOLD_RATE || 16000).toLocaleString('en-IN') + '/gm'
+      : '';
+  }
 
   equalizeColumnWidths();
   updateSearchUI();

@@ -57,7 +57,7 @@ function renderTable() {
     }[status] || 'status-not-sold';
 
     return '<tr data-id="' + r._id + '" data-sr="' + sr + '" style="cursor:pointer">' +
-      '<td class="num">' + sr + '</td>' +
+      '<td class="num sticky-col-left">' + sr + '</td>' +
       '<td>' + highlightText(r[DK.customer] || '', q) + '</td>' +
       '<td><strong>' + highlightText(r[DK.style] || '', q) + '</strong></td>' +
       '<td>' + escapeHtml(r[DK.jewelryType] || '') + '</td>' +
@@ -106,7 +106,7 @@ function renderTable() {
       '<td>' + highlightText(r[DK.memoNo] || '', q) + '</td>' +
       '<td>' + (r[DK.soldTo] ? '<span class="soldto-link" data-customer="' + escapeHtml(r[DK.soldTo]) + '">' + highlightText(r[DK.soldTo], q) + '</span>' : '') + '</td>' +
       '<td class="num">' + (r[DK.salePrice] ? '$' + fmtMoney(r[DK.salePrice]) : '') + '</td>' +
-      '<td><span class="status-badge ' + statusClass + '">' + status + '</span></td>' +
+      '<td class="sticky-col-right"><span class="status-badge ' + statusClass + '">' + status + '</span></td>' +
       '</tr>';
   }).join('');
 
@@ -402,7 +402,7 @@ function renderTradeTable() {
     }[status] || 'status-not-sold';
 
     return '<tr data-id="' + r._id + '" style="cursor:pointer">' +
-      '<td class="num">' + r[K.sr] + '</td>' +
+      '<td class="num sticky-col-left">' + r[K.sr] + '</td>' +
       '<td>' + fmtDate(r[K.date]) + '</td>' +
       '<td><strong>' + highlightText(r[K.item] || '', q) + '</strong></td>' +
       '<td class="vendor-wrap">' + highlightText(r[K.vendor] || '', q) + '</td>' +
@@ -411,7 +411,7 @@ function renderTradeTable() {
       '<td class="num">' + (sale ? '$' + fmtMoney(sale) : '') + '</td>' +
       '<td>' + (r[K.soldTo] ? '<span class="soldto-link" data-customer="' + escapeHtml(r[K.soldTo]) + '">' + highlightText(r[K.soldTo], q) + '</span>' : '') + '</td>' +
       '<td><span class="status-badge ' + statusClass + '">' + status + '</span></td>' +
-      '<td class="num" style="color:' + (profit >= 0 ? 'var(--success)' : 'var(--error)') + '">' +
+      '<td class="num sticky-col-right" style="color:' + (profit >= 0 ? 'var(--success)' : 'var(--error)') + '">' +
       (sale ? (profit >= 0 ? '+' : '-') + '$' + fmtMoney(Math.abs(profit)) : '') + '</td>' +
       '</tr>';
   }).join('');

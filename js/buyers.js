@@ -82,77 +82,6 @@ if (document.readyState !== 'loading') {
   if (tSoldToNow) tSoldToNow.addEventListener('blur', function() { linkSoldToBuyer('t_soldTo', 't_soldToBuyerId'); });
 }
 
-/* ============ MERGE (fix duplicate/misspelled buyer records) ============
-   Moves every order/trade sold to `sourceId`'s buyer over to the target
-   buyer's name + ID, then deletes the source buyer record. Used both from
-   the buyer edit form and by the one-time exact-duplicate cleanup below. */
-async function mergeBuyerInto(sourceId, targetName) {
-  var source = BUYERS.find(function(b) { return b._id === sourceId; });
-  if (!source) throw new Error('Buyer not found');
-
-  var target = findBuyerByName(targetName);
-  if (!target) throw new Error('No existing buyer found with that name');
-  if (target._id === sourceId) throw new Error('Choose a different buyer to merge into');
-
-  var sourceName = normalizeBuyerName(source[BUYER_KEYS.name]);
-  var targetNameFinal = target[BUYER_KEYS.name];
-
-  var matchingOrders = ORDERS.filter(function(o) { return normalizeBuyerName(o[DK.soldTo]) === sourceName; });
-  var matchingTrades = TRADING.filter(function(t) { return normalizeBuyerName(t[SHEET_KEYS.soldTo]) === sourceName; });
-
-  for (var i = 0; i < matchingOrders.length; i++) {
-    var o = matchingOrders[i];
-    var odata = {};
-    odata[DK.soldTo] = targetNameFinal;
-    odata[DK.buyerId] = target._id;
-    await window.updateOrder(o._id, odata);
-    o[DK.soldTo] = targetNameFinal;
-    o[DK.buyerId] = target._id;
-  }
-  for (var j = 0; j < matchingTrades.length; j++) {
-    var t = matchingTrades[j];
-    var tdata = {};
-    tdata[SHEET_KEYS.soldTo] = targetNameFinal;
-    tdata[SHEET_KEYS.buyerId] = target._id;
-    await window.updateTrading(t._id, tdata);
-    t[SHEET_KEYS.soldTo] = targetNameFinal;
-    t[SHEET_KEYS.buyerId] = target._id;
-  }
-
-  await window.deleteBuyer(sourceId);
-  BUYERS = BUYERS.filter(function(b) { return b._id !== sourceId; });
-  window.refreshBuyerDatalist();
-
-  return { movedOrders: matchingOrders.length, movedTrades: matchingTrades.length, targetName: targetNameFinal };
-}
-
-// One-time cleanup for buyers that share the EXACT same name (differing only
-// by case/whitespace) — e.g. created by running a backfill script twice.
-// Run this once from the console after deploying; near-duplicates with
-// actually different spellings (like "Benny's Jeweler" vs "Benny's
-// Jewelers") still need the manual Merge button, since auto-matching those
-// risks merging two different real customers.
-window.mergeExactDuplicateBuyers = async function() {
-  var groups = {};
-  BUYERS.forEach(function(b) {
-    var key = normalizeBuyerName(b[BUYER_KEYS.name]);
-    if (!key) return;
-    (groups[key] = groups[key] || []).push(b);
-  });
-  var mergedCount = 0;
-  for (var key in groups) {
-    var group = groups[key];
-    if (group.length < 2) continue;
-    var survivor = group[0];
-    for (var i = 1; i < group.length; i++) {
-      console.log('Merging duplicate "' + group[i][BUYER_KEYS.name] + '" into "' + survivor[BUYER_KEYS.name] + '"');
-      await mergeBuyerInto(group[i]._id, survivor[BUYER_KEYS.name]);
-      mergedCount++;
-    }
-  }
-  console.log('Done. Merged ' + mergedCount + ' exact-duplicate buyer(s). Refresh the page.');
-};
-
 /* ============ BUYER STATS (reuses insights.js's memo-share helper) ============ */
 function getBuyerStats(name) {
   var orders = ORDERS.filter(function(o) { return normalizeBuyerName(o[DK.soldTo]) === normalizeBuyerName(name); });
@@ -233,12 +162,12 @@ function renderBuyerList(filterQuery) {
 window.openBuyers = function() {
   $('buyerSearchInput').value = '';
   renderBuyerList('');
-  $('buyersOverlay').style.display = 'block';
+  $('buyersOverlay').classList.add('open');
   $('buyersModal').classList.add('open');
 };
 
 function closeBuyers() {
-  $('buyersOverlay').style.display = 'none';
+  $('buyersOverlay').classList.remove('open');
   $('buyersModal').classList.remove('open');
 }
 $('closeBuyers').addEventListener('click', closeBuyers);
@@ -264,21 +193,17 @@ window.openBuyerForm = function(id) {
     $('b_address').value = buyer[BUYER_KEYS.address] || '';
     $('b_notes').value = buyer[BUYER_KEYS.notes] || '';
     $('deleteBuyerBtn').style.display = 'inline-flex';
-    $('mergeBuyerBtn').style.display = 'inline-flex';
   } else {
     $('buyerFormTitle').textContent = 'New Buyer';
     $('deleteBuyerBtn').style.display = 'none';
-    $('mergeBuyerBtn').style.display = 'none';
   }
-  $('b_mergeInto').value = '';
-  $('err_b_merge').textContent = '';
 
-  $('buyerFormOverlay').style.display = 'block';
+  $('buyerFormOverlay').classList.add('open');
   $('buyerFormModal').classList.add('open');
 };
 
 function closeBuyerForm() {
-  $('buyerFormOverlay').style.display = 'none';
+  $('buyerFormOverlay').classList.remove('open');
   $('buyerFormModal').classList.remove('open');
   editingBuyerId = null;
 }
@@ -339,27 +264,5 @@ $('deleteBuyerBtn').addEventListener('click', async function() {
   } catch (err) {
     console.error(err);
     showToast('Failed to delete buyer', 'error');
-  }
-});
-
-$('mergeBuyerBtn').addEventListener('click', async function() {
-  if (!editingBuyerId) return;
-  var targetName = $('b_mergeInto').value.trim();
-  $('err_b_merge').textContent = '';
-  if (!targetName) { $('err_b_merge').textContent = 'Type the buyer to merge into'; return; }
-
-  var sourceName = $('b_name').value.trim();
-  if (!confirm('Merge "' + sourceName + '" into "' + targetName + '"?\n\nEvery order/trade sold to "' + sourceName +
-    '" will be changed to "' + targetName + '", and the "' + sourceName + '" buyer record will be deleted. This cannot be undone.')) return;
-
-  try {
-    var result = await mergeBuyerInto(editingBuyerId, targetName);
-    showToast('Merged into ' + result.targetName + ' — ' + (result.movedOrders + result.movedTrades) + ' record(s) updated', 'success');
-    closeBuyerForm();
-    renderBuyerList($('buyerSearchInput').value);
-    if (window.renderAll) renderAll();
-  } catch (err) {
-    console.error(err);
-    $('err_b_merge').textContent = err.message || 'Merge failed';
   }
 });

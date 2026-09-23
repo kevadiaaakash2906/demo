@@ -83,41 +83,25 @@ function renderKPIs() {
   $('hstat_3').style.color = 'var(--warning)';
 
   $('kpiGrid').innerHTML =
-    // Cash Flow first — the numbers you act on day to day.
-    '<div class="kpi-group">' +
-      '<div class="kpi-group-label">Cash Flow</div>' +
-      '<div class="kpi-group-cards">' +
-        '<div class="kpi-card kpi-accent"><div class="kpi-label">Outstanding Balance</div>' +
-        '<div class="kpi-value" style="color:var(--warning)">$' + fmtMoney(totalOutstanding) + '</div>' +
-        '<div class="kpi-sub">across all orders</div></div>' +
-        '<div class="kpi-card"><div class="kpi-label">Amount Collected</div>' +
-        '<div class="kpi-value">$' + fmtMoney(totalCollected) + '</div>' +
-        '<div class="kpi-sub">payments received</div></div>' +
-      '</div>' +
-    '</div>' +
-    '<div class="kpi-group">' +
-      '<div class="kpi-group-label">Performance</div>' +
-      '<div class="kpi-group-cards">' +
-        '<div class="kpi-card"><div class="kpi-label">Total Revenue</div>' +
-        '<div class="kpi-value">$' + fmtMoney(totalRevenue) + '</div>' +
-        '<div class="kpi-sub">from ' + sold.length + ' sold items</div></div>' +
-        '<div class="kpi-card"><div class="kpi-label">Total Cost</div>' +
-        '<div class="kpi-value">$' + fmtMoney(totalCost) + '</div>' +
-        '<div class="kpi-sub">manufacturing + labor</div></div>' +
-        '<div class="kpi-card"><div class="kpi-label">Gross Profit / Loss</div>' +
-        '<div class="kpi-value" style="color:' + (profit >= 0 ? 'var(--success)' : 'var(--error)') + '">' +
-        (profit >= 0 ? '+' : '-') + '$' + fmtMoney(Math.abs(profit)) + '</div>' +
-        '<div class="kpi-sub">revenue minus cost</div></div>' +
-      '</div>' +
-    '</div>' +
-    '<div class="kpi-group">' +
-      '<div class="kpi-group-label">Inventory</div>' +
-      '<div class="kpi-group-cards">' +
-        '<div class="kpi-card"><div class="kpi-label">Stock on Hand</div>' +
-        '<div class="kpi-value">' + stockCount + '</div>' +
-        '<div class="kpi-sub">unsold items worth $' + fmtMoney(stockCost) + ' <span style="font-size:11px;color:var(--text-dim)">(@ ₹' + (window.GOLD_RATE || 16000).toLocaleString('en-IN') + '/gm)</span></div></div>' +
-      '</div>' +
-    '</div>';
+    '<div class="kpi-card"><div class="kpi-label">Total Revenue</div>' +
+    '<div class="kpi-value">$' + fmtMoney(totalRevenue) + '</div>' +
+    '<div class="kpi-sub">from ' + sold.length + ' sold items</div></div>' +
+    '<div class="kpi-card"><div class="kpi-label">Total Cost</div>' +
+    '<div class="kpi-value">$' + fmtMoney(totalCost) + '</div>' +
+    '<div class="kpi-sub">manufacturing + labor</div></div>' +
+    '<div class="kpi-card"><div class="kpi-label">Gross Profit / Loss</div>' +
+    '<div class="kpi-value" style="color:' + (profit >= 0 ? 'var(--success)' : 'var(--error)') + '">' +
+    (profit >= 0 ? '+' : '-') + '$' + fmtMoney(Math.abs(profit)) + '</div>' +
+    '<div class="kpi-sub">revenue minus cost</div></div>' +
+    '<div class="kpi-card"><div class="kpi-label">Amount Collected</div>' +
+    '<div class="kpi-value">$' + fmtMoney(totalCollected) + '</div>' +
+    '<div class="kpi-sub">payments received</div></div>' +
+    '<div class="kpi-card"><div class="kpi-label">Outstanding Balance</div>' +
+    '<div class="kpi-value" style="color:var(--warning)">$' + fmtMoney(totalOutstanding) + '</div>' +
+    '<div class="kpi-sub">across all orders</div></div>' +
+    '<div class="kpi-card"><div class="kpi-label">Stock on Hand</div>' +
+    '<div class="kpi-value">' + stockCount + '</div>' +
+    '<div class="kpi-sub">unsold items worth $' + fmtMoney(stockCost) + ' <span style="font-size:11px;color:var(--text-dim)">(@ ₹' + (window.GOLD_RATE || 16000).toLocaleString('en-IN') + '/gm)</span></div></div>';
 }
 
 function renderTradeKPIs() {
@@ -159,35 +143,25 @@ function renderTradeKPIs() {
   $('hstat_3').style.color = 'var(--warning)';
 
   $('tradeKpiGrid').innerHTML =
-    '<div class="kpi-group">' +
-      '<div class="kpi-group-label">Cash Flow</div>' +
-      '<div class="kpi-group-cards">' +
-        '<div class="kpi-card kpi-accent"><div class="kpi-label">Outstanding</div>' +
-        '<div class="kpi-value" style="color:var(--warning)">$' + fmtMoney(outstanding) + '</div>' +
-        '<div class="kpi-sub">balance due across all</div></div>' +
-        '<div class="kpi-card"><div class="kpi-label">Collected</div>' +
-        '<div class="kpi-value">$' + fmtMoney(collected) + '</div>' +
-        '<div class="kpi-sub">payments received</div></div>' +
-      '</div>' +
-    '</div>' +
-    '<div class="kpi-group">' +
-      '<div class="kpi-group-label">Performance</div>' +
-      '<div class="kpi-group-cards">' +
-        '<div class="kpi-card"><div class="kpi-label">Total Trades</div>' +
-        '<div class="kpi-value">' + TRADING.length + '</div>' +
-        '<div class="kpi-sub">buy & sell records</div></div>' +
-        '<div class="kpi-card"><div class="kpi-label">Total Invested</div>' +
-        '<div class="kpi-value">$' + fmtMoney(totalInvested) + '</div>' +
-        '<div class="kpi-sub">capital deployed</div></div>' +
-        '<div class="kpi-card"><div class="kpi-label">Total Sales</div>' +
-        '<div class="kpi-value">$' + fmtMoney(totalSales) + '</div>' +
-        '<div class="kpi-sub">revenue from sold items</div></div>' +
-        '<div class="kpi-card"><div class="kpi-label">Net P/L</div>' +
-        '<div class="kpi-value" style="color:' + (netPL >= 0 ? 'var(--success)' : 'var(--error)') + '">' +
-        (netPL >= 0 ? '+' : '-') + '$' + fmtMoney(Math.abs(netPL)) + '</div>' +
-        '<div class="kpi-sub">closed trades only</div></div>' +
-      '</div>' +
-    '</div>';
+    '<div class="kpi-card"><div class="kpi-label">Total Trades</div>' +
+    '<div class="kpi-value">' + TRADING.length + '</div>' +
+    '<div class="kpi-sub">buy & sell records</div></div>' +
+    '<div class="kpi-card"><div class="kpi-label">Total Invested</div>' +
+    '<div class="kpi-value">$' + fmtMoney(totalInvested) + '</div>' +
+    '<div class="kpi-sub">capital deployed</div></div>' +
+    '<div class="kpi-card"><div class="kpi-label">Total Sales</div>' +
+    '<div class="kpi-value">$' + fmtMoney(totalSales) + '</div>' +
+    '<div class="kpi-sub">revenue from sold items</div></div>' +
+    '<div class="kpi-card"><div class="kpi-label">Net P/L</div>' +
+    '<div class="kpi-value" style="color:' + (netPL >= 0 ? 'var(--success)' : 'var(--error)') + '">' +
+    (netPL >= 0 ? '+' : '-') + '$' + fmtMoney(Math.abs(netPL)) + '</div>' +
+    '<div class="kpi-sub">closed trades only</div></div>' +
+    '<div class="kpi-card"><div class="kpi-label">Collected</div>' +
+    '<div class="kpi-value">$' + fmtMoney(collected) + '</div>' +
+    '<div class="kpi-sub">payments received</div></div>' +
+    '<div class="kpi-card"><div class="kpi-label">Outstanding</div>' +
+    '<div class="kpi-value" style="color:var(--warning)">$' + fmtMoney(outstanding) + '</div>' +
+    '<div class="kpi-sub">balance due across all</div></div>';
 }function renderExpenseKPIs() {
   var K = EXPENSE_KEYS;
   var total = EXPENSES.reduce(function(s, r) { return s + (parseFloat(r[K.amount]) || 0); }, 0);
@@ -210,22 +184,18 @@ function renderTradeKPIs() {
   $('hstat_3').style.color = 'var(--accent)';
 
   $('expenseKpiGrid').innerHTML =
-    '<div class="kpi-group">' +
-      '<div class="kpi-group-cards">' +
-        '<div class="kpi-card"><div class="kpi-label">Total Expenses</div>' +
-        '<div class="kpi-value">$' + fmtMoney(total) + '</div>' +
-        '<div class="kpi-sub">all time spend</div></div>' +
-        '<div class="kpi-card"><div class="kpi-label">Record Count</div>' +
-        '<div class="kpi-value">' + EXPENSES.length + '</div>' +
-        '<div class="kpi-sub">expense entries</div></div>' +
-        '<div class="kpi-card"><div class="kpi-label">Top Category</div>' +
-        '<div class="kpi-value">' + escapeHtml(topCat) + '</div>' +
-        '<div class="kpi-sub">highest spend area</div></div>' +
-        '<div class="kpi-card"><div class="kpi-label">Avg per Entry</div>' +
-        '<div class="kpi-value">$' + fmtMoney(EXPENSES.length ? total / EXPENSES.length : 0) + '</div>' +
-        '<div class="kpi-sub">mean expense size</div></div>' +
-      '</div>' +
-    '</div>';
+    '<div class="kpi-card"><div class="kpi-label">Total Expenses</div>' +
+    '<div class="kpi-value">$' + fmtMoney(total) + '</div>' +
+    '<div class="kpi-sub">all time spend</div></div>' +
+    '<div class="kpi-card"><div class="kpi-label">Record Count</div>' +
+    '<div class="kpi-value">' + EXPENSES.length + '</div>' +
+    '<div class="kpi-sub">expense entries</div></div>' +
+    '<div class="kpi-card"><div class="kpi-label">Top Category</div>' +
+    '<div class="kpi-value">' + escapeHtml(topCat) + '</div>' +
+    '<div class="kpi-sub">highest spend area</div></div>' +
+    '<div class="kpi-card"><div class="kpi-label">Avg per Entry</div>' +
+    '<div class="kpi-value">$' + fmtMoney(EXPENSES.length ? total / EXPENSES.length : 0) + '</div>' +
+    '<div class="kpi-sub">mean expense size</div></div>';
 }
 
 window.renderExpenseKPIs = renderExpenseKPIs;

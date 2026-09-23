@@ -652,12 +652,6 @@ main {
   transform: translateY(-2px);
 }
 
-.kpi-section-head {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: var(--space-2);
-}
-
 .filter-bar-head {
   display: flex;
   align-items: center;
@@ -1140,18 +1134,23 @@ tbody .sticky-col-right {
 /* ============================================
    PANELS (Side Sheets)
    ============================================ */
-#overlay, #tradeOverlay, #expenseOverlay, #paymentSearchOverlay {
-  display: none;
+#overlay, #tradeOverlay, #expenseOverlay, #paymentSearchOverlay,
+.overlay-fade {
   position: fixed;
   inset: 0;
   background: rgba(32,33,36,0.32);
   backdrop-filter: blur(4px);
   z-index: 200;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 200ms var(--ease-standard), visibility 0s linear 200ms;
 }
 
-#overlay.open, #tradeOverlay.open, #expenseOverlay.open {
+#overlay.open, #tradeOverlay.open, #expenseOverlay.open, #paymentSearchOverlay.open,
+.overlay-fade.open {
   opacity: 1;
   visibility: visible;
+  transition: opacity 200ms var(--ease-standard), visibility 0s linear 0s;
 }
 
 #panel, #tradePanel, #expensePanel, #paymentSearchModal {
@@ -1822,17 +1821,11 @@ input[type="checkbox"] {
    Reuses the same visual language as #panel/#tradePanel
    (see .panel-head above) under new class names, so it
    doesn't need to be added to those panels' shared,
-   multi-selector CSS rules.
+   multi-selector CSS rules. The backdrop itself reuses the
+   shared .overlay-fade rule (defined earlier) rather than
+   its own display:none toggle, so it fades in sync with
+   the panel's slide instead of popping instantly.
    ============================================ */
-.side-modal-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(32,33,36,0.32);
-  backdrop-filter: blur(4px);
-  z-index: 200;
-}
-
 .side-modal {
   position: fixed;
   top: 0;
@@ -2049,11 +2042,18 @@ input[type="checkbox"] {
 }
 
 /* Customer Profile can be opened FROM the Buyers or Insights panel, so it
-   needs to render above them rather than sharing their z-index. */
+   needs to render above them rather than sharing their z-index. Same for
+   the Buyer edit form, opened from within the Buyers list. */
 #customerProfileOverlay {
   z-index: 350;
 }
 #customerProfileModal {
+  z-index: 360;
+}
+#buyerFormOverlay {
+  z-index: 350;
+}
+#buyerFormModal {
   z-index: 360;
 }
 

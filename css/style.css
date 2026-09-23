@@ -609,26 +609,10 @@ main {
    KPI CARDS
    ============================================ */
 .kpi-grid {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-  margin-bottom: var(--space-5);
-}
-
-.kpi-group-label {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-dim);
-  margin-bottom: var(--space-2);
-  padding-left: 2px;
-}
-
-.kpi-group-cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: var(--space-4);
+  margin-bottom: var(--space-5);
 }
 
 .kpi-card {
@@ -639,12 +623,6 @@ main {
   box-shadow: var(--shadow-0);
   transition: box-shadow 120ms var(--ease-standard),
               transform 120ms var(--ease-standard);
-}
-
-/* The single most actionable number (what needs following up on) gets a
-   visual accent so it doesn't read as "just another card" among six. */
-.kpi-card.kpi-accent {
-  border-left: 4px solid var(--warning);
 }
 
 .kpi-card:hover {
@@ -1610,8 +1588,8 @@ input[type="checkbox"] {
     gap: var(--space-3);
   }
 
-  /* Mobile: KPI cards in 3 columns, 2 rows, per group */
-  .kpi-group-cards {
+  /* Mobile: KPI cards in 3 columns, 2 rows */
+  .kpi-grid {
     grid-template-columns: repeat(3, 1fr);
     gap: var(--space-3);
   }

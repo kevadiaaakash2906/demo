@@ -1178,7 +1178,7 @@ tbody .sticky-col-right {
   background: var(--md-surface-variant);
   border: none;
   border-radius: 50%;
-  color: var(--#EA4335);
+  color: var(--error);
   font-size: 22px;
   cursor: pointer;
   transition: all var(--duration-fast) var(--ease-standard);
@@ -1187,7 +1187,7 @@ tbody .sticky-col-right {
 #closePanel:hover, #closeTradePanel:hover, #closeExpensePanel:hover, #closePaymentSearch:hover,
 #closeCustomerProfile:hover, #closeInsights:hover, #closeBuyers:hover, #closeBuyerForm:hover, #closeMemoDetail:hover {
   background: var(--md-surface-2);
-  color: var(--md-on-surface);
+  color: var(--error);
 }
 
 .panel-body {

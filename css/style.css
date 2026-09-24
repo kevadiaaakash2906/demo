@@ -1169,7 +1169,7 @@ tbody .sticky-col-right {
 }
 
 #closePanel, #closeTradePanel, #closeExpensePanel, #closePaymentSearch,
-#closeCustomerProfile, #closeInsights, #closeBuyers, #closeBuyerForm {
+#closeCustomerProfile, #closeInsights, #closeBuyers, #closeBuyerForm, #closeMemoDetail {
   width: 40px;
   height: 40px;
   display: flex;
@@ -1185,7 +1185,7 @@ tbody .sticky-col-right {
 }
 
 #closePanel:hover, #closeTradePanel:hover, #closeExpensePanel:hover, #closePaymentSearch:hover,
-#closeCustomerProfile:hover, #closeInsights:hover, #closeBuyers:hover, #closeBuyerForm:hover {
+#closeCustomerProfile:hover, #closeInsights:hover, #closeBuyers:hover, #closeBuyerForm:hover, #closeMemoDetail:hover {
   background: var(--md-surface-2);
   color: var(--md-on-surface);
 }
@@ -2037,6 +2037,65 @@ input[type="checkbox"] {
   z-index: 360;
 }
 
+/* Memo Detail can be opened from Customer Profile (which is already
+   elevated above Buyers/Insights), so it needs to stack higher still. */
+#memoDetailOverlay {
+  z-index: 400;
+}
+#memoDetailModal {
+  z-index: 410;
+}
+
+/* A memo number shown as a clickable link, wherever it appears (currently
+   just the Customer Profile item list). */
+.memo-link {
+  cursor: pointer;
+  color: var(--md-primary);
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  transition: text-decoration-color 0.15s;
+}
+.memo-link:hover {
+  text-decoration-color: var(--md-primary);
+}
+
+/* Small floating card shown on hover over a .memo-link, before the person
+   commits to clicking through to the full Memo Detail panel. Positioned
+   in JS (fixed, near the hovered element); hidden by default. */
+.memo-hover-preview {
+  display: none;
+  position: fixed;
+  z-index: 500;
+  min-width: 220px;
+  max-width: 280px;
+  background: var(--md-surface);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-3);
+  padding: var(--space-3) var(--space-4);
+  font-size: 12px;
+  pointer-events: none;
+}
+.memo-hover-preview.show {
+  display: block;
+}
+.memo-hover-preview .title {
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+.memo-hover-preview .row {
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 0;
+  color: var(--text-dim);
+}
+.memo-hover-preview .row .val {
+  color: var(--md-on-surface);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
 /* ============================================
    ACCESSIBILITY
    ============================================ */
@@ -2585,7 +2644,7 @@ body.panel-open {
   .btn, .status-badge, .card-header, .pay-result-item,
   .pagination-bar button, .search-clear,
   #closePanel, #closeTradePanel, #closeExpensePanel, #closePaymentSearch,
-  #closeCustomerProfile, #closeInsights, #closeBuyers, #closeBuyerForm {
+  #closeCustomerProfile, #closeInsights, #closeBuyers, #closeBuyerForm, #closeMemoDetail {
     min-height: 44px;
   }
   .view-toggle .btn {

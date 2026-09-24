@@ -1168,7 +1168,8 @@ tbody .sticky-col-right {
   color: var(--md-on-surface);
 }
 
-#closePanel, #closeTradePanel, #closeExpensePanel, #closePaymentSearch {
+#closePanel, #closeTradePanel, #closeExpensePanel, #closePaymentSearch,
+#closeCustomerProfile, #closeInsights, #closeBuyers, #closeBuyerForm {
   width: 40px;
   height: 40px;
   display: flex;
@@ -1183,7 +1184,8 @@ tbody .sticky-col-right {
   transition: all var(--duration-fast) var(--ease-standard);
 }
 
-#closePanel:hover, #closeTradePanel:hover, #closeExpensePanel:hover, #closePaymentSearch:hover {
+#closePanel:hover, #closeTradePanel:hover, #closeExpensePanel:hover, #closePaymentSearch:hover,
+#closeCustomerProfile:hover, #closeInsights:hover, #closeBuyers:hover, #closeBuyerForm:hover {
   background: var(--md-surface-2);
   color: var(--md-on-surface);
 }
@@ -2581,7 +2583,9 @@ body.panel-open {
 /* Larger touch targets on mobile */
 @media (max-width: 900px) {
   .btn, .status-badge, .card-header, .pay-result-item,
-  .pagination-bar button, .search-clear, #closePanel, #closeTradePanel, #closeExpensePanel {
+  .pagination-bar button, .search-clear,
+  #closePanel, #closeTradePanel, #closeExpensePanel, #closePaymentSearch,
+  #closeCustomerProfile, #closeInsights, #closeBuyers, #closeBuyerForm {
     min-height: 44px;
   }
   .view-toggle .btn {

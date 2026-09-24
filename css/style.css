@@ -1178,7 +1178,7 @@ tbody .sticky-col-right {
   background: var(--md-surface-variant);
   border: none;
   border-radius: 50%;
-  color: var(--md-on-surface-variant);
+  color: var(--#EA4335);
   font-size: 22px;
   cursor: pointer;
   transition: all var(--duration-fast) var(--ease-standard);

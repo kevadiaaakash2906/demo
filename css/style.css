@@ -1175,19 +1175,20 @@ tbody .sticky-col-right {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--error);    /* ← Makes the circle red */
+  background: #EA4335;         /* ← Exact app red */
   border: none;
   border-radius: 50%;
-  color: #ffffff;              /* ← Makes the 'X' white */
+  color: #ffffff;
   font-size: 22px;
+  font-weight: bold;
   cursor: pointer;
   transition: all var(--duration-fast) var(--ease-standard);
 }
 
 #closePanel:hover, #closeTradePanel:hover, #closeExpensePanel:hover, #closePaymentSearch:hover,
 #closeCustomerProfile:hover, #closeInsights:hover, #closeBuyers:hover, #closeBuyerForm:hover, #closeMemoDetail:hover {
-  background: #d32f2f;         /* ← Slightly darker red on hover for feedback */
-  color: #ffffff;              /* ← Keeps the 'X' white on hover */
+  background: #d93025;         /* ← Slightly darker red for hover effect */
+  color: #ffffff;
 }
 
 .panel-body {

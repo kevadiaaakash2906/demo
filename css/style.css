@@ -1175,10 +1175,10 @@ tbody .sticky-col-right {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--md-surface-variant);
+  background: var(--error);    /* ← Makes the circle red */
   border: none;
   border-radius: 50%;
-  color: var(--error);
+  color: #ffffff;              /* ← Makes the 'X' white */
   font-size: 22px;
   cursor: pointer;
   transition: all var(--duration-fast) var(--ease-standard);
@@ -1186,8 +1186,8 @@ tbody .sticky-col-right {
 
 #closePanel:hover, #closeTradePanel:hover, #closeExpensePanel:hover, #closePaymentSearch:hover,
 #closeCustomerProfile:hover, #closeInsights:hover, #closeBuyers:hover, #closeBuyerForm:hover, #closeMemoDetail:hover {
-  background: var(--md-surface-2);
-  color: var(--error);
+  background: #d32f2f;         /* ← Slightly darker red on hover for feedback */
+  color: #ffffff;              /* ← Keeps the 'X' white on hover */
 }
 
 .panel-body {

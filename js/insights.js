@@ -29,8 +29,8 @@ window.openCustomerProfile = function(name) {
   var modal = $('customerProfileModal');
   if (!overlay || !modal) return;
 
-  var orders = ORDERS.filter(function(o) { return (o[DK.soldTo] || '').trim().toLowerCase() === name.trim().toLowerCase(); });
-  var trades = TRADING.filter(function(t) { return (t[SHEET_KEYS.soldTo] || '').trim().toLowerCase() === name.trim().toLowerCase(); });
+  var orders = ORDERS.filter(function(o) { return normalizeBuyerName(o[DK.soldTo]) === normalizeBuyerName(name); });
+  var trades = TRADING.filter(function(t) { return normalizeBuyerName(t[SHEET_KEYS.soldTo]) === normalizeBuyerName(name); });
 
   var totalBill = 0, totalCollected = 0, totalOutstanding = 0;
   var items = [];
@@ -81,22 +81,133 @@ window.openCustomerProfile = function(name) {
         var statusClass = 'status-' + it.status.toLowerCase().replace(/\s+/g, '-');
         return '<div class="customer-item-row">' +
           '<span>' + fmtDate(it.date) + ' &middot; ' + escapeHtml(it.desc) +
-          (it.memo ? ' &middot; Memo ' + escapeHtml(it.memo) : '') + '</span>' +
+          (it.memo ? ' &middot; <span class="memo-link" data-memo="' + escapeHtml(it.memo) + '">Memo ' + escapeHtml(it.memo) + '</span>' : '') + '</span>' +
           '<span><span class="status-badge ' + statusClass + '">' + it.status + '</span>&nbsp; $' + fmtMoney(it.price) + '</span>' +
           '</div>';
       }).join('')
     : '<div style="padding:20px;text-align:center;color:var(--text-dim);">No records found</div>';
 
-  overlay.style.display = 'block';
+  wireMemoLinks($('customerProfileItems'));
+
+  overlay.classList.add('open');
   modal.classList.add('open');
 };
 
 function closeCustomerProfile() {
-  $('customerProfileOverlay').style.display = 'none';
+  $('customerProfileOverlay').classList.remove('open');
   $('customerProfileModal').classList.remove('open');
 }
 $('closeCustomerProfile').addEventListener('click', closeCustomerProfile);
 $('customerProfileOverlay').addEventListener('click', closeCustomerProfile);
+
+/* ============ MEMO DETAIL (opens on top of Customer Profile, etc.) ============ */
+
+// Builds everything needed to show a memo: its bill, what's been paid
+// (via the same aggregated log used throughout the app), and each item
+// in it — orders and trades together.
+function getMemoSummary(memoNo) {
+  var orders = getMemoOrders(memoNo);
+  var trades = getMemoTrades(memoNo);
+
+  var items = orders.map(function(o) {
+    return {
+      type: 'Order', date: o[DK.date], desc: o[DK.jewelryType] || o[DK.style] || 'Item',
+      price: parseFloat(o[DK.salePrice]) || 0, status: (o[DK.paymentStatus] || 'Not Sold').trim()
+    };
+  }).concat(trades.map(function(t) {
+    return {
+      type: 'Trade', date: t[SHEET_KEYS.date], desc: t[SHEET_KEYS.item] || 'Item',
+      price: parseFloat(t[SHEET_KEYS.salePrice]) || 0, status: (t[SHEET_KEYS.paymentStatus] || 'Not Sold').trim()
+    };
+  }));
+  items.sort(function(a, b) { return new Date(a.date || 0) - new Date(b.date || 0); });
+
+  var bill = items.reduce(function(s, it) { return s + it.price; }, 0);
+  var paid = getAggregatedPaymentLog(memoNo).reduce(function(s, p) { return s + (parseFloat(p.amount) || 0); }, 0);
+  var balance = bill - paid;
+  var status = bill === 0 ? 'Not Sold' : (paid >= bill ? 'Paid' : (paid > 0 ? 'Partial' : 'Unpaid'));
+
+  return { items: items, bill: bill, paid: paid, balance: balance, status: status };
+}
+
+window.openMemoDetail = function(memoNo) {
+  if (!memoNo) return;
+  var summary = getMemoSummary(memoNo);
+
+  $('memoDetailTitle').textContent = 'Memo ' + memoNo;
+  $('memoDetailKPIs').innerHTML =
+    '<div class="kpi-card"><div class="kpi-label">Total Bill</div><div class="kpi-value">$' + fmtMoney(summary.bill) + '</div></div>' +
+    '<div class="kpi-card"><div class="kpi-label">Total Paid</div><div class="kpi-value" style="color:var(--success)">$' + fmtMoney(summary.paid) + '</div></div>' +
+    '<div class="kpi-card"><div class="kpi-label">Balance Due</div><div class="kpi-value" style="color:' + (summary.balance > 0.01 ? 'var(--warning)' : 'var(--success)') + '">$' + fmtMoney(Math.abs(summary.balance)) + '</div></div>' +
+    '<div class="kpi-card"><div class="kpi-label">Status</div><div class="kpi-value">' + summary.status + '</div></div>';
+
+  $('memoDetailItems').innerHTML = summary.items.length
+    ? summary.items.map(function(it) {
+        var statusClass = 'status-' + it.status.toLowerCase().replace(/\s+/g, '-');
+        return '<div class="customer-item-row">' +
+          '<span>' + fmtDate(it.date) + ' &middot; ' + escapeHtml(it.type) + ' &middot; ' + escapeHtml(it.desc) + '</span>' +
+          '<span><span class="status-badge ' + statusClass + '">' + it.status + '</span>&nbsp; $' + fmtMoney(it.price) + '</span>' +
+          '</div>';
+      }).join('')
+    : '<div style="padding:20px;text-align:center;color:var(--text-dim);">No items found for this memo</div>';
+
+  hideMemoHoverPreview();
+  $('memoDetailOverlay').classList.add('open');
+  $('memoDetailModal').classList.add('open');
+};
+
+function closeMemoDetail() {
+  $('memoDetailOverlay').classList.remove('open');
+  $('memoDetailModal').classList.remove('open');
+}
+$('closeMemoDetail').addEventListener('click', closeMemoDetail);
+$('memoDetailOverlay').addEventListener('click', closeMemoDetail);
+
+/* ============ MEMO HOVER PREVIEW ============ */
+
+function showMemoHoverPreview(el, memoNo) {
+  var box = $('memoHoverPreview');
+  if (!box) return;
+  var summary = getMemoSummary(memoNo);
+
+  box.innerHTML =
+    '<div class="title">Memo ' + escapeHtml(memoNo) + '</div>' +
+    '<div class="row"><span>Items</span><span class="val">' + summary.items.length + '</span></div>' +
+    '<div class="row"><span>Bill</span><span class="val">$' + fmtMoney(summary.bill) + '</span></div>' +
+    '<div class="row"><span>Paid</span><span class="val">$' + fmtMoney(summary.paid) + '</span></div>' +
+    '<div class="row"><span>Balance</span><span class="val">$' + fmtMoney(Math.abs(summary.balance)) + '</span></div>';
+
+  var rect = el.getBoundingClientRect();
+  box.classList.add('show');
+  var boxRect = box.getBoundingClientRect();
+  var top = rect.bottom + 6;
+  var left = rect.left;
+  if (left + boxRect.width > window.innerWidth - 8) left = window.innerWidth - boxRect.width - 8;
+  if (top + boxRect.height > window.innerHeight - 8) top = rect.top - boxRect.height - 6;
+  box.style.top = top + 'px';
+  box.style.left = left + 'px';
+}
+
+function hideMemoHoverPreview() {
+  var box = $('memoHoverPreview');
+  if (box) box.classList.remove('show');
+}
+
+// Attaches click (open full Memo Detail) and hover (quick preview) behavior
+// to every .memo-link[data-memo] element inside a given container. Call
+// this again any time new memo links are rendered into the page.
+function wireMemoLinks(container) {
+  if (!container) return;
+  container.querySelectorAll('.memo-link').forEach(function(el) {
+    el.addEventListener('click', function(e) {
+      e.stopPropagation();
+      window.openMemoDetail(el.dataset.memo);
+    });
+    el.addEventListener('mouseenter', function() { showMemoHoverPreview(el, el.dataset.memo); });
+    el.addEventListener('mouseleave', hideMemoHoverPreview);
+  });
+}
+window.wireMemoLinks = wireMemoLinks;
 
 /* ============ VENDOR PROFITABILITY ============ */
 
@@ -196,12 +307,12 @@ function renderBestSellers() {
 window.openInsights = function() {
   renderVendorReport();
   renderBestSellers();
-  $('insightsOverlay').style.display = 'block';
+  $('insightsOverlay').classList.add('open');
   $('insightsModal').classList.add('open');
 };
 
 function closeInsights() {
-  $('insightsOverlay').style.display = 'none';
+  $('insightsOverlay').classList.remove('open');
   $('insightsModal').classList.remove('open');
 }
 $('closeInsights').addEventListener('click', closeInsights);

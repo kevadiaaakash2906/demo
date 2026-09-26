@@ -1,515 +1,621 @@
-/* ============================================
-   VINÉRE — Customer Profile & Business Insights
-   ============================================ */
-
-/* ============ SHARED: memo payment splitting ============
-   Same idea as dashboard.js's getMemoOwnShareCollectedOutstanding,
-   generalized to any "own bill" amount (here: one customer's slice
-   of a memo, rather than one tab's slice). Splits whatever has
-   actually been paid on the memo proportionally by how much of the
-   memo's total bill belongs to `ownBill`. */
-function getMemoShareForBill(memo, ownBill) {
-  var orders = getMemoOrders(memo);
-  var trades = getMemoTrades(memo);
-  var totalBill = orders.reduce(function(s, o) { return s + (parseFloat(o[DK.salePrice]) || 0); }, 0) +
-                  trades.reduce(function(s, t) { return s + (parseFloat(t[SHEET_KEYS.salePrice]) || 0); }, 0);
-  var totalPaid = getAggregatedPaymentLog(memo).reduce(function(s, p) { return s + (parseFloat(p.amount) || 0); }, 0);
-
-  if (totalBill <= 0) return { collected: 0, outstanding: 0 };
-  var ratio = ownBill / totalBill;
-  var collected = Math.min(ownBill, totalPaid * ratio);
-  return { collected: collected, outstanding: Math.max(0, ownBill - collected) };
-}
-
-/* ============ CUSTOMER PROFILE ============ */
-
-window.openCustomerProfile = function(name) {
-  if (!name) return;
-  var overlay = $('customerProfileOverlay');
-  var modal = $('customerProfileModal');
-  if (!overlay || !modal) return;
-
-  var orders = ORDERS.filter(function(o) { return normalizeBuyerName(o[DK.soldTo]) === normalizeBuyerName(name); });
-  var trades = TRADING.filter(function(t) { return normalizeBuyerName(t[SHEET_KEYS.soldTo]) === normalizeBuyerName(name); });
-
-  var totalBill = 0, totalCollected = 0, totalOutstanding = 0;
-  var items = [];
-
-  function processItem(row, keys, typeLabel, descFn) {
-    var price = parseFloat(row[keys.salePrice]) || 0;
-    var memo = row[keys.memoNo];
-    var share;
-    if (memo) {
-      share = getMemoShareForBill(memo, price);
-    } else {
-      share = {
-        collected: parseFloat(row[keys.amountPaid]) || 0,
-        outstanding: parseFloat(row[keys.balanceDue]) || 0
-      };
-    }
-    totalBill += price;
-    totalCollected += share.collected;
-    totalOutstanding += share.outstanding;
-    items.push({
-      type: typeLabel,
-      date: row[keys.date],
-      desc: descFn(row),
-      memo: memo,
-      price: price,
-      status: (row[keys.paymentStatus] || 'Not Sold').trim()
-    });
-  }
-
-  orders.forEach(function(o) {
-    processItem(o, DK, 'Order', function(r) { return r[DK.jewelryType] || r[DK.style] || 'Item'; });
-  });
-  trades.forEach(function(t) {
-    processItem(t, SHEET_KEYS, 'Trade', function(r) { return r[SHEET_KEYS.item] || 'Item'; });
-  });
-
-  items.sort(function(a, b) { return new Date(b.date || 0) - new Date(a.date || 0); });
-
-  $('customerProfileName').textContent = name;
-  $('customerProfileKPIs').innerHTML =
-    '<div class="kpi-card"><div class="kpi-label">Total Items</div><div class="kpi-value">' + items.length + '</div></div>' +
-    '<div class="kpi-card"><div class="kpi-label">Total Billed</div><div class="kpi-value">$' + fmtMoney(totalBill) + '</div></div>' +
-    '<div class="kpi-card"><div class="kpi-label">Collected</div><div class="kpi-value" style="color:var(--success)">$' + fmtMoney(totalCollected) + '</div></div>' +
-    '<div class="kpi-card"><div class="kpi-label">Outstanding</div><div class="kpi-value" style="color:var(--warning)">$' + fmtMoney(totalOutstanding) + '</div></div>';
-
-  $('customerProfileItems').innerHTML = items.length
-    ? items.map(function(it) {
-        var statusClass = 'status-' + it.status.toLowerCase().replace(/\s+/g, '-');
-        return '<div class="customer-item-row">' +
-          '<span>' + fmtDate(it.date) + ' &middot; ' + escapeHtml(it.desc) +
-          (it.memo ? ' &middot; <span class="memo-link" data-memo="' + escapeHtml(it.memo) + '">Memo ' + escapeHtml(it.memo) + '</span>' : '') + '</span>' +
-          '<span><span class="status-badge ' + statusClass + '">' + it.status + '</span>&nbsp; $' + fmtMoney(it.price) + '</span>' +
-          '</div>';
-      }).join('')
-    : '<div style="padding:20px;text-align:center;color:var(--text-dim);">No records found</div>';
-
-  wireMemoLinks($('customerProfileItems'));
-
-  overlay.classList.add('open');
-  modal.classList.add('open');
-};
-
-function closeCustomerProfile() {
-  $('customerProfileOverlay').classList.remove('open');
-  $('customerProfileModal').classList.remove('open');
-}
-$('closeCustomerProfile').addEventListener('click', closeCustomerProfile);
-$('customerProfileOverlay').addEventListener('click', closeCustomerProfile);
-
-/* ============ MEMO DETAIL (opens on top of Customer Profile, etc.) ============ */
-
-// Builds everything needed to show a memo: its bill, what's been paid
-// (via the same aggregated log used throughout the app), and each item
-// in it — orders and trades together.
-function getMemoSummary(memoNo) {
-  var orders = getMemoOrders(memoNo);
-  var trades = getMemoTrades(memoNo);
-
-  var items = orders.map(function(o) {
-    return {
-      type: 'Order', date: o[DK.date], desc: o[DK.jewelryType] || o[DK.style] || 'Item',
-      price: parseFloat(o[DK.salePrice]) || 0, status: (o[DK.paymentStatus] || 'Not Sold').trim()
-    };
-  }).concat(trades.map(function(t) {
-    return {
-      type: 'Trade', date: t[SHEET_KEYS.date], desc: t[SHEET_KEYS.item] || 'Item',
-      price: parseFloat(t[SHEET_KEYS.salePrice]) || 0, status: (t[SHEET_KEYS.paymentStatus] || 'Not Sold').trim()
-    };
-  }));
-  items.sort(function(a, b) { return new Date(a.date || 0) - new Date(b.date || 0); });
-
-  var bill = items.reduce(function(s, it) { return s + it.price; }, 0);
-  var paid = getAggregatedPaymentLog(memoNo).reduce(function(s, p) { return s + (parseFloat(p.amount) || 0); }, 0);
-  var balance = bill - paid;
-  var status = bill === 0 ? 'Not Sold' : (paid >= bill ? 'Paid' : (paid > 0 ? 'Partial' : 'Unpaid'));
-
-  return { items: items, bill: bill, paid: paid, balance: balance, status: status };
-}
-
-window.openMemoDetail = function(memoNo) {
-  if (!memoNo) return;
-  var summary = getMemoSummary(memoNo);
-
-  $('memoDetailTitle').textContent = 'Memo ' + memoNo;
-  $('memoDetailKPIs').innerHTML =
-    '<div class="kpi-card"><div class="kpi-label">Total Bill</div><div class="kpi-value">$' + fmtMoney(summary.bill) + '</div></div>' +
-    '<div class="kpi-card"><div class="kpi-label">Total Paid</div><div class="kpi-value" style="color:var(--success)">$' + fmtMoney(summary.paid) + '</div></div>' +
-    '<div class="kpi-card"><div class="kpi-label">Balance Due</div><div class="kpi-value" style="color:' + (summary.balance > 0.01 ? 'var(--warning)' : 'var(--success)') + '">$' + fmtMoney(Math.abs(summary.balance)) + '</div></div>' +
-    '<div class="kpi-card"><div class="kpi-label">Status</div><div class="kpi-value">' + summary.status + '</div></div>';
-
-  $('memoDetailItems').innerHTML = summary.items.length
-    ? summary.items.map(function(it) {
-        var statusClass = 'status-' + it.status.toLowerCase().replace(/\s+/g, '-');
-        return '<div class="customer-item-row">' +
-          '<span>' + fmtDate(it.date) + ' &middot; ' + escapeHtml(it.type) + ' &middot; ' + escapeHtml(it.desc) + '</span>' +
-          '<span><span class="status-badge ' + statusClass + '">' + it.status + '</span>&nbsp; $' + fmtMoney(it.price) + '</span>' +
-          '</div>';
-      }).join('')
-    : '<div style="padding:20px;text-align:center;color:var(--text-dim);">No items found for this memo</div>';
-
-  hideMemoHoverPreview();
-  $('memoDetailOverlay').classList.add('open');
-  $('memoDetailModal').classList.add('open');
-};
-
-function closeMemoDetail() {
-  $('memoDetailOverlay').classList.remove('open');
-  $('memoDetailModal').classList.remove('open');
-}
-$('closeMemoDetail').addEventListener('click', closeMemoDetail);
-$('memoDetailOverlay').addEventListener('click', closeMemoDetail);
-
-/* ============ MEMO HOVER PREVIEW ============ */
-
-function showMemoHoverPreview(el, memoNo) {
-  var box = $('memoHoverPreview');
-  if (!box) return;
-  var summary = getMemoSummary(memoNo);
-
-  box.innerHTML =
-    '<div class="title">Memo ' + escapeHtml(memoNo) + '</div>' +
-    '<div class="row"><span>Items</span><span class="val">' + summary.items.length + '</span></div>' +
-    '<div class="row"><span>Bill</span><span class="val">$' + fmtMoney(summary.bill) + '</span></div>' +
-    '<div class="row"><span>Paid</span><span class="val">$' + fmtMoney(summary.paid) + '</span></div>' +
-    '<div class="row"><span>Balance</span><span class="val">$' + fmtMoney(Math.abs(summary.balance)) + '</span></div>';
-
-  var rect = el.getBoundingClientRect();
-  box.classList.add('show');
-  var boxRect = box.getBoundingClientRect();
-  var top = rect.bottom + 6;
-  var left = rect.left;
-  if (left + boxRect.width > window.innerWidth - 8) left = window.innerWidth - boxRect.width - 8;
-  if (top + boxRect.height > window.innerHeight - 8) top = rect.top - boxRect.height - 6;
-  box.style.top = top + 'px';
-  box.style.left = left + 'px';
-}
-
-function hideMemoHoverPreview() {
-  var box = $('memoHoverPreview');
-  if (box) box.classList.remove('show');
-}
-
-// Attaches click (open full Memo Detail) and hover (quick preview) behavior
-// to every .memo-link[data-memo] element inside a given container. Call
-// this again any time new memo links are rendered into the page.
-function wireMemoLinks(container) {
-  if (!container) return;
-  container.querySelectorAll('.memo-link').forEach(function(el) {
-    el.addEventListener('click', function(e) {
-      e.stopPropagation();
-      window.openMemoDetail(el.dataset.memo);
-    });
-    el.addEventListener('mouseenter', function() { showMemoHoverPreview(el, el.dataset.memo); });
-    el.addEventListener('mouseleave', hideMemoHoverPreview);
-  });
-}
-window.wireMemoLinks = wireMemoLinks;
-
-/* ============ VENDOR PROFITABILITY ============
-   "Vendor" here means who you sold the item to (Sold To), not who
-   supplied it — combining both Orders and Trading, since both use the
-   same Sold To field to record the buyer. */
-
-function renderVendorReport() {
-  var vendors = {};
-
-  function addToVendor(name, cost, sale) {
-    var soldTo = (name || '').trim();
-    if (!soldTo) return; // no buyer yet (unsold item) — nothing to attribute
-    if (!vendors[soldTo]) vendors[soldTo] = { count: 0, sold: 0, invested: 0, sales: 0, profit: 0 };
-    vendors[soldTo].count++;
-    vendors[soldTo].invested += cost;
-    if (sale) {
-      vendors[soldTo].sales += sale;
-      vendors[soldTo].profit += (sale - cost);
-      vendors[soldTo].sold++;
-    }
-  }
-
-  TRADING.forEach(function(t) {
-    addToVendor(t[SHEET_KEYS.soldTo], parseFloat(t[SHEET_KEYS.purchasePrice]) || 0, parseFloat(t[SHEET_KEYS.salePrice]) || 0);
-  });
-  ORDERS.forEach(function(o) {
-    addToVendor(o[DK.soldTo], parseFloat(o[DK.usd]) || 0, parseFloat(o[DK.salePrice]) || 0);
-  });
-
-  var rows = Object.keys(vendors).map(function(v) {
-    var r = vendors[v];
-    r.vendor = v;
-    return r;
-  });
-  rows.sort(function(a, b) { return b.profit - a.profit; });
-
-  var target = $('insightsVendorsTab');
-  if (!rows.length) {
-    target.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-dim);">No sold items yet</div>';
-    return;
-  }
-
-  target.innerHTML =
-    '<table class="report-table"><thead><tr>' +
-    '<th>Vendor</th><th class="num">Items</th>' +
-    '<th class="num">Invested</th><th class="num">Sales</th><th class="num">Profit</th><th class="num">Profit %</th>' +
-    '</tr></thead><tbody>' +
-    rows.map(function(r) {
-      var profitPct = r.invested > 0 ? (r.profit / r.invested) * 100 : null;
-      return '<tr>' +
-        '<td>' + escapeHtml(r.vendor) + '</td>' +
-        '<td class="num">' + r.count + '</td>' +
-        '<td class="num">$' + fmtMoney(r.invested) + '</td>' +
-        '<td class="num">$' + fmtMoney(r.sales) + '</td>' +
-        '<td class="num" style="color:' + (r.profit >= 0 ? 'var(--success)' : 'var(--error)') + '">' +
-        (r.profit >= 0 ? '+' : '-') + '$' + fmtMoney(Math.abs(r.profit)) + '</td>' +
-        '<td class="num" style="color:' + (profitPct === null ? 'var(--text-dim)' : (profitPct >= 0 ? 'var(--success)' : 'var(--error)')) + '">' +
-        (profitPct === null ? '—' : (profitPct >= 0 ? '+' : '') + profitPct.toFixed(1) + '%') + '</td>' +
-        '</tr>';
-    }).join('') +
-    '</tbody></table>';
-}
-/* ============ BEST SELLERS: JEWELRY TYPE / DIAMOND SHAPE ============ */
-
-function renderBestSellers() {
-  var types = {};
-  var shapes = {};
-
-  ORDERS.forEach(function(o) {
-    var sale = parseFloat(o[DK.salePrice]) || 0;
-    if (!sale) return; // only count items that actually sold
-    var cost = parseFloat(o[DK.usd]) || 0;
-
-    var type = (o[DK.jewelryType] || 'Unspecified').trim() || 'Unspecified';
-    if (!types[type]) types[type] = { count: 0, revenue: 0, cost: 0 };
-    types[type].count++;
-    types[type].revenue += sale;
-    types[type].cost += cost;
-
-    var shape = (o[DK.diamondShape] || 'Unspecified').trim() || 'Unspecified';
-    if (!shapes[shape]) shapes[shape] = { count: 0, revenue: 0, cost: 0 };
-    shapes[shape].count++;
-    shapes[shape].revenue += sale;
-    shapes[shape].cost += cost;
-  });
-
-  function buildTable(map, label) {
-    var rows = Object.keys(map).map(function(k) {
-      var r = map[k];
-      r.name = k;
-      r.profit = r.revenue - r.cost;
-      r.profitPct = r.cost > 0 ? (r.profit / r.cost) * 100 : null;
-      return r;
-    });
-    rows.sort(function(a, b) { return b.count - a.count; });
-    if (!rows.length) {
-      return '<h4 style="margin:16px 0 8px;font-size:13px;color:var(--md-on-surface-variant);">' + label + '</h4>' +
-        '<div style="padding:8px 0;color:var(--text-dim);">No sold orders yet</div>';
-    }
-    return '<h4 style="margin:16px 0 8px;font-size:13px;color:var(--md-on-surface-variant);">' + label + '</h4>' +
-      '<table class="report-table"><thead><tr><th>' + label + '</th><th class="num">Sold</th><th class="num">Revenue</th><th class="num">Avg Profit %</th></tr></thead><tbody>' +
-      rows.map(function(r) {
-        return '<tr><td>' + escapeHtml(r.name) + '</td><td class="num">' + r.count + '</td><td class="num">$' + fmtMoney(r.revenue) + '</td>' +
-          '<td class="num" style="color:' + (r.profitPct === null ? 'var(--text-dim)' : (r.profitPct >= 0 ? 'var(--success)' : 'var(--error)')) + '">' +
-          (r.profitPct === null ? '—' : (r.profitPct >= 0 ? '+' : '') + r.profitPct.toFixed(1) + '%') + '</td></tr>';
-      }).join('') +
-      '</tbody></table>';
-  }
-
-  $('bestSellersTables').innerHTML = buildTable(types, 'Jewelry Type') + buildTable(shapes, 'Diamond Shape');
-}
-
-/* ============ DATE BUCKETING HELPERS (shared by both charts) ============ */
-
-function getMonthKey(dateStr) {
-  if (!dateStr) return null;
-  var d = new Date(dateStr);
-  if (isNaN(d)) return null;
-  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-}
-function formatMonthLabel(key) {
-  var parts = key.split('-');
-  var d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, 1);
-  return d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-}
-function getQuarterKey(dateStr) {
-  if (!dateStr) return null;
-  var d = new Date(dateStr);
-  if (isNaN(d)) return null;
-  var q = Math.floor(d.getMonth() / 3) + 1;
-  return d.getFullYear() + '-Q' + q;
-}
-function formatQuarterLabel(key) {
-  var parts = key.split('-');
-  return parts[1] + ' \u2019' + parts[0].slice(2);
-}
-
-/* ============ SEASONAL TREND: TOP JEWELRY TYPES / SHAPES BY MONTH ============ */
-
-var seasonalChartInstance = null;
-
-function renderSeasonalChart(dimension) {
-  dimension = dimension || 'type';
-  var field = dimension === 'shape' ? DK.diamondShape : DK.jewelryType;
-  var canvas = $('seasonalChart');
-  if (!canvas || typeof Chart === 'undefined') return;
-
-  // Find the top few categories overall, so the chart stays legible
-  // instead of plotting every jewelry type/shape ever recorded.
-  var totals = {};
-  ORDERS.forEach(function(o) {
-    if (!(parseFloat(o[DK.salePrice]) || 0)) return;
-    var cat = (o[field] || 'Unspecified').trim() || 'Unspecified';
-    totals[cat] = (totals[cat] || 0) + 1;
-  });
-  var topCats = Object.keys(totals).sort(function(a, b) { return totals[b] - totals[a]; }).slice(0, 4);
-
-  var monthly = {};
-  ORDERS.forEach(function(o) {
-    var sale = parseFloat(o[DK.salePrice]) || 0;
-    if (!sale) return;
-    var cat = (o[field] || 'Unspecified').trim() || 'Unspecified';
-    if (topCats.indexOf(cat) === -1) return;
-    var key = getMonthKey(o[DK.dateSold] || o[DK.date]);
-    if (!key) return;
-    if (!monthly[key]) monthly[key] = {};
-    monthly[key][cat] = (monthly[key][cat] || 0) + 1;
-  });
-
-  var months = Object.keys(monthly).sort();
-
-  if (seasonalChartInstance) { seasonalChartInstance.destroy(); seasonalChartInstance = null; }
-  var emptyMsg = $('seasonalChartEmpty');
-  if (!months.length) {
-    if (emptyMsg) emptyMsg.style.display = 'flex';
-    return;
-  }
-  if (emptyMsg) emptyMsg.style.display = 'none';
-
-  var colors = ['#1a73e8', '#EA4335', '#34A853', '#FBBC04'];
-  seasonalChartInstance = new Chart(canvas.getContext('2d'), {
-    type: 'line',
-    data: {
-      labels: months.map(formatMonthLabel),
-      datasets: topCats.map(function(cat, i) {
-        return {
-          label: cat,
-          data: months.map(function(m) { return (monthly[m] && monthly[m][cat]) || 0; }),
-          borderColor: colors[i % colors.length],
-          backgroundColor: colors[i % colors.length],
-          tension: 0.3
-        };
-      })
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode: 'index', intersect: false },
-      plugins: { legend: { position: 'bottom' } },
-      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
-    }
-  });
-}
-
-/* ============ PROFIT TREND: REVENUE / COST / PROFIT OVER TIME ============ */
-
-var profitTrendChartInstance = null;
-
-function renderProfitTrend(granularity) {
-  granularity = granularity || 'month';
-  var canvas = $('profitTrendChart');
-  if (!canvas || typeof Chart === 'undefined') return;
-
-  var buckets = {};
-  function addToBucket(dateStr, revenue, cost) {
-    var key = granularity === 'quarter' ? getQuarterKey(dateStr) : getMonthKey(dateStr);
-    if (!key) return;
-    if (!buckets[key]) buckets[key] = { revenue: 0, cost: 0 };
-    buckets[key].revenue += revenue;
-    buckets[key].cost += cost;
-  }
-
-  ORDERS.forEach(function(o) {
-    var sale = parseFloat(o[DK.salePrice]) || 0;
-    if (!sale) return;
-    addToBucket(o[DK.dateSold] || o[DK.date], sale, parseFloat(o[DK.usd]) || 0);
-  });
-  TRADING.forEach(function(t) {
-    var sale = parseFloat(t[SHEET_KEYS.salePrice]) || 0;
-    if (!sale) return;
-    addToBucket(t[SHEET_KEYS.dateSold] || t[SHEET_KEYS.date], sale, parseFloat(t[SHEET_KEYS.purchasePrice]) || 0);
-  });
-
-  var keys = Object.keys(buckets).sort();
-  var labelFn = granularity === 'quarter' ? formatQuarterLabel : formatMonthLabel;
-
-  if (profitTrendChartInstance) { profitTrendChartInstance.destroy(); profitTrendChartInstance = null; }
-  var trendEmptyMsg = $('profitTrendChartEmpty');
-  if (!keys.length) {
-    if (trendEmptyMsg) trendEmptyMsg.style.display = 'flex';
-    return;
-  }
-  if (trendEmptyMsg) trendEmptyMsg.style.display = 'none';
-
-  profitTrendChartInstance = new Chart(canvas.getContext('2d'), {
-    type: 'line',
-    data: {
-      labels: keys.map(labelFn),
-      datasets: [
-        { label: 'Revenue', data: keys.map(function(k) { return buckets[k].revenue; }), borderColor: '#1a73e8', backgroundColor: 'rgba(26,115,232,0.08)', fill: true, tension: 0.3 },
-        { label: 'Cost', data: keys.map(function(k) { return buckets[k].cost; }), borderColor: '#EA4335', backgroundColor: 'rgba(234,67,53,0.06)', fill: true, tension: 0.3 },
-        { label: 'Profit', data: keys.map(function(k) { return buckets[k].revenue - buckets[k].cost; }), borderColor: '#34A853', backgroundColor: 'rgba(52,168,83,0.08)', fill: true, tension: 0.3 }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode: 'index', intersect: false },
-      plugins: { legend: { position: 'bottom' } },
-      scales: { y: { ticks: { callback: function(v) { return '$' + v.toLocaleString(); } } } }
-    }
-  });
-}
-
-/* ============ INSIGHTS MODAL (shared shell) ============ */
-
-window.openInsights = function() {
-  // Only render the tab that's actually visible on open — a Chart.js
-  // canvas sized while its tab is display:none ends up 0x0 and never
-  // recovers, so the other two charts render lazily on first tab switch.
-  renderVendorReport();
-  $('insightsOverlay').classList.add('open');
-  $('insightsModal').classList.add('open');
-};
-
-function closeInsights() {
-  $('insightsOverlay').classList.remove('open');
-  $('insightsModal').classList.remove('open');
-}
-$('closeInsights').addEventListener('click', closeInsights);
-$('insightsOverlay').addEventListener('click', closeInsights);
-$('insightsBtn').addEventListener('click', window.openInsights);
-
-document.querySelectorAll('.insights-tab-btn').forEach(function(btn) {
-  btn.addEventListener('click', function() {
-    document.querySelectorAll('.insights-tab-btn').forEach(function(b) { b.classList.remove('active'); });
-    document.querySelectorAll('.insights-tab-content').forEach(function(c) { c.classList.remove('active'); });
-    btn.classList.add('active');
-    $(btn.dataset.target).classList.add('active');
-
-    if (btn.dataset.target === 'insightsBestSellersTab') {
-      renderBestSellers();
-      renderSeasonalChart($('seasonalDimensionSelect').value);
-    } else if (btn.dataset.target === 'insightsProfitTrendTab') {
-      renderProfitTrend($('profitTrendGranularity').value);
-    }
-  });
-});
-
-$('seasonalDimensionSelect').addEventListener('change', function() {
-  renderSeasonalChart(this.value);
-});
-$('profitTrendGranularity').addEventListener('change', function() {
-  renderProfitTrend(this.value);
-});
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1E1B18">
+<title>VINÉRE Ledger — Orders</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css?v=13">
+<base target="_blank">
+<base target="_blank">
+<base target="_blank">
+<base target="_blank">
+<base target="_blank">
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div id="login">
+  <div class="login-card">
+    <img class="login-logo" src="images/vinere-logo-white.png" alt="VINÉRE Jewellery">
+    <input id="passInput" type="password" placeholder="Access code" autofocus autocomplete="off">
+    <button id="loginBtn">Unlock</button>
+    <div id="loginError"></div>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app">
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="mark">VINÉRE<span class="dot">·</span>Ledger</div>
+      <div class="view-toggle">
+        <button class="btn secondary small active" id="ordersViewBtn">Orders</button>
+        <button class="btn secondary small" id="tradingViewBtn">Trading</button>
+        <button class="btn secondary small" id="expensesViewBtn">Expenses</button>
+      </div>
+    </div>
+    <div class="header-stats" id="headerStats">
+      <div class="hstat" id="hstat_1_wrap"><span class="hstat-label" id="hstat_1_label">Profit / Loss</span><span class="hstat-value" id="hstat_1">—</span></div>
+      <div class="hstat" id="hstat_2_wrap"><span class="hstat-label" id="hstat_2_label">Remaining Stock</span><span class="hstat-value" id="hstat_2">—</span></div>
+      <div class="hstat" id="hstat_3_wrap"><span class="hstat-label" id="hstat_3_label">Stock Cost</span><span class="hstat-value" id="hstat_3">—</span></div>
+    </div>
+    <div class="topbar-right">
+      <div class="search-wrap">
+        <input id="search" placeholder="Search…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" onfocus="this.setAttribute('readonly','readonly');setTimeout(()=>this.removeAttribute('readonly'),1)">
+        <button id="searchClear" class="search-clear" title="Clear search">&times;</button>
+        <span id="resultCount" class="result-count"></span>
+      </div>
+      <button class="btn secondary small" id="refreshBtn" title="Refresh">↻</button>
+      <button class="btn secondary small" id="insightsBtn" title="Vendor profitability & best sellers">Insights</button>
+      <button class="btn secondary small" id="buyersBtn" title="Buyer directory">Buyers</button>
+      <button class="btn secondary small" id="receivePaymentBtn">Payment</button>
+      <button class="btn small" id="newOrderBtn">+ Order</button>
+      <button class="btn small" id="newTradeBtn" style="display:none;">+ Trade</button>
+      <button class="btn small" id="newExpenseBtn" style="display:none;">+ Expense</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="ordersView">
+      <div class="filter-bar-head">
+        <button class="btn secondary small" id="filtersToggleBtn" onclick="toggleFiltersBar()">Filters</button>
+        <span class="rate-note" id="rateNoteCollapsed"></span>
+      </div>
+      <div class="filter-bar compact" id="filterBarContent" style="display:none;">
+        <div class="field" style="margin:0;flex:0 0 auto;">
+          <label style="font-size:11px;margin-bottom:2px;">Gold Rate (₹/gm)</label>
+          <input type="number" id="goldRateInput" value="16000" step="100" style="width:100px;padding:6px 10px;font-size:14px;">
+        </div>
+        <span class="rate-note" id="rateNote"></span>
+
+        <div class="filter-right">
+          <select id="filterPaymentStatus" class="filter-pill" style="width:auto;min-width:130px;">
+            <option value="">All Status</option>
+            <option value="Not Sold">Not Sold</option>
+            <option value="Unpaid">Unpaid</option>
+            <option value="Partial">Partial</option>
+            <option value="Paid">Paid</option>
+          </select>
+          <input type="text" id="filterSoldTo" class="filter-pill" placeholder="Sold to…" autocomplete="off">
+          <input type="text" id="filterMemoNo" class="filter-pill" placeholder="Memo no…" autocomplete="off">
+          <select id="filterExpenseCategory" class="filter-pill" style="width:auto;min-width:140px;display:none;">
+            <option value="">All Categories</option>
+            <option value="Travel">Travel</option>
+            <option value="Food">Food</option>
+            <option value="Accommodation">Accommodation</option>
+            <option value="Marketing">Marketing</option>
+            <option value="Office">Office</option>
+            <option value="Shipping">Shipping</option>
+            <option value="Misc">Misc</option>
+          </select>
+          <input type="text" id="filterExpenseSeller" class="filter-pill" placeholder="Seller…" style="display:none;" autocomplete="off">
+          <button class="btn secondary small" id="clearFiltersBtn">Clear</button>
+        </div>
+      </div>
+
+      <div class="kpi-grid" id="kpiGrid"></div>
+      <div class="kpi-grid" id="tradeKpiGrid" style="display:none;"></div>
+      <div class="kpi-grid" id="expenseKpiGrid" style="display:none;"></div>
+
+      <div class="table-wrap">
+        <table id="ordersTable">
+          <colgroup>
+            <col style="width:4%"><col style="width:7%"><col style="width:9%"><col style="width:6%"><col style="width:7%"><col style="width:7%">
+            <col style="width:5%"><col style="width:5%"><col style="width:5%">
+            <col style="width:9%"><col style="width:5%"><col style="width:6%"><col style="width:9%">
+            <col style="width:7%"><col style="width:8%">
+          </colgroup>
+          <thead><tr>
+            <th class="num sticky-col-left">Sr.</th><th>Customer</th><th>Style No.</th><th>Jewelry Type</th><th>Diamond Shape</th><th>Date</th>
+            <th class="num">Gross Wt</th><th class="num">Net Wt</th><th class="num sortable" onclick="window.sortByColumn('inCt')" style="cursor:pointer;">Carat <span class="sort-icon">↕</span></th>
+            <th class="num">Sub Total</th><th class="num">$</th><th>Memo No.</th><th>Sold To</th>
+            <th class="num">Sale Price</th><th class="sticky-col-right">Status</th>
+          </tr></thead>
+          <tbody id="tbody">
+            <tr class="skeleton-row"><td colspan="14"><div class="skeleton-cell" style="width:100%"></div></td></tr>
+            <tr class="skeleton-row"><td colspan="14"><div class="skeleton-cell" style="width:100%"></div></td></tr>
+            <tr class="skeleton-row"><td colspan="14"><div class="skeleton-cell" style="width:100%"></div></td></tr>
+          </tbody>
+        </table>
+
+        <table id="tradingTable" style="display:none;">
+          <colgroup>
+            <col style="width:4%"><col style="width:8%"><col style="width:16%">
+            <col style="width:14%"><col style="width:8%"><col style="width:8%">
+            <col style="width:8%"><col style="width:14%"><col style="width:7%"><col style="width:8%">
+          </colgroup>
+          <thead><tr>
+            <th class="num sticky-col-left">Sr.</th><th>Date</th><th>Item</th><th>Vendor</th>
+            <th class="num">Purchase $</th><th>Memo No.</th><th class="num">Sale $</th><th>Sold To</th>
+            <th>Status</th><th class="num sticky-col-right">P/L</th>
+          </tr></thead>
+          <tbody id="tradeTbody">
+            <tr class="skeleton-row"><td colspan="10"><div class="skeleton-cell" style="width:100%"></div></td></tr>
+            <tr class="skeleton-row"><td colspan="10"><div class="skeleton-cell" style="width:100%"></div></td></tr>
+            <tr class="skeleton-row"><td colspan="10"><div class="skeleton-cell" style="width:100%"></div></td></tr>
+          </tbody>
+        </table>
+
+       <table id="expensesTable" style="display:none;">
+  <colgroup>
+    <col style="width:8%"><col style="width:14%"><col style="width:15%">
+    <col style="width:42%"><col style="width:21%">
+  </colgroup>
+  <thead><tr>
+    <th class="num">Sr.</th><th>Date</th><th>Category</th><th>Description</th>
+    <th class="num">Amount</th>
+  </tr></thead>
+  <tbody id="expenseTbody">
+    <tr class="skeleton-row"><td colspan="5"><div class="skeleton-cell" style="width:100%"></div></td></tr>
+    <tr class="skeleton-row"><td colspan="5"><div class="skeleton-cell" style="width:100%"></div></td></tr>
+  </tbody>
+</table>
+      </div>
+
+      <div class="card-list" id="cardList"></div>
+      <div class="card-list" id="tradeCardList"></div>
+      <div class="card-list" id="expenseCardList"></div>
+      <div class="pagination-bar" id="paginationBar"></div>
+      <div class="pagination-bar" id="tradePaginationBar" style="display:none;"></div>
+      <div class="pagination-bar" id="expensePaginationBar" style="display:none;"></div>
+      <div class="swipe-hint">Swipe left/right to change pages</div>
+    </div>
+  </main>
+</div>
+
+<!-- ============ ORDERS PANEL ============ -->
+<div id="overlay"></div>
+<div id="panel">
+  <div class="panel-head">
+    <h2 id="panelTitle">New Order</h2>
+    <span id="panelStatusBadge" class="status-badge status-not-sold" style="display:none;">Not Sold</span>
+    <button id="closePanel">&times;</button>
+  </div>
+
+  <!-- Memo Banner (injected by JS when memo exists) -->
+  <div id="panelMemoBanner" class="panel-memo-banner" style="display:none;"></div>
+
+  <!-- Tabs -->
+  <div class="panel-tabs">
+    <button class="panel-tab active" data-tab="tab-costs">Cost</button>
+    <button class="panel-tab" data-tab="tab-sale">Payment</button>
+  </div>
+
+  <div class="panel-body">
+
+    <!-- ===== TAB 1: COST ===== -->
+    <div id="tab-costs" class="tab-content active">
+      <div class="section-card">
+        <div class="section-card-title">Item Details</div>
+        <div class="fields-grid compact">
+          <div class="field full-width">
+            <label>Customer *</label>
+            <input id="f_customer" placeholder="e.g. HET">
+            <div class="field-error" id="err_f_customer"></div>
+          </div>
+          <div class="field full-width">
+            <label>Style No. *</label>
+            <input id="f_style" placeholder="e.g. SLER-0079 I">
+            <div class="field-error" id="err_f_style"></div>
+          </div>
+          <div class="field">
+            <label>Jewelry Type</label>
+            <select id="f_jewelryType">
+              <option value="">Select type…</option>
+              <option value="Bracelet">Bracelet</option>
+              <option value="Necklace">Necklace</option>
+              <option value="Ring">Ring</option>
+              <option value="Earring">Earring</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Diamond Shape</label>
+            <div class="field-row">
+              <select id="f_diamondShapeBase">
+                <option value="">Select shape…</option>
+              </select>
+              <select id="f_diamondShapeVariant" disabled>
+                <option value="">Select shape first…</option>
+              </select>
+            </div>
+            <!-- Hidden: keeps the real stored value; panel.js/table.js read/write this id unchanged -->
+            <select id="f_diamondShape" style="display:none">
+              <option value="">Select shape…</option>
+              <option value="Round">Round</option>           
+              <option value="Round Bezel">Round Bezel</option>
+              <option value="Oval East/West">Oval East/West</option>
+              <option value="Oval North/South">Oval North/South</option>
+              <option value="Oval Bezel East/West">Oval Bezel East/West</option>
+              <option value="Oval Bezel North/South">Oval Bezel North/South</option>
+              <option value="Marquise East/West">Marquise East/West</option>
+              <option value="Marquise North/South">Marquise North/South</option>
+              <option value="Marquise Bezel East/West">Marquise Bezel East/West</option>
+              <option value="Marquise Bezel North/South">Marquise Bezel North/South</option>
+              <option value="Emerald East/West">Emerald East/West</option>
+              <option value="Emerald North/South">Emerald North/South</option>
+              <option value="Emerald Bezel East/West">Emerald Bezel East/West</option>
+              <option value="Emerald Bezel North/South">Emerald Bezel North/South</option>
+              <option value="Pear East/West">Pear East/West</option>
+              <option value="Pear North/South">Pear North/South</option>
+              <option value="Pear Bezel East/West">Pear Bezel East/West</option>
+              <option value="Pear Bezel North/South">Pear Bezel North/South</option>
+              <option value="Radiant East/West">Radiant East/West</option>
+              <option value="Radiant North/South">Radiant North/South</option>
+              <option value="Radiant Bezel East/West">Radiant Bezel East/West</option>
+              <option value="Radiant Bezel North/South">Radiant Bezel North/South</option>
+              <option value="Cushion">Cushion</option>
+              <option value="Cushion Bezel">Cushion Bezel</option>
+              <option value="Cushion Half Bezel">Cushion Half Bezel</option>
+              <option value="Fancy Mix">Fancy Mix</option>
+              <option value="Fancy Mix Bezel">Fancy Mix Bezel</option>
+            </select>
+          </div>
+          <div class="field"><label>Date</label><input id="f_date" type="date"></div>
+          <div class="field"><label>Gross Wt (g)</label><input id="f_grossWt" type="number" step="0.001" placeholder="0.000"></div>
+          <div class="field"><label>Net Wt (g) *</label><input id="f_netWt" type="number" step="0.001" placeholder="0.000"><div class="field-error" id="err_f_netWt"></div></div>
+          <div class="field"><label>Multiplier</label><input id="f_multiplier" type="number" step="0.001" value="0.595"></div>
+          <div class="field"><label>Dia Qty</label><input id="f_diaQty" type="number" step="1" placeholder="0"></div>
+          <div class="field"><label>IN CT</label><input id="f_inCt" type="number" step="0.01" placeholder="0.00"></div>
+          <div class="field"><label>Colour Stone</label><input id="f_colourStone" type="number" step="1" placeholder="0"></div>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-card-title">Cost Breakdown</div>
+        <div class="fields-grid compact">
+          <div class="field"><label>Diamond Amount (₹)</label><input id="f_diamAmount" type="number" step="1" placeholder="0"></div>
+          <div class="field"><label>L Charges (₹/g)</label><input id="f_lCharges" type="number" step="1" placeholder="900"></div>
+          <div class="field full-width">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;text-transform:none;letter-spacing:0;font-weight:400;color:var(--md-on-surface-variant);">
+              <input type="checkbox" id="f_flatLabor" style="width:16px;height:16px;"> Flat labor — fixed amount (don't multiply by weight)
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-preview-bottom">
+        <div class="computed-preview compact" style="margin:0;">
+          <div class="computed-row"><span class="label">Pg Wt</span><span class="value" id="prev_pgWt">—</span></div>
+          <div class="computed-row"><span class="label">Gold Amount</span><span class="value" id="prev_goldAmt">—</span></div>
+          <div class="computed-row"><span class="label">Labor Amount</span><span class="value" id="prev_laborAmt">—</span></div>
+          <div class="computed-row"><span class="label">Sub Total</span><span class="value" id="prev_subTotal">—</span></div>
+          <div class="computed-row"><span class="label">USD ($)</span><span class="value" id="prev_usd">—</span></div>
+        </div>
+        <p class="computed-note" style="margin-bottom:0;font-size:11px;">Pg Wt = Net Wt × Multiplier | Gold = Pg Wt × Rate | Labor = Net Wt × L Charges | $ = Sub Total ÷ 94</p>
+      </div>
+    </div>
+
+    <!-- ===== TAB 3: SALE & PAYMENT ===== -->
+    <div id="tab-sale" class="tab-content">
+      <div class="section-card">
+        <div class="section-card-title">Sale Details</div>
+        <div class="fields-grid">
+          <div class="field"><label>Memo No.</label><input id="f_memoNo" placeholder="e.g. MEMO-014"></div>
+          <div class="field"><label>Sold To (Buyer)</label><input id="f_soldTo" list="buyersDatalist" autocomplete="off" placeholder="e.g. Priya Shah"><input type="hidden" id="f_soldToBuyerId"></div>
+          <div class="field"><label>Sale Price ($)</label><input id="f_salePrice" type="number" step="1" placeholder="0"><div class="field-error" id="err_f_salePrice"></div></div>
+          <div class="field"><label>Date Sold</label><input id="f_dateSold" type="date"></div>
+        </div>
+        <div id="memoSummary" style="display:none;margin-top:var(--space-3);"></div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-card-title">Installments</div>
+        <div id="installmentChips" class="installment-chips"></div>
+        <div class="fields-grid">
+          <div class="field"><input id="f_instAmount" type="number" step="1" min="0" placeholder="Amount $"></div>
+          <div class="field"><input id="f_instDate" type="date"></div>
+        </div>
+        <div class="installment-add-row" style="display:flex;align-items:center;gap:var(--space-3);margin-top:var(--space-2);">
+          <button class="btn secondary small" id="addInstallmentBtn" type="button" style="flex:1;">+ Add installment</button>
+          <span id="f_remainingBalance" class="remaining-balance-tag"></span>
+        </div>
+        <div class="field-error" id="err_f_installment"></div>
+      </div>
+
+      <div class="section-card sticky-preview-card">
+        <div class="section-card-title">Payment Summary</div>
+        <div class="computed-preview compact" style="margin:0;">
+          <div class="computed-row"><span class="label">Amount Paid</span><span class="value" id="prev_amountPaid">$0</span></div>
+          <div class="computed-row"><span class="label">Balance Due</span><span class="value" id="prev_balanceDue">—</span></div>
+          <div class="computed-row"><span class="label">Payment Status</span><span class="value" id="prev_paymentStatus">Not Sold</span></div>
+        </div>
+      </div>
+
+      <div id="saveMsg"></div>
+    </div>
+
+  </div>
+
+  <div class="panel-foot">
+    <button id="deleteBtn" style="display:none;"><span id="deleteText">Delete</span></button>
+    <button class="btn" id="saveBtn" style="flex:1;">Save</button>
+  </div>
+</div>
+
+<!-- ============ TRADING PANEL ============ -->
+<div id="tradeOverlay"></div>
+<div id="tradePanel">
+  <div class="panel-head">
+    <h2 id="tradePanelTitle">New Trade</h2>
+    <span id="tradePanelStatusBadge" class="status-badge status-not-sold" style="display:none;">Not Sold</span>
+    <button id="closeTradePanel">&times;</button>
+  </div>
+
+  <!-- Memo Banner (injected by JS when memo exists) -->
+  <div id="tradePanelMemoBanner" class="panel-memo-banner" style="display:none;"></div>
+
+  <div class="panel-tabs">
+    <button class="panel-tab active" data-tab="tab-trade-costs">Cost</button>
+    <button class="panel-tab" data-tab="tab-trade-payment">Payment</button>
+  </div>
+
+  <div class="panel-body">
+
+    <!-- ===== TAB 1: COST ===== -->
+    <div id="tab-trade-costs" class="tab-content active">
+      <div class="section-card">
+        <div class="section-card-title">Item Details</div>
+        <div class="fields-grid">
+          <div class="field full-width"><label>Item *</label><input id="t_item" placeholder="e.g. Diamond Bracelet"><div class="field-error" id="err_t_item"></div></div>
+          <div class="field full-width"><label>Vendor *</label><input id="t_vendor" placeholder="e.g. Rakesh Jewellers"><div class="field-error" id="err_t_vendor"></div></div>
+          <div class="field"><label>Date</label><input id="t_date" type="date"></div>
+          <div class="field"><label>Purchase Price ($) *</label><input id="t_purchasePrice" type="number" step="1" placeholder="0"><div class="field-error" id="err_t_purchasePrice"></div></div>
+          <div class="field full-width"><label>Notes</label><input id="t_notes" placeholder="Any notes…"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== TAB 2: PAYMENT ===== -->
+    <div id="tab-trade-payment" class="tab-content">
+      <div class="section-card">
+        <div class="section-card-title">Sale Details</div>
+        <div class="fields-grid">
+          <div class="field"><label>Memo No.</label><input id="t_memoNo" placeholder="e.g. MEMO-014"></div>
+          <div class="field"><label>Sold To (Buyer)</label><input id="t_soldTo" list="buyersDatalist" autocomplete="off" placeholder="e.g. Priya Shah"><input type="hidden" id="t_soldToBuyerId"></div>
+          <div class="field"><label>Sale Price ($)</label><input id="t_salePrice" type="number" step="1" placeholder="0"><div class="field-error" id="err_t_salePrice"></div></div>
+          <div class="field"><label>Date Sold</label><input id="t_dateSold" type="date"></div>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-card-title">Installments</div>
+        <div id="tradeInstallmentsList" class="installment-chips"></div>
+        <div class="fields-grid">
+          <div class="field"><input id="t_instAmount" type="number" step="1" min="0" placeholder="Amount $"></div>
+          <div class="field"><input id="t_instDate" type="date"></div>
+        </div>
+        <div class="installment-add-row" style="display:flex;align-items:center;gap:var(--space-3);margin-top:var(--space-2);">
+          <button class="btn secondary small" id="addTradeInstallmentBtn" type="button" style="flex:1;">+ Add installment</button>
+          <span id="t_remainingBalance" class="remaining-balance-tag"></span>
+        </div>
+        <div class="field-error" id="err_t_installment"></div>
+      </div>
+
+      <div class="section-card sticky-preview-card">
+        <div class="section-card-title">Payment Summary</div>
+        <div class="computed-preview compact" style="margin:0;">
+          <div class="computed-row"><span class="label">Profit / Loss</span><span class="value" id="t_prev_profit" style="color:var(--text-dim)">—</span></div>
+          <div class="computed-row"><span class="label">Amount Paid</span><span class="value" id="t_prev_amountPaid">—</span></div>
+          <div class="computed-row"><span class="label">Balance Due</span><span class="value" id="t_prev_balanceDue">—</span></div>
+          <div class="computed-row"><span class="label">Payment Status</span><span class="value" id="t_prev_paymentStatus">—</span></div>
+        </div>
+      </div>
+
+      <div id="tradeSaveMsg"></div>
+    </div>
+
+  </div>
+  <div class="panel-foot">
+    <button id="deleteTradeBtn" style="display:none;"><span id="deleteTradeText">Delete</span></button>
+    <button class="btn" id="saveTradeBtn" style="flex:1;">Save</button>
+  </div>
+</div>
+
+<!-- ============ EXPENSES PANEL ============ -->
+<div id="expenseOverlay"></div>
+<div id="expensePanel">
+  <div class="panel-head">
+    <h2 id="expensePanelTitle">New Expense</h2>
+    <button id="closeExpensePanel">&times;</button>
+  </div>
+  <div class="panel-body">
+    <div class="section-card">
+      <div class="section-card-title">Expense Details</div>
+      <div class="fields-grid">
+        <div class="field"><label>Date *</label><input id="e_date" type="date"><div class="field-error" id="err_e_date"></div></div>
+        <div class="field"><label>Category *</label>
+          <select id="e_category">
+            <option value="Travel">Travel</option>
+            <option value="Food">Food</option>
+            <option value="Accommodation">Accommodation</option>
+            <option value="Marketing">Marketing</option>
+            <option value="Office">Office</option>
+            <option value="Shipping">Shipping</option>
+            <option value="Misc">Misc</option>
+          </select>
+          <div class="field-error" id="err_e_category"></div>
+        </div>
+        <div class="field full-width"><label>Description</label><input id="e_description" placeholder="e.g. Flight to Mumbai"></div>
+        <div class="field"><label>Amount ($) *</label><input id="e_amount" type="number" step="0.01" placeholder="0.00"><div class="field-error" id="err_e_amount"></div></div>
+        <div class="field"><label>Seller</label><input id="e_seller" placeholder="e.g. Aakash"></div>
+        <div class="field full-width"><label>Notes</label><input id="e_notes" placeholder="Any notes…"></div>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-card-title">Reimbursement</div>
+      <div class="fields-grid">
+        <div class="field full-width">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;text-transform:none;letter-spacing:0;font-weight:400;color:var(--md-on-surface-variant);">
+            <input type="checkbox" id="e_reimbursed" style="width:16px;height:16px;"> Reimbursed
+          </label>
+        </div>
+        <div class="field full-width" id="e_reimbursementDateWrap" style="display:none;">
+          <label>Reimbursement Date</label>
+          <input id="e_reimbursementDate" type="date">
+        </div>
+      </div>
+    </div>
+
+    <div id="expenseSaveMsg"></div>
+  </div>
+  <div class="panel-foot">
+    <button id="deleteExpenseBtn" style="display:none;"><span>Delete</span></button>
+    <button class="btn" id="saveExpenseBtn" style="flex:1;">Save</button>
+  </div>
+</div>
+
+<!-- ============ RECEIVE PAYMENT ============ -->
+<div id="paymentSearchOverlay"></div>
+<div id="paymentSearchModal">
+  <div class="panel-head"><h2>Receive Payment</h2><button id="closePaymentSearch">&times;</button></div>
+  <div class="pay-search-body">
+    <input id="paySearchInput" placeholder="Search memo no., buyer, style, or customer…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" onfocus="this.setAttribute('readonly','readonly');setTimeout(()=>this.removeAttribute('readonly'),1)">
+    <div id="payResults" class="pay-results"></div>
+  </div>
+</div>
+
+<!-- ============ CUSTOMER PROFILE ============ -->
+<div id="customerProfileOverlay" class="overlay-fade"></div>
+<div id="customerProfileModal" class="side-modal">
+  <div class="panel-head"><h2 id="customerProfileName">Customer</h2><button id="closeCustomerProfile">&times;</button></div>
+  <div class="side-modal-body">
+    <div class="kpi-grid" id="customerProfileKPIs"></div>
+    <div id="customerProfileItems"></div>
+  </div>
+</div>
+
+<!-- ============ MEMO DETAIL ============
+     Opens on top of Customer Profile (and anywhere else a memo number is
+     shown), so it needs a higher z-index than the standard side-modal. -->
+<div id="memoDetailOverlay" class="overlay-fade"></div>
+<div id="memoDetailModal" class="side-modal">
+  <div class="panel-head"><h2 id="memoDetailTitle">Memo</h2><button id="closeMemoDetail">&times;</button></div>
+  <div class="side-modal-body">
+    <div class="kpi-grid" id="memoDetailKPIs"></div>
+    <div id="memoDetailItems"></div>
+  </div>
+</div>
+
+<!-- Floating hover-preview card for memo links; positioned via JS -->
+<div id="memoHoverPreview" class="memo-hover-preview"></div>
+
+<!-- ============ INSIGHTS ============ -->
+<div id="insightsOverlay" class="overlay-fade"></div>
+<div id="insightsModal" class="side-modal side-modal-wide">
+  <div class="panel-head"><h2>Insights</h2><button id="closeInsights">&times;</button></div>
+  <div class="insights-tabs">
+    <button class="insights-tab-btn active" data-target="insightsVendorsTab">Vendor Profitability</button>
+    <button class="insights-tab-btn" data-target="insightsBestSellersTab">Best Sellers</button>
+    <button class="insights-tab-btn" data-target="insightsProfitTrendTab">Profit Trend</button>
+  </div>
+  <div class="side-modal-body">
+    <div id="insightsVendorsTab" class="insights-tab-content active"></div>
+    <div id="insightsBestSellersTab" class="insights-tab-content">
+      <div class="insights-chart-controls">
+        <label for="seasonalDimensionSelect">Seasonal trend by</label>
+        <select id="seasonalDimensionSelect" class="filter-pill" style="width:auto;">
+          <option value="type">Jewelry Type</option>
+          <option value="shape">Diamond Shape</option>
+        </select>
+      </div>
+      <div class="insights-chart-wrap"><canvas id="seasonalChart"></canvas><div id="seasonalChartEmpty" class="chart-empty-msg" style="display:none;">No sold orders yet</div></div>
+      <div id="bestSellersTables"></div>
+    </div>
+    <div id="insightsProfitTrendTab" class="insights-tab-content">
+      <div class="insights-chart-controls">
+        <label for="profitTrendGranularity">Group by</label>
+        <select id="profitTrendGranularity" class="filter-pill" style="width:auto;">
+          <option value="month">Month</option>
+          <option value="quarter">Quarter</option>
+        </select>
+      </div>
+      <div class="insights-chart-wrap"><canvas id="profitTrendChart"></canvas><div id="profitTrendChartEmpty" class="chart-empty-msg" style="display:none;">No sold items yet</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Suggestions for the Sold To fields; populated at runtime from BUYERS -->
+<datalist id="buyersDatalist"></datalist>
+
+<!-- ============ BUYERS ============ -->
+<div id="buyersOverlay" class="overlay-fade"></div>
+<div id="buyersModal" class="side-modal side-modal-wide">
+  <div class="panel-head"><h2>Buyers</h2><button id="closeBuyers">&times;</button></div>
+  <div class="side-modal-body">
+    <div style="display:flex;gap:var(--space-3);margin-bottom:var(--space-4);">
+      <input type="text" id="buyerSearchInput" class="filter-pill" placeholder="Search buyers…" style="flex:1;" autocomplete="off">
+      <button class="btn small" id="newBuyerBtn">+ Buyer</button>
+    </div>
+    <div id="buyerListContainer"></div>
+  </div>
+</div>
+
+<!-- ============ BUYER EDIT PANEL ============ -->
+<div id="buyerFormOverlay" class="overlay-fade"></div>
+<div id="buyerFormModal" class="side-modal">
+  <div class="panel-head"><h2 id="buyerFormTitle">New Buyer</h2><button id="closeBuyerForm">&times;</button></div>
+  <div class="side-modal-body">
+    <div class="field">
+      <label>Name</label>
+      <input id="b_name" placeholder="e.g. Priya Shah">
+      <div class="field-error" id="err_b_name"></div>
+    </div>
+    <div class="field">
+      <label>Phone</label>
+      <input id="b_phone" placeholder="e.g. +91 98765 43210">
+    </div>
+    <div class="field">
+      <label>Email</label>
+      <input id="b_email" placeholder="optional">
+    </div>
+    <div class="field">
+      <label>Address</label>
+      <input id="b_address" placeholder="optional">
+    </div>
+    <div class="field">
+      <label>Notes</label>
+      <textarea id="b_notes" rows="3" placeholder="ring size, preferences, etc."></textarea>
+    </div>
+    <div style="display:flex;gap:var(--space-3);margin-top:var(--space-4);">
+      <button class="btn" id="deleteBuyerBtn" style="display:none;background:var(--error);color:#fff;"><span>Delete</span></button>
+      <button class="btn" id="saveBuyerBtn" style="flex:1;">Save</button>
+    </div>
+  </div>
+</div>
+
+<div id="screenFx"></div>
+<div id="toast"></div>
+<div id="undoToast">
+  <span class="undo-msg">Order deleted — <span class="undo-count" id="undoCount">60</span>s left</span>
+  <button id="undoBtn">Undo</button>
+</div>
+<div id="toastContainer" class="toast-container"></div>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+
+<!-- App scripts — load order matters -->
+<script src="js/utils.js?v=4"></script>
+<script src="js/diamond-shape.js?v=1"></script>
+<script src="js/api.js?v=4"></script>
+<script src="js/firebase.js?v=4"></script>
+<script src="js/app.js?v=6"></script>
+<script src="js/dashboard.js?v=6"></script>
+<script src="js/filters.js?v=4"></script>
+<script src="js/panel.js?v=5"></script>
+<script src="js/table.js?v=5"></script>
+<script src="js/payments.js?v=5"></script>
+<script src="js/trading.js?v=5"></script>
+<script src="js/expenses.js?v=3"></script>
+<script src="js/insights.js?v=7"></script>
+<script src="js/buyers.js?v=6"></script>
+<button id="mobileFab" class="mobile-fab" style="display:none;">+</button>
+</body>
+</html>

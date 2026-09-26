@@ -7,7 +7,7 @@
 <title>VINÉRE Ledger — Orders</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=11">
+<link rel="stylesheet" href="css/style.css?v=12">
 <base target="_blank">
 <base target="_blank">
 <base target="_blank">
@@ -510,10 +510,31 @@
   <div class="insights-tabs">
     <button class="insights-tab-btn active" data-target="insightsVendorsTab">Vendor Profitability</button>
     <button class="insights-tab-btn" data-target="insightsBestSellersTab">Best Sellers</button>
+    <button class="insights-tab-btn" data-target="insightsProfitTrendTab">Profit Trend</button>
   </div>
   <div class="side-modal-body">
     <div id="insightsVendorsTab" class="insights-tab-content active"></div>
-    <div id="insightsBestSellersTab" class="insights-tab-content"></div>
+    <div id="insightsBestSellersTab" class="insights-tab-content">
+      <div class="insights-chart-controls">
+        <label for="seasonalDimensionSelect">Seasonal trend by</label>
+        <select id="seasonalDimensionSelect" class="filter-pill" style="width:auto;">
+          <option value="type">Jewelry Type</option>
+          <option value="shape">Diamond Shape</option>
+        </select>
+      </div>
+      <div class="insights-chart-wrap"><canvas id="seasonalChart"></canvas></div>
+      <div id="bestSellersTables"></div>
+    </div>
+    <div id="insightsProfitTrendTab" class="insights-tab-content">
+      <div class="insights-chart-controls">
+        <label for="profitTrendGranularity">Group by</label>
+        <select id="profitTrendGranularity" class="filter-pill" style="width:auto;">
+          <option value="month">Month</option>
+          <option value="quarter">Quarter</option>
+        </select>
+      </div>
+      <div class="insights-chart-wrap"><canvas id="profitTrendChart"></canvas></div>
+    </div>
   </div>
 </div>
 
@@ -578,6 +599,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
 
 <!-- App scripts — load order matters -->
 <script src="js/utils.js?v=4"></script>
@@ -592,7 +614,7 @@
 <script src="js/payments.js?v=5"></script>
 <script src="js/trading.js?v=5"></script>
 <script src="js/expenses.js?v=3"></script>
-<script src="js/insights.js?v=5"></script>
+<script src="js/insights.js?v=6"></script>
 <script src="js/buyers.js?v=6"></script>
 <button id="mobileFab" class="mobile-fab" style="display:none;">+</button>
 </body>

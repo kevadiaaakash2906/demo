@@ -110,6 +110,11 @@
 html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Shrinks the whole UI (text, padding, icons, spacing) to 80% of its
+     original size uniformly. A plain font-size change wouldn't reliably
+     cascade, since many rules below use fixed px sizes rather than
+     relative units — zoom scales everything proportionally instead. */
+  zoom: 80%;
 }
 
 body {
@@ -1916,6 +1921,7 @@ input[type="checkbox"] {
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
+  isolation: isolate;
 }
 
 .report-table th,

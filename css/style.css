@@ -2922,3 +2922,54 @@ body.panel-open {
   text-transform: uppercase; letter-spacing: 0.04em;
   padding: 3px 10px; border-radius: var(--radius-pill);
 }
+/* ============================================
+   REPORT TABLE & STICKY HEADER FIX
+   ============================================ */
+.report-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 14px;
+}
+
+.report-table th {
+  padding: 14px 18px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--md-on-surface-variant);
+  text-align: left;
+  border-bottom: 1px solid var(--md-outline-variant);
+  white-space: nowrap;
+}
+
+.report-table th.num {
+  text-align: right;
+}
+
+.report-table tbody td {
+  padding: 16px 18px;
+  color: var(--md-on-surface);
+  border-bottom: 1px solid var(--md-outline-variant);
+  white-space: nowrap;
+}
+
+/* Ensure all table headers have sticky positioning and a solid background */
+.report-table thead th,
+#ordersTable thead th,
+#tradingTable thead th,
+#expensesTable thead th {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background-color: var(--md-surface-variant); /* Opaque background prevents text bleed */
+}
+
+/* Ensure sticky corner headers remain above scrolling rows */
+thead .sticky-col-left,
+thead .sticky-col-right {
+  z-index: 6;
+  background-color: var(--md-surface-variant);
+}

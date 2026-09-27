@@ -114,7 +114,7 @@ html {
      original size uniformly. A plain font-size change wouldn't reliably
      cascade, since many rules below use fixed px sizes rather than
      relative units — zoom scales everything proportionally instead. */
-  zoom: 70%;
+  zoom: 65%;
 }
 
 body {

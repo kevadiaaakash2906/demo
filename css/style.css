@@ -114,12 +114,12 @@ html {
      original size uniformly. A plain font-size change wouldn't reliably
      cascade, since many rules below use fixed px sizes rather than
      relative units — zoom scales everything proportionally instead. */
-  zoom: 85%;
+  zoom: 80%;
 }
 
 body {
   font-family: var(--font-body);
-  font-size: 15px;
+  font-size: 16.5px;
   line-height: 1.5;
   color: var(--md-on-surface);
   background: var(--md-background);
@@ -183,7 +183,7 @@ body {
   width: 100%;
   padding: var(--space-3) var(--space-4);
   font-family: var(--font-body);
-  font-size: 18px;
+  font-size: 19.8px;
   color: var(--md-on-surface);
   background: var(--md-surface);
   border: 1px solid var(--md-outline);
@@ -206,7 +206,7 @@ body {
   width: 100%;
   padding: var(--space-3) var(--space-5);
   font-family: var(--font-body);
-  font-size: 15px;
+  font-size: 16.5px;
   font-weight: 500;
   letter-spacing: 0.025em;
   text-transform: none;
@@ -233,7 +233,7 @@ body {
 }
 
 #loginError {
-  font-size: 15px;
+  font-size: 16.5px;
   color: var(--md-error);
   min-height: 18px;
   text-align: center;
@@ -271,7 +271,7 @@ body {
 
 .mark {
   font-family: var(--font-heading);
-  font-size: 22px;
+  font-size: 24.2px;
   font-weight: 700;
   color: var(--md-on-surface);
   letter-spacing: -0.02em;
@@ -294,7 +294,7 @@ body {
 .view-toggle .btn {
   border-radius: var(--radius-pill);
   padding: 6px 18px;
-  font-size: 15px;
+  font-size: 16.5px;
   font-weight: 500;
   color: var(--md-on-surface-variant);
   background: transparent;
@@ -329,7 +329,7 @@ body {
 }
 
 .hstat-label {
-  font-size: 14px;
+  font-size: 15.4px;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -338,7 +338,7 @@ body {
 
 .hstat-value {
   font-family: var(--font-mono);
-  font-size: 17px;
+  font-size: 18.7px;
   font-weight: 500;
   color: var(--md-on-surface);
 }
@@ -360,7 +360,7 @@ body {
   width: 260px;
   padding: 8px 36px 8px 14px;
   font-family: var(--font-body);
-  font-size: 15px;
+  font-size: 16.5px;
   color: var(--md-on-surface);
   background: var(--md-surface-variant);
   border: 1px solid transparent;
@@ -396,7 +396,7 @@ body {
   background: none;
   border: none;
   color: var(--md-on-surface-variant);
-  font-size: 18px;
+  font-size: 19.8px;
   cursor: pointer;
   border-radius: 50%;
   transition: background var(--duration-fast);
@@ -413,7 +413,7 @@ body {
   top: -6px;
   background: var(--md-primary);
   color: var(--md-on-primary);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   padding: 1px 6px;
   border-radius: var(--radius-pill);
@@ -435,7 +435,7 @@ body {
   gap: 6px;
   padding: 8px 20px;
   font-family: var(--font-body);
-  font-size: 15px;
+  font-size: 16.5px;
   font-weight: 500;
   letter-spacing: 0.025em;
   line-height: 1;
@@ -518,7 +518,7 @@ body {
 
 .btn.small {
   padding: 6px 14px;
-  font-size: 14px;
+  font-size: 15.4px;
 }
 
 /* Delete button */
@@ -530,7 +530,7 @@ body {
   gap: 6px;
   padding: 8px 20px;
   font-family: var(--font-body);
-  font-size: 15px;
+  font-size: 16.5px;
   font-weight: 500;
   color: var(--md-error);
   background: transparent;
@@ -582,7 +582,7 @@ main {
 .filter-bar input[type="date"] {
   padding: 8px 12px;
   font-family: var(--font-body);
-  font-size: 14px;
+  font-size: 15.4px;
   color: var(--md-on-surface);
   background: var(--md-surface-variant);
   border: 1px solid transparent;
@@ -605,7 +605,7 @@ main {
 }
 
 .rate-note {
-  font-size: 14px;
+  font-size: 15.4px;
   color: var(--md-on-surface-variant);
   margin-left: auto;
 }
@@ -643,7 +643,7 @@ main {
 }
 
 .kpi-label {
-  font-size: 14px;
+  font-size: 15.4px;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -653,14 +653,14 @@ main {
 
 .kpi-value {
   font-family: var(--font-mono);
-  font-size: 28px;
+  font-size: 30.8px;
   font-weight: 500;
   color: var(--md-on-surface);
   line-height: 1.2;
 }
 
 .kpi-sub {
-  font-size: 14px;
+  font-size: 15.4px;
   color: var(--md-on-surface-variant);
   margin-top: var(--space-1);
 }
@@ -683,7 +683,7 @@ main {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  font-size: 14px;
+  font-size: 15.4px;
 }
 
 #ordersTable thead,
@@ -695,7 +695,7 @@ main {
 #tradingTable th {
   padding: 14px 18px;
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: 14.3px;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -788,7 +788,7 @@ tbody .sticky-col-right {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  font-size: 14px;
+  font-size: 15.4px;
   min-width: 900px;
 }
 
@@ -799,7 +799,7 @@ tbody .sticky-col-right {
 #expensesTable th {
   padding: 14px 18px;
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: 14.3px;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -858,7 +858,7 @@ tbody .sticky-col-right {
   display: inline-flex;
   align-items: center;
   padding: 3px 10px;
-  font-size: 13px;
+  font-size: 14.3px;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -929,7 +929,7 @@ tbody .sticky-col-right {
 .pagination-bar button {
   padding: 6px 14px;
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: 14.3px;
   font-weight: 500;
   color: var(--md-primary);
   background: transparent;
@@ -952,7 +952,7 @@ tbody .sticky-col-right {
 }
 
 .page-info {
-  font-size: 13px;
+  font-size: 14.3px;
   color: var(--md-on-surface-variant);
   padding: 0 var(--space-3);
 }
@@ -1005,13 +1005,13 @@ tbody .sticky-col-right {
 
 .card-title {
   font-family: var(--font-heading);
-  font-size: 16px;
+  font-size: 17.6px;
   font-weight: 500;
   color: var(--md-on-surface);
 }
 
 .card-meta {
-  font-size: 13px;
+  font-size: 14.3px;
   color: var(--md-on-surface-variant);
 }
 
@@ -1029,7 +1029,7 @@ tbody .sticky-col-right {
   height: 32px;
   padding: 0 10px;
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: 14.3px;
   font-weight: 500;
   color: var(--md-primary);
   background: var(--md-primary-container);
@@ -1038,12 +1038,12 @@ tbody .sticky-col-right {
 
 .card-value {
   font-family: var(--font-mono);
-  font-size: 15px;
+  font-size: 16.5px;
   font-weight: 500;
 }
 
 .card-chevron {
-  font-size: 12px;
+  font-size: 13.2px;
   color: var(--md-on-surface-variant);
   transition: transform var(--duration-normal) var(--ease-standard);
 }
@@ -1068,7 +1068,7 @@ tbody .sticky-col-right {
 }
 
 .card-sum-row span:first-child {
-  font-size: 12px;
+  font-size: 13.2px;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -1077,7 +1077,7 @@ tbody .sticky-col-right {
 
 .card-sum-row span:last-child {
   font-family: var(--font-mono);
-  font-size: 15px;
+  font-size: 16.5px;
   font-weight: 500;
   color: var(--md-on-surface);
 }
@@ -1110,7 +1110,7 @@ tbody .sticky-col-right {
 }
 
 .card-label {
-  font-size: 12px;
+  font-size: 13.2px;
   color: var(--md-on-surface-variant);
 }
 
@@ -1168,7 +1168,7 @@ tbody .sticky-col-right {
 
 .panel-head h2 {
   font-family: var(--font-heading);
-  font-size: 22px;
+  font-size: 24.2px;
   font-weight: 500;
   color: var(--md-on-surface);
 }
@@ -1184,7 +1184,7 @@ tbody .sticky-col-right {
   border: none;
   border-radius: 50%;
   color: #ffffff;
-  font-size: 22px;
+  font-size: 24.2px;
   font-weight: bold;
   cursor: pointer;
   transition: all var(--duration-fast) var(--ease-standard);
@@ -1219,7 +1219,7 @@ tbody .sticky-col-right {
 
 .field label {
   display: block;
-  font-size: 12px;
+  font-size: 13.2px;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -1233,7 +1233,7 @@ tbody .sticky-col-right {
   width: 100%;
   padding: 10px 14px;
   font-family: var(--font-body);
-  font-size: 15px;
+  font-size: 16.5px;
   color: var(--md-on-surface);
   background: var(--md-surface);
   border: 1px solid var(--md-outline);
@@ -1267,7 +1267,7 @@ tbody .sticky-col-right {
 }
 
 .field-error {
-  font-size: 12px;
+  font-size: 13.2px;
   color: var(--md-error);
   margin-top: 4px;
   min-height: 16px;
@@ -1292,7 +1292,7 @@ input[type="checkbox"] {
 
 .computed-preview h4 {
   font-family: var(--font-heading);
-  font-size: 12px;
+  font-size: 13.2px;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -1313,19 +1313,19 @@ input[type="checkbox"] {
 }
 
 .computed-row .label {
-  font-size: 13px;
+  font-size: 14.3px;
   color: var(--md-on-surface-variant);
 }
 
 .computed-row .value {
   font-family: var(--font-mono);
-  font-size: 15px;
+  font-size: 16.5px;
   font-weight: 500;
   color: var(--md-on-surface);
 }
 
 .computed-note {
-  font-size: 12px;
+  font-size: 13.2px;
   color: var(--md-on-surface-variant);
   line-height: 1.5;
   margin-top: var(--space-2);
@@ -1336,7 +1336,7 @@ input[type="checkbox"] {
   align-items: center;
   gap: var(--space-3);
   margin: var(--space-5) 0 var(--space-4);
-  font-size: 12px;
+  font-size: 13.2px;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -1373,7 +1373,7 @@ input[type="checkbox"] {
   width: 100%;
   padding: 10px 14px;
   font-family: var(--font-body);
-  font-size: 15px;
+  font-size: 16.5px;
   color: var(--md-on-surface);
   background: var(--md-surface-variant);
   border: 1px solid transparent;
@@ -1436,7 +1436,7 @@ input[type="checkbox"] {
   border-radius: var(--radius-md);
   border: 1px solid var(--md-outline-variant);
   box-shadow: var(--shadow-3);
-  font-size: 13px;
+  font-size: 14.3px;
   font-weight: 500;
   pointer-events: auto;
   animation: toastSlide 150ms var(--ease-decelerate);
@@ -1472,7 +1472,7 @@ input[type="checkbox"] {
   color: var(--md-surface);
   border-radius: var(--radius-pill);
   box-shadow: var(--shadow-3);
-  font-size: 13px;
+  font-size: 14.3px;
   z-index: 1000;
 }
 
@@ -1492,7 +1492,7 @@ input[type="checkbox"] {
   border: none;
   padding: 6px 16px;
   border-radius: var(--radius-pill);
-  font-size: 13px;
+  font-size: 14.3px;
   font-weight: 500;
   cursor: pointer;
   transition: background var(--duration-fast);
@@ -1530,7 +1530,7 @@ input[type="checkbox"] {
 .swipe-hint {
   display: none;
   text-align: center;
-  font-size: 12px;
+  font-size: 13.2px;
   color: var(--md-on-surface-variant);
   padding: 8px;
   margin-top: 4px;
@@ -1607,11 +1607,11 @@ input[type="checkbox"] {
   }
 
   .kpi-value {
-    font-size: 18px;
+    font-size: 19.8px;
   }
 
   .kpi-label {
-    font-size: 10px;
+    font-size: 11px;
   }
 
   .kpi-sub {
@@ -1747,7 +1747,7 @@ input[type="checkbox"] {
 }
 
 .trade-card .card-header-right .status-badge {
-  font-size: 10px;
+  font-size: 11px;
   padding: 3px 8px;
 }
 
@@ -1780,7 +1780,7 @@ input[type="checkbox"] {
   #ordersTable,
   #tradingTable {
     min-width: 0;
-    font-size: 13px;
+    font-size: 14.3px;
   }
 
   /* Header buttons/search/stats were overflowing off the right edge on
@@ -1863,7 +1863,7 @@ input[type="checkbox"] {
 .insights-tab-btn {
   padding: 10px 18px;
   font-family: var(--font-body);
-  font-size: 14px;
+  font-size: 15.4px;
   font-weight: 500;
   color: var(--md-on-surface-variant);
   background: none;
@@ -1897,7 +1897,7 @@ input[type="checkbox"] {
   align-items: center;
   gap: var(--space-3);
   margin-bottom: var(--space-3);
-  font-size: 12px;
+  font-size: 13.2px;
   color: var(--text-dim);
 }
 
@@ -1914,13 +1914,13 @@ input[type="checkbox"] {
   align-items: center;
   justify-content: center;
   color: var(--text-dim);
-  font-size: 13px;
+  font-size: 14.3px;
 }
 
 .report-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 14.3px;
   isolation: isolate;
 }
 
@@ -1953,7 +1953,7 @@ input[type="checkbox"] {
   gap: var(--space-3);
   padding: 10px 0;
   border-bottom: 1px solid var(--md-outline-variant);
-  font-size: 13px;
+  font-size: 14.3px;
 }
 
 .soldto-link {
@@ -1990,12 +1990,12 @@ input[type="checkbox"] {
 }
 
 .buyer-row-name {
-  font-size: 14px;
+  font-size: 15.4px;
   font-weight: 600;
 }
 
 .buyer-row-phone {
-  font-size: 12px;
+  font-size: 13.2px;
   color: var(--text-dim);
 }
 
@@ -2015,14 +2015,14 @@ input[type="checkbox"] {
 }
 
 .buyer-row-stat .label {
-  font-size: 10px;
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--text-dim);
 }
 
 .buyer-row-stat .value {
-  font-size: 13px;
+  font-size: 14.3px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
@@ -2106,7 +2106,7 @@ input[type="checkbox"] {
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-3);
   padding: var(--space-3) var(--space-4);
-  font-size: 12px;
+  font-size: 13.2px;
   pointer-events: none;
 }
 .memo-hover-preview.show {
@@ -2114,7 +2114,7 @@ input[type="checkbox"] {
 }
 .memo-hover-preview .title {
   font-weight: 600;
-  font-size: 13px;
+  font-size: 14.3px;
   margin-bottom: 6px;
 }
 .memo-hover-preview .row {
@@ -2176,7 +2176,7 @@ select:focus-visible {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: 13.2px;
   font-weight: 700;
   flex-shrink: 0;
 }
@@ -2191,8 +2191,8 @@ select:focus-visible {
 
 /* Toast body */
 .toast-body   { flex: 1; min-width: 0; }
-.toast-title  { font-weight: 600; font-size: 14px; margin-bottom: 2px; }
-.toast-message{ font-size: 13px; color: var(--md-on-surface-variant); line-height: 1.4; }
+.toast-title  { font-weight: 600; font-size: 15.4px; margin-bottom: 2px; }
+.toast-message{ font-size: 14.3px; color: var(--md-on-surface-variant); line-height: 1.4; }
 
 /* Close button */
 .toast-close {
@@ -2200,7 +2200,7 @@ select:focus-visible {
   border: none;
   color: var(--md-on-surface-variant);
   cursor: pointer;
-  font-size: 18px;
+  font-size: 19.8px;
   width: 28px;
   height: 28px;
   display: flex;
@@ -2363,7 +2363,7 @@ body.customer-role .trade-card:hover {
 }
 .filter-bar .field label {
   display: block;
-  font-size: 11px;
+  font-size: 12.1px;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -2372,7 +2372,7 @@ body.customer-role .trade-card:hover {
 
 /* Pay result type badge */
 .pay-result-type {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -2389,7 +2389,7 @@ body.customer-role .trade-card:hover {
   background: var(--md-surface-variant);
   border: 1px solid var(--md-outline-variant);
   border-radius: var(--radius-md);
-  font-size: 13px;
+  font-size: 14.3px;
   line-height: 1.5;
 }
 #memoSummary .computed-row {
@@ -2410,7 +2410,7 @@ body.customer-role .trade-card:hover {
   color: var(--md-primary);
 }
 .sort-icon {
-  font-size: 11px;
+  font-size: 12.1px;
   margin-left: 3px;
   opacity: 0.65;
 }
@@ -2427,7 +2427,7 @@ body.customer-role .trade-card:hover {
   background: var(--md-primary-container);
   color: var(--md-on-primary-container);
   border-radius: var(--radius-md);
-  font-size: 14px;
+  font-size: 15.4px;
   font-weight: 500;
   border: 1px solid var(--md-outline-variant);
 }
@@ -2464,7 +2464,7 @@ body.customer-role .trade-card:hover {
   display: inline-flex;
   align-items: center;
   padding: 2px 8px;
-  font-size: 11px;
+  font-size: 12.1px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -2504,7 +2504,7 @@ body.customer-role .trade-card:hover {
 .filter-pill {
   padding: 8px 16px;
   font-family: var(--font-body);
-  font-size: 15px;
+  font-size: 16.5px;
   color: var(--md-on-surface);
   background: var(--md-surface-variant);
   border: 1px solid transparent;
@@ -2617,7 +2617,7 @@ body.panel-open {
   background: var(--md-primary);
   color: var(--md-on-primary);
   border: none;
-  font-size: 28px;
+  font-size: 30.8px;
   line-height: 1;
   box-shadow: var(--shadow-3);
   z-index: 150;
@@ -2651,7 +2651,7 @@ body.panel-open {
     justify-content: center;
     background: var(--md-primary);
     color: var(--md-on-primary);
-    font-size: 13px;
+    font-size: 14.3px;
     font-weight: 600;
     border-radius: 0 var(--radius-md) var(--radius-md) 0;
     opacity: 0;
@@ -2668,7 +2668,7 @@ body.panel-open {
 /* iOS input zoom fix */
 @media (max-width: 900px) {
   input, select, textarea {
-    font-size: 16px !important;
+    font-size: 17.6px !important;
   }
 }
 
@@ -2704,12 +2704,12 @@ body.panel-open {
 }
 .fields-grid.compact .field label {
   margin-bottom: 3px;
-  font-size: 11px;
+  font-size: 12.1px;
 }
 .fields-grid.compact input,
 .fields-grid.compact select {
   padding: 7px 10px;
-  font-size: 14px;
+  font-size: 15.4px;
 }
 
 /* ── Bottom Live Preview ── */
@@ -2737,10 +2737,10 @@ body.panel-open {
   gap: 2px;
 }
 .computed-preview.compact .computed-row .label {
-  font-size: 11px;
+  font-size: 12.1px;
 }
 .computed-preview.compact .computed-row .value {
-  font-size: 15px;
+  font-size: 16.5px;
 }
 
 @media (max-width: 900px) {
@@ -2773,7 +2773,7 @@ body.panel-open {
 .panel-tab {
   padding: 10px 18px;
   font-family: var(--font-body);
-  font-size: 14px;
+  font-size: 15.4px;
   font-weight: 500;
   color: var(--md-on-surface-variant);
   background: none;
@@ -2803,7 +2803,7 @@ body.panel-open {
   margin-bottom: var(--space-4);
 }
 .section-card-title {
-  font-size: 12px; font-weight: 600;
+  font-size: 13.2px; font-weight: 600;
   text-transform: uppercase; letter-spacing: 0.08em;
   color: var(--md-on-surface-variant);
   margin-bottom: var(--space-3);
@@ -2838,12 +2838,12 @@ body.panel-open {
   background: var(--md-primary-container);
   color: var(--md-on-primary-container);
   border-radius: var(--radius-pill);
-  font-size: 13px; font-weight: 500;
+  font-size: 14.3px; font-weight: 500;
 }
 .installment-chip button {
   background: none; border: none;
   color: var(--md-on-primary-container); opacity: 0.6;
-  cursor: pointer; font-size: 16px; line-height: 1; padding: 0 2px;
+  cursor: pointer; font-size: 17.6px; line-height: 1; padding: 0 2px;
 }
 .installment-chip button:hover { opacity: 1; }
 
@@ -2857,7 +2857,7 @@ body.panel-open {
 
 /* ── Running balance tag next to "+ Add installment" ── */
 .remaining-balance-tag {
-  font-size: 13px;
+  font-size: 14.3px;
   font-weight: 600;
   color: var(--md-on-surface-variant);
   white-space: nowrap;
@@ -2872,7 +2872,7 @@ body.panel-open {
   border-radius: var(--radius-md);
   padding: var(--space-3) var(--space-4);
   margin: var(--space-3) var(--space-5);
-  font-size: 14px; font-weight: 500;
+  font-size: 15.4px; font-weight: 500;
 }
 .memo-compact-row {
   display: flex;
@@ -2882,7 +2882,7 @@ body.panel-open {
 }
 .memo-compact-title {
   font-weight: 600;
-  font-size: 13px;
+  font-size: 14.3px;
   white-space: nowrap;
   padding-right: var(--space-2);
   border-right: 1px solid var(--md-on-primary-container);
@@ -2895,13 +2895,13 @@ body.panel-open {
   line-height: 1.2;
 }
 .memo-compact-stat .label {
-  font-size: 10px;
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   opacity: 0.7;
 }
 .memo-compact-stat .value {
-  font-size: 14px;
+  font-size: 15.4px;
   font-weight: 600;
 }
 
@@ -2918,58 +2918,7 @@ body.panel-open {
 .panel-head { position: relative; }
 #panelStatusBadge {
   margin-left: auto; margin-right: var(--space-3);
-  font-size: 11px; font-weight: 600;
+  font-size: 12.1px; font-weight: 600;
   text-transform: uppercase; letter-spacing: 0.04em;
   padding: 3px 10px; border-radius: var(--radius-pill);
-}
-/* ============================================
-   REPORT TABLE & STICKY HEADER FIX
-   ============================================ */
-.report-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  font-size: 14px;
-}
-
-.report-table th {
-  padding: 14px 18px;
-  font-family: var(--font-body);
-  font-size: 13px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--md-on-surface-variant);
-  text-align: left;
-  border-bottom: 1px solid var(--md-outline-variant);
-  white-space: nowrap;
-}
-
-.report-table th.num {
-  text-align: right;
-}
-
-.report-table tbody td {
-  padding: 16px 18px;
-  color: var(--md-on-surface);
-  border-bottom: 1px solid var(--md-outline-variant);
-  white-space: nowrap;
-}
-
-/* Ensure all table headers have sticky positioning and a solid background */
-.report-table thead th,
-#ordersTable thead th,
-#tradingTable thead th,
-#expensesTable thead th {
-  position: sticky;
-  top: 0;
-  z-index: 5;
-  background-color: var(--md-surface-variant); /* Opaque background prevents text bleed */
-}
-
-/* Ensure sticky corner headers remain above scrolling rows */
-thead .sticky-col-left,
-thead .sticky-col-right {
-  z-index: 6;
-  background-color: var(--md-surface-variant);
 }

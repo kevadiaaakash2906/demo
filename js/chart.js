@@ -1,151 +1,159 @@
-// ============================================
-//  CHART RENDERING with Time Filters
-//  + Theme-aware colors
-// ============================================
+/* ============================================
+   VINÉRE — Insights Charts
+   Seasonal trend (top jewelry types/shapes by month) and
+   Profit Trend (revenue/cost/profit over time), both drawn
+   with Chart.js. Called from insights.js's tab-switch and
+   dropdown-change handlers.
+   ============================================ */
 
-let chartInstance = null;
+/* ============ DATE BUCKETING HELPERS (shared by both charts) ============ */
 
-function getChartColors() {
-    const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
-    return {
-        morning: '#fbbf24',
-        night: '#a78bfa',
-        morningFillStart: isDark ? 'rgba(251,191,36,.12)' : 'rgba(251,191,36,.18)',
-        morningFillEnd: isDark ? 'rgba(251,191,36,0)' : 'rgba(251,191,36,0)',
-        nightFillStart: isDark ? 'rgba(167,139,250,.12)' : 'rgba(167,139,250,.18)',
-        nightFillEnd: isDark ? 'rgba(167,139,250,0)' : 'rgba(167,139,250,0)',
-        grid: isDark ? 'rgba(255,255,255,.03)' : 'rgba(0,0,0,.06)',
-        ticks: isDark ? '#64748b' : '#475569',
-        tooltipBg: isDark ? 'rgba(12,15,26,.95)' : 'rgba(255,255,255,.95)',
-        tooltipText: isDark ? '#f1f5f9' : '#1e293b',
-        tooltipBorder: isDark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.08)',
-        pointBorder: isDark ? '#0c0f1a' : '#ffffff'
-    };
+function getMonthKey(dateStr) {
+  if (!dateStr) return null;
+  var d = new Date(dateStr);
+  if (isNaN(d)) return null;
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+}
+function formatMonthLabel(key) {
+  var parts = key.split('-');
+  var d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, 1);
+  return d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+}
+function getQuarterKey(dateStr) {
+  if (!dateStr) return null;
+  var d = new Date(dateStr);
+  if (isNaN(d)) return null;
+  var q = Math.floor(d.getMonth() / 3) + 1;
+  return d.getFullYear() + '-Q' + q;
+}
+function formatQuarterLabel(key) {
+  var parts = key.split('-');
+  return parts[1] + ' \u2019' + parts[0].slice(2);
 }
 
-function renderChart(entries) {
-    const ctx = document.getElementById('weightChart');
-    if (!ctx) return;
-    const context = ctx.getContext('2d');
-    const colors = getChartColors();
+/* ============ SEASONAL TREND: TOP JEWELRY TYPES / SHAPES BY MONTH ============ */
 
-    if (chartInstance) chartInstance.destroy();
-    if (!entries || entries.length === 0) return;
+var seasonalChartInstance = null;
 
-    const labels = entries.map(e => {
-        const d = new Date(e.date + 'T00:00:00');
-        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    });
+function renderSeasonalChart(dimension) {
+  dimension = dimension || 'type';
+  var field = dimension === 'shape' ? DK.diamondShape : DK.jewelryType;
+  var canvas = $('seasonalChart');
+  if (!canvas || typeof Chart === 'undefined') return;
 
-    const morningData = entries.map(e => e.morning !== null && e.morning !== undefined ? e.morning : null);
-    const nightData = entries.map(e => e.night !== null && e.night !== undefined ? e.night : null);
+  // Find the top few categories overall, so the chart stays legible
+  // instead of plotting every jewelry type/shape ever recorded.
+  var totals = {};
+  ORDERS.forEach(function(o) {
+    if (!(parseFloat(o[DK.salePrice]) || 0)) return;
+    var cat = (o[field] || 'Unspecified').trim() || 'Unspecified';
+    totals[cat] = (totals[cat] || 0) + 1;
+  });
+  var topCats = Object.keys(totals).sort(function(a, b) { return totals[b] - totals[a]; }).slice(0, 4);
 
-    // Goal line
-    const settings = typeof loadSettings === 'function' ? loadSettings() : {};
-    const goalWeight = settings.goalWeight || null;
-    const datasets = [
-        {
-            label: 'Morning',
-            data: morningData,
-            borderColor: colors.morning,
-            backgroundColor: (ctx) => {
-                const c = ctx.chart.ctx;
-                const g = c.createLinearGradient(0, 0, 0, 210);
-                g.addColorStop(0, colors.morningFillStart);
-                g.addColorStop(1, colors.morningFillEnd);
-                return g;
-            },
-            borderWidth: 3,
-            pointRadius: 4,
-            pointBackgroundColor: colors.morning,
-            pointBorderColor: colors.pointBorder,
-            pointBorderWidth: 3,
-            pointHoverRadius: 6,
-            tension: .4,
-            fill: true,
-            spanGaps: true
-        },
-        {
-            label: 'Night',
-            data: nightData,
-            borderColor: colors.night,
-            backgroundColor: (ctx) => {
-                const c = ctx.chart.ctx;
-                const g = c.createLinearGradient(0, 0, 0, 210);
-                g.addColorStop(0, colors.nightFillStart);
-                g.addColorStop(1, colors.nightFillEnd);
-                return g;
-            },
-            borderWidth: 3,
-            pointRadius: 4,
-            pointBackgroundColor: colors.night,
-            pointBorderColor: colors.pointBorder,
-            pointBorderWidth: 3,
-            pointHoverRadius: 6,
-            tension: .4,
-            fill: true,
-            spanGaps: true
-        }
-    ];
+  var monthly = {};
+  ORDERS.forEach(function(o) {
+    var sale = parseFloat(o[DK.salePrice]) || 0;
+    if (!sale) return;
+    var cat = (o[field] || 'Unspecified').trim() || 'Unspecified';
+    if (topCats.indexOf(cat) === -1) return;
+    var key = getMonthKey(o[DK.dateSold] || o[DK.date]);
+    if (!key) return;
+    if (!monthly[key]) monthly[key] = {};
+    monthly[key][cat] = (monthly[key][cat] || 0) + 1;
+  });
 
-    // Add goal line dataset if goal is set
-    if (goalWeight) {
-        datasets.push({
-            label: 'Goal',
-            data: new Array(labels.length).fill(goalWeight),
-            borderColor: 'rgba(244,114,182,.5)',
-            borderWidth: 2,
-            borderDash: [6, 4],
-            pointRadius: 0,
-            pointHoverRadius: 0,
-            fill: false,
-            tension: 0,
-            order: 0
-        });
+  var months = Object.keys(monthly).sort();
+
+  if (seasonalChartInstance) { seasonalChartInstance.destroy(); seasonalChartInstance = null; }
+  var emptyMsg = $('seasonalChartEmpty');
+  if (!months.length) {
+    if (emptyMsg) emptyMsg.style.display = 'flex';
+    return;
+  }
+  if (emptyMsg) emptyMsg.style.display = 'none';
+
+  var colors = ['#1a73e8', '#EA4335', '#34A853', '#FBBC04'];
+  seasonalChartInstance = new Chart(canvas.getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: months.map(formatMonthLabel),
+      datasets: topCats.map(function(cat, i) {
+        return {
+          label: cat,
+          data: months.map(function(m) { return (monthly[m] && monthly[m][cat]) || 0; }),
+          borderColor: colors[i % colors.length],
+          backgroundColor: colors[i % colors.length],
+          tension: 0.3
+        };
+      })
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { position: 'bottom' } },
+      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
     }
+  });
+}
 
-    chartInstance = new Chart(context, {
-        type: 'line',
-        data: {
-            labels,
-            datasets
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: { mode: 'index', intersect: false },
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    backgroundColor: colors.tooltipBg,
-                    titleColor: colors.tooltipText,
-                    bodyColor: colors.tooltipText,
-                    borderColor: colors.tooltipBorder,
-                    borderWidth: 1,
-                    padding: 12,
-                    cornerRadius: 14,
-                    displayColors: true,
-                    titleFont: { size: 12, weight: '700' },
-                    bodyFont: { size: 11 },
-                    callbacks: {
-                        label: c => {
-                            const val = c.parsed.y;
-                            if (c.dataset.label === 'Goal') return 'Goal: ' + val.toFixed(1) + ' kg';
-                            return val !== null ? c.dataset.label + ': ' + val.toFixed(1) + ' kg' : null;
-                        }
-                    }
-                }
-            },
-            scales: {
-                x: {
-                    grid: { color: colors.grid, drawBorder: false },
-                    ticks: { color: colors.ticks, font: { size: 10, family: 'Inter' }, maxRotation: 45, minRotation: 45 }
-                },
-                y: {
-                    grid: { color: colors.grid, drawBorder: false },
-                    ticks: { color: colors.ticks, font: { size: 10, family: 'Inter' } }
-                }
-            }
-        }
-    });
+/* ============ PROFIT TREND: REVENUE / COST / PROFIT OVER TIME ============ */
+
+var profitTrendChartInstance = null;
+
+function renderProfitTrend(granularity) {
+  granularity = granularity || 'month';
+  var canvas = $('profitTrendChart');
+  if (!canvas || typeof Chart === 'undefined') return;
+
+  var buckets = {};
+  function addToBucket(dateStr, revenue, cost) {
+    var key = granularity === 'quarter' ? getQuarterKey(dateStr) : getMonthKey(dateStr);
+    if (!key) return;
+    if (!buckets[key]) buckets[key] = { revenue: 0, cost: 0 };
+    buckets[key].revenue += revenue;
+    buckets[key].cost += cost;
+  }
+
+  ORDERS.forEach(function(o) {
+    var sale = parseFloat(o[DK.salePrice]) || 0;
+    if (!sale) return;
+    addToBucket(o[DK.dateSold] || o[DK.date], sale, parseFloat(o[DK.usd]) || 0);
+  });
+  TRADING.forEach(function(t) {
+    var sale = parseFloat(t[SHEET_KEYS.salePrice]) || 0;
+    if (!sale) return;
+    addToBucket(t[SHEET_KEYS.dateSold] || t[SHEET_KEYS.date], sale, parseFloat(t[SHEET_KEYS.purchasePrice]) || 0);
+  });
+
+  var keys = Object.keys(buckets).sort();
+  var labelFn = granularity === 'quarter' ? formatQuarterLabel : formatMonthLabel;
+
+  if (profitTrendChartInstance) { profitTrendChartInstance.destroy(); profitTrendChartInstance = null; }
+  var trendEmptyMsg = $('profitTrendChartEmpty');
+  if (!keys.length) {
+    if (trendEmptyMsg) trendEmptyMsg.style.display = 'flex';
+    return;
+  }
+  if (trendEmptyMsg) trendEmptyMsg.style.display = 'none';
+
+  profitTrendChartInstance = new Chart(canvas.getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: keys.map(labelFn),
+      datasets: [
+        { label: 'Revenue', data: keys.map(function(k) { return buckets[k].revenue; }), borderColor: '#1a73e8', backgroundColor: 'rgba(26,115,232,0.08)', fill: true, tension: 0.3 },
+        { label: 'Cost', data: keys.map(function(k) { return buckets[k].cost; }), borderColor: '#EA4335', backgroundColor: 'rgba(234,67,53,0.06)', fill: true, tension: 0.3 },
+        { label: 'Profit', data: keys.map(function(k) { return buckets[k].revenue - buckets[k].cost; }), borderColor: '#34A853', backgroundColor: 'rgba(52,168,83,0.08)', fill: true, tension: 0.3 }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { position: 'bottom' } },
+      scales: { y: { ticks: { callback: function(v) { return '$' + v.toLocaleString(); } } } }
+    }
+  });
 }

@@ -317,7 +317,10 @@ function renderAll() {
   }
 
   // ── RESTORE NORMAL VIEW (after leaving unified mode) ──
-  $('headerStats').style.display = 'flex';
+  // header-stats fully duplicates the KPI cards below (Profit/Loss ==
+  // Gross Profit/Loss, Remaining Stock + Stock Cost == Stock on Hand), so
+  // it stays hidden — the KPI cards have more context (subtext) anyway.
+  $('headerStats').style.display = 'none';
 
   // Re-activate correct tab button
   $('ordersViewBtn').classList.toggle('active', currentView === 'orders');
@@ -486,7 +489,7 @@ function switchView(view) {
   });
 
   $('receivePaymentBtn').style.display = (ROLE !== 'customer' && view !== 'expenses') ? 'inline-flex' : 'none';
-  $('headerStats').style.display = 'flex';
+  $('headerStats').style.display = 'none';
 
   // Mobile FAB wiring
   var fab = $('mobileFab');

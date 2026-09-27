@@ -1139,14 +1139,13 @@ tbody .sticky-col-right {
 #panel, #tradePanel, #expensePanel, #paymentSearchModal {
   position: fixed;
   top: 0;
-  right: 0;
+  right: -520px;
   bottom: 0;
   width: 100%;
   max-width: 520px;
   background: var(--md-surface);
   box-shadow: var(--shadow-4);
-  transform: translateX(100%);
-  transition: transform 180ms var(--ease-decelerate);
+  transition: right 180ms var(--ease-decelerate);
   z-index: 300;
   display: flex;
   flex-direction: column;
@@ -1154,7 +1153,7 @@ tbody .sticky-col-right {
 }
 
 #panel.open, #tradePanel.open, #expensePanel.open, #paymentSearchModal.open {
-  transform: translateX(0);
+  right: 0;
 }
 
 .panel-head {

@@ -171,8 +171,6 @@ window.openOrderPanel = function(id) {
   // ── END SNAPSHOT ──
 
   // Reset header badge
-  var statusBadge = $('panelStatusBadge');
-  if (statusBadge) { statusBadge.style.display = 'none'; }
   var memoBanner = $('panelMemoBanner');
   if (memoBanner) { memoBanner.style.display = 'none'; memoBanner.textContent = ''; }
 
@@ -182,17 +180,6 @@ window.openOrderPanel = function(id) {
 
     $('panelTitle').textContent = 'Edit Order #' + order[DK.sr];
 
-    // Status badge in header
-    if (statusBadge) {
-      var status = (order[DK.paymentStatus] || 'Not Sold').trim();
-      var statusClass = {
-        'Not Sold': 'status-not-sold', 'Unpaid': 'status-unpaid',
-        'Partial': 'status-partial', 'Paid': 'status-paid'
-      }[status] || 'status-not-sold';
-      statusBadge.className = 'status-badge ' + statusClass;
-      statusBadge.textContent = status;
-      statusBadge.style.display = 'inline-flex';
-    }
     $('f_customer').value = order[DK.customer] || '';
     $('f_style').value = order[DK.style] || '';
     $('f_jewelryType').value = order[DK.jewelryType] || '';
@@ -250,7 +237,7 @@ window.openOrderPanel = function(id) {
   setReadOnly(readOnly);
   updatePreview();
 
-  overlay.style.display = 'block';
+  overlay.classList.add('open');
   panel.classList.add('open');
   document.body.classList.add('panel-open');
 };
@@ -267,7 +254,7 @@ $('overlay').addEventListener('click', closePanel);
 
 function closePanel() {
   $('panel').classList.remove('open');
-  $('overlay').style.display = 'none';
+  $('overlay').classList.remove('open');
   editingId = null;
   panelGoldRate = null;   // clear snapshot
   document.body.classList.remove('panel-open');

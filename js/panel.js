@@ -338,7 +338,7 @@ function updatePreview() {
   if (!rateIndicator) {
     rateIndicator = document.createElement('div');
     rateIndicator.id = 'rateIndicator';
-    rateIndicator.style.cssText = 'font-size:11px;color:var(--md-on-surface-variant);margin-top:4px;text-align:right;';
+    rateIndicator.style.cssText = 'font-size:calc(11px * var(--font-scale) / 100);color:var(--md-on-surface-variant);margin-top:4px;text-align:right;';
     var note = document.querySelector('.computed-note');
     if (note) note.parentNode.insertBefore(rateIndicator, note);
   }
@@ -415,13 +415,13 @@ function updateMemoSummary() {
   var srHtml = '';
   if (orderSrs.length) {
     srHtml += '<div style="margin-top:8px;padding-top:6px;border-top:1px solid var(--md-outline-variant);">' +
-      '<span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;color:var(--md-on-surface-variant);">Order Sr. Nos</span>' +
-      '<div style="font-size:13px;color:var(--md-on-surface);margin-top:2px;">#' + orderSrs.join(', #') + '</div></div>';
+      '<span style="font-size:calc(11px * var(--font-scale) / 100);font-weight:600;text-transform:uppercase;letter-spacing:0.04em;color:var(--md-on-surface-variant);">Order Sr. Nos</span>' +
+      '<div style="font-size:calc(13px * var(--font-scale) / 100);color:var(--md-on-surface);margin-top:2px;">#' + orderSrs.join(', #') + '</div></div>';
   }
   if (tradeSrs.length) {
     srHtml += '<div style="margin-top:6px;">' +
-      '<span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;color:var(--md-on-surface-variant);">Trade Sr. Nos</span>' +
-      '<div style="font-size:13px;color:var(--md-on-surface);margin-top:2px;">#' + tradeSrs.join(', #') + '</div></div>';
+      '<span style="font-size:calc(11px * var(--font-scale) / 100);font-weight:600;text-transform:uppercase;letter-spacing:0.04em;color:var(--md-on-surface-variant);">Trade Sr. Nos</span>' +
+      '<div style="font-size:calc(13px * var(--font-scale) / 100);color:var(--md-on-surface);margin-top:2px;">#' + tradeSrs.join(', #') + '</div></div>';
   }
 
   el.innerHTML = '<div style="font-weight:600;margin-bottom:4px;">Memo Summary: ' + escapeHtml(memoNo) + ' (' + itemCount + ' items)</div>' +

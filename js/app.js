@@ -883,7 +883,7 @@ function renderUnifiedView() {
   if (memoNo) parts.push('Memo <strong>' + escapeHtml(memoNo) + '</strong>');
   if (soldTo) parts.push('Buyer <strong>' + escapeHtml(soldTo) + '</strong>');
   banner.innerHTML = 'Combined results for ' + parts.join(' + ') +
-    '<span style="margin-left:12px;font-size:12px;opacity:0.8;">Orders are blue \u00b7 Trades are green</span>' +
+    '<span style="margin-left:12px;font-size:calc(12px * var(--font-scale) / 100);opacity:0.8;">Orders are blue \u00b7 Trades are green</span>' +
     '<button class="btn text small" style="margin-left:auto;" onclick="$(\'filterMemoNo\').value=\'\';$(\'filterSoldTo\').value=\'\';window.currentPage=1;renderAll();">Show tab view</button>';
   banner.style.display = 'flex';
 

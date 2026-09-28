@@ -171,7 +171,7 @@ function renderCards(rows) {
 
   if (!rows.length) {
     var msg = q ? 'No orders match "' + escapeHtml(q) + '"' : 'No orders found';
-    container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-dim);font-size:14px;">' + msg + '</div>';
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-dim);font-size:calc(14px * var(--font-scale) / 100);">' + msg + '</div>';
     return;
   }
 
@@ -232,23 +232,23 @@ function renderCards(rows) {
         '<div class="card-header" onclick="window.toggleCard(this)" style="padding:10px 14px;">' +
         '<div class="card-header-left" style="gap:2px;">' +
         '<span style="display:flex;align-items:center;gap:6px;">' +
-        '<span class="card-sr-badge" style="min-width:28px;height:24px;padding:0 8px;font-size:12px;">#' + sr + '</span>' +
-        '<span class="card-title" style="font-size:15px;">' + highlightText(style, q) + '</span>' +
+        '<span class="card-sr-badge" style="min-width:28px;height:24px;padding:0 8px;font-size:calc(12px * var(--font-scale) / 100);">#' + sr + '</span>' +
+        '<span class="card-title" style="font-size:calc(15px * var(--font-scale) / 100);">' + highlightText(style, q) + '</span>' +
         '</span>' +
-        '<span class="card-meta" style="font-size:12px;">' + escapeHtml(customer) + ' · ' + date + '</span>' +
+        '<span class="card-meta" style="font-size:calc(12px * var(--font-scale) / 100);">' + escapeHtml(customer) + ' · ' + date + '</span>' +
         '</div>' +
         '<div class="card-header-right" style="gap:6px;">' +
-        '<span class="status-badge ' + statusClass + '" style="font-size:11px;padding:2px 8px;">' + status + '</span>' +
-        '<span class="card-chevron" style="font-size:10px;">▼</span>' +
+        '<span class="status-badge ' + statusClass + '" style="font-size:calc(11px * var(--font-scale) / 100);padding:2px 8px;">' + status + '</span>' +
+        '<span class="card-chevron" style="font-size:calc(10px * var(--font-scale) / 100);">▼</span>' +
         '</div>' +
         '</div>' +
         '<div class="card-summary" style="grid-template-columns:repeat(3,1fr);gap:4px 8px;padding:8px 14px;background:var(--md-surface-1);">' +
-        '<div class="card-sum-row" style="gap:0;"><span style="font-size:10px;">Type</span><span style="font-size:13px;">' + escapeHtml(r[DK.jewelryType] || '—') + '</span></div>' +
-        '<div class="card-sum-row" style="gap:0;"><span style="font-size:10px;">IN CT</span><span style="font-size:13px;">' + inCt + '</span></div>' +
-        '<div class="card-sum-row" style="gap:0;"><span style="font-size:10px;">USD</span><span style="font-size:13px;">' + usdVal + '</span></div>' +
-        '<div class="card-sum-row" style="gap:0;"><span style="font-size:10px;">P / L</span><span style="font-size:13px;color:' + plColor + '">' + plVal + '</span></div>' +
-        '<div class="card-sum-row" style="gap:0;"><span style="font-size:10px;">Memo</span><span style="font-size:13px;">' + (memoNo ? escapeHtml(memoNo) : '—') + '</span></div>' +
-        '<div class="card-sum-row" style="gap:0;grid-column:span 2;"><span style="font-size:10px;">Sold To</span><span style="font-size:13px;">' + (soldTo ? escapeHtml(soldTo) : '—') + '</span></div>' +
+        '<div class="card-sum-row" style="gap:0;"><span style="font-size:calc(10px * var(--font-scale) / 100);">Type</span><span style="font-size:calc(13px * var(--font-scale) / 100);">' + escapeHtml(r[DK.jewelryType] || '—') + '</span></div>' +
+        '<div class="card-sum-row" style="gap:0;"><span style="font-size:calc(10px * var(--font-scale) / 100);">IN CT</span><span style="font-size:calc(13px * var(--font-scale) / 100);">' + inCt + '</span></div>' +
+        '<div class="card-sum-row" style="gap:0;"><span style="font-size:calc(10px * var(--font-scale) / 100);">USD</span><span style="font-size:calc(13px * var(--font-scale) / 100);">' + usdVal + '</span></div>' +
+        '<div class="card-sum-row" style="gap:0;"><span style="font-size:calc(10px * var(--font-scale) / 100);">P / L</span><span style="font-size:calc(13px * var(--font-scale) / 100);color:' + plColor + '">' + plVal + '</span></div>' +
+        '<div class="card-sum-row" style="gap:0;"><span style="font-size:calc(10px * var(--font-scale) / 100);">Memo</span><span style="font-size:calc(13px * var(--font-scale) / 100);">' + (memoNo ? escapeHtml(memoNo) : '—') + '</span></div>' +
+        '<div class="card-sum-row" style="gap:0;grid-column:span 2;"><span style="font-size:calc(10px * var(--font-scale) / 100);">Sold To</span><span style="font-size:calc(13px * var(--font-scale) / 100);">' + (soldTo ? escapeHtml(soldTo) : '—') + '</span></div>' +
         '</div>' +
         '<div class="card-body">' +
         '<div class="card-row" style="padding:6px 0;"><span class="card-label">Gross Wt</span><span class="card-value">' + (r[DK.grossWt] || '—') + 'g</span></div>' +
@@ -439,7 +439,7 @@ function renderTradeCards(rows) {
 
   if (!rows.length) {
     var msg = q ? 'No trades match "' + escapeHtml(q) + '"' : 'No trades found';
-    container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-dim);font-size:14px;">' + msg + '</div>';
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-dim);font-size:calc(14px * var(--font-scale) / 100);">' + msg + '</div>';
     return;
   }
 
@@ -589,7 +589,7 @@ function renderUnifiedCards() {
   $('tradeCardList').classList.remove('active');
 
   if (!pageRows.length) {
-    container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-dim);font-size:14px;">No results found</div>';
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-dim);font-size:calc(14px * var(--font-scale) / 100);">No results found</div>';
     return;
   }
 
@@ -706,7 +706,7 @@ function renderExpenseCards(rows) {
 
   if (!rows.length) {
     var msg = q ? 'No expenses match "' + escapeHtml(q) + '"' : 'No expenses found';
-    container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-dim);font-size:14px;">' + msg + '</div>';
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-dim);font-size:calc(14px * var(--font-scale) / 100);">' + msg + '</div>';
     return;
   }
 

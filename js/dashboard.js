@@ -101,7 +101,7 @@ function renderKPIs() {
     '<div class="kpi-sub">across all orders</div></div>' +
     '<div class="kpi-card"><div class="kpi-label">Stock on Hand</div>' +
     '<div class="kpi-value">' + stockCount + '</div>' +
-    '<div class="kpi-sub">unsold items worth $' + fmtMoney(stockCost) + ' <span style="font-size:11px;color:var(--text-dim)">(@ ₹' + (window.GOLD_RATE || 16000).toLocaleString('en-IN') + '/gm)</span></div></div>';
+    '<div class="kpi-sub">unsold items worth $' + fmtMoney(stockCost) + ' <span style="font-size:calc(11px * var(--font-scale) / 100);color:var(--text-dim)">(@ ₹' + (window.GOLD_RATE || 16000).toLocaleString('en-IN') + '/gm)</span></div></div>';
 }
 
 function renderTradeKPIs() {

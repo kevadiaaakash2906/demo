@@ -3,7 +3,7 @@
    ============================================ */
 
 window.openPaymentSearch = function() {
-  $('paymentSearchOverlay').style.display = 'block';
+  $('paymentSearchOverlay').classList.add('open');
   $('paymentSearchModal').classList.add('open');
   $('paySearchInput').value = '';
   $('paySearchInput').focus();
@@ -20,7 +20,7 @@ $('paymentSearchOverlay').addEventListener('click', closePaymentSearch);
 
 function closePaymentSearch() {
   $('paymentSearchModal').classList.remove('open');
-  $('paymentSearchOverlay').style.display = 'none';
+  $('paymentSearchOverlay').classList.remove('open');
 }
 
 $('paySearchInput').addEventListener('input', function(e) {
@@ -72,7 +72,7 @@ function renderPayResults(query) {
       '<div class="pay-result-left">' +
       '<span class="pay-result-style">' + escapeHtml(title || '') + '</span>' +
       '<span class="pay-result-sr">#' + sr + '</span>' +
-      '<span class="pay-result-type" style="font-size:10px;background:var(--md-surface-2);padding:2px 6px;border-radius:100px;margin-left:4px;">' + typeLabel + '</span>' +
+      '<span class="pay-result-type" style="font-size:calc(10px * var(--font-scale) / 100);background:var(--md-surface-2);padding:2px 6px;border-radius:100px;margin-left:4px;">' + typeLabel + '</span>' +
       '</div>' +
       '<div class="pay-result-balance">$' + fmtMoney(balance) + '</div>' +
       '</div>' +

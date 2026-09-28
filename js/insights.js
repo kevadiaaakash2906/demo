@@ -304,10 +304,10 @@ function renderBestSellers() {
     });
     rows.sort(function(a, b) { return b.count - a.count; });
     if (!rows.length) {
-      return '<h4 style="margin:16px 0 8px;font-size:13px;color:var(--md-on-surface-variant);">' + label + '</h4>' +
+      return '<h4 style="margin:16px 0 8px;font-size:calc(13px * var(--font-scale) / 100);color:var(--md-on-surface-variant);">' + label + '</h4>' +
         '<div style="padding:8px 0;color:var(--text-dim);">No sold orders yet</div>';
     }
-    return '<h4 style="margin:16px 0 8px;font-size:13px;color:var(--md-on-surface-variant);">' + label + '</h4>' +
+    return '<h4 style="margin:16px 0 8px;font-size:calc(13px * var(--font-scale) / 100);color:var(--md-on-surface-variant);">' + label + '</h4>' +
       '<table class="report-table"><thead><tr><th>' + label + '</th><th class="num">Sold</th><th class="num">Revenue</th><th class="num">Avg Profit %</th></tr></thead><tbody>' +
       rows.map(function(r) {
         return '<tr><td>' + escapeHtml(r.name) + '</td><td class="num">' + r.count + '</td><td class="num">$' + fmtMoney(r.revenue) + '</td>' +

@@ -7,7 +7,7 @@
 <title>VINÉRE Ledger — Orders</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=17">
+<link rel="stylesheet" href="css/style.css?v=18">
 <base target="_blank">
 <base target="_blank">
 <base target="_blank">
@@ -66,8 +66,8 @@
       </div>
       <div class="filter-bar compact" id="filterBarContent" style="display:none;">
         <div class="field" style="margin:0;flex:0 0 auto;">
-          <label style="font-size:11px;margin-bottom:2px;">Gold Rate (₹/gm)</label>
-          <input type="number" id="goldRateInput" value="16000" step="100" style="width:100px;padding:6px 10px;font-size:14px;">
+          <label style="font-size:calc(11px * var(--font-scale) / 100);margin-bottom:2px;">Gold Rate (₹/gm)</label>
+          <input type="number" id="goldRateInput" value="16000" step="100" style="width:100px;padding:6px 10px;font-size:calc(14px * var(--font-scale) / 100);">
         </div>
         <span class="rate-note" id="rateNote"></span>
 
@@ -268,7 +268,7 @@
           <div class="field"><label>Diamond Amount (₹)</label><input id="f_diamAmount" type="number" step="1" placeholder="0"></div>
           <div class="field"><label>L Charges (₹/g)</label><input id="f_lCharges" type="number" step="1" placeholder="900"></div>
           <div class="field full-width">
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;text-transform:none;letter-spacing:0;font-weight:400;color:var(--md-on-surface-variant);">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:calc(13px * var(--font-scale) / 100);text-transform:none;letter-spacing:0;font-weight:400;color:var(--md-on-surface-variant);">
               <input type="checkbox" id="f_flatLabor" style="width:16px;height:16px;"> Flat labor — fixed amount (don't multiply by weight)
             </label>
           </div>
@@ -283,7 +283,7 @@
           <div class="computed-row"><span class="label">Sub Total</span><span class="value" id="prev_subTotal">—</span></div>
           <div class="computed-row"><span class="label">USD ($)</span><span class="value" id="prev_usd">—</span></div>
         </div>
-        <p class="computed-note" style="margin-bottom:0;font-size:11px;">Pg Wt = Net Wt × Multiplier | Gold = Pg Wt × Rate | Labor = Net Wt × L Charges | $ = Sub Total ÷ 94</p>
+        <p class="computed-note" style="margin-bottom:0;font-size:calc(11px * var(--font-scale) / 100);">Pg Wt = Net Wt × Multiplier | Gold = Pg Wt × Rate | Labor = Net Wt × L Charges | $ = Sub Total ÷ 94</p>
       </div>
     </div>
 
@@ -448,7 +448,7 @@
       <div class="section-card-title">Reimbursement</div>
       <div class="fields-grid">
         <div class="field full-width">
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;text-transform:none;letter-spacing:0;font-weight:400;color:var(--md-on-surface-variant);">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:calc(13px * var(--font-scale) / 100);text-transform:none;letter-spacing:0;font-weight:400;color:var(--md-on-surface-variant);">
             <input type="checkbox" id="e_reimbursed" style="width:16px;height:16px;"> Reimbursed
           </label>
         </div>
@@ -605,16 +605,16 @@
 <script src="js/diamond-shape.js?v=1"></script>
 <script src="js/api.js?v=4"></script>
 <script src="js/firebase.js?v=4"></script>
-<script src="js/app.js?v=7"></script>
-<script src="js/dashboard.js?v=6"></script>
+<script src="js/app.js?v=8"></script>
+<script src="js/dashboard.js?v=7"></script>
 <script src="js/filters.js?v=4"></script>
-<script src="js/panel.js?v=6"></script>
-<script src="js/table.js?v=5"></script>
-<script src="js/payments.js?v=5"></script>
+<script src="js/panel.js?v=7"></script>
+<script src="js/table.js?v=6"></script>
+<script src="js/payments.js?v=6"></script>
 <script src="js/trading.js?v=5"></script>
 <script src="js/expenses.js?v=3"></script>
 <script src="js/chart.js?v=1"></script>
-<script src="js/insights.js?v=8"></script>
+<script src="js/insights.js?v=9"></script>
 <script src="js/buyers.js?v=6"></script>
 <button id="mobileFab" class="mobile-fab" style="display:none;">+</button>
 </body>

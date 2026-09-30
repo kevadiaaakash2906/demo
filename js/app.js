@@ -33,17 +33,17 @@ window.showApp = function(role) {
   var isSeller = ROLE === 'seller';
   var isCustomer = ROLE === 'customer';
   var newOrderBtn = document.getElementById('newOrderBtn');
-  var receivePaymentBtn = document.getElementById('receivePaymentBtn');
   var newTradeBtn = document.getElementById('newTradeBtn');
   var newExpenseBtn = document.getElementById('newExpenseBtn');
   var insightsBtn = document.getElementById('insightsBtn');
   var buyersBtn = document.getElementById('buyersBtn');
+  var settingsBtn = document.getElementById('settingsBtn');
   if (newOrderBtn) newOrderBtn.style.display = (isStaff || isSeller) ? 'inline-flex' : 'none';
-  if (receivePaymentBtn) receivePaymentBtn.style.display = (isStaff || isSeller) ? 'inline-flex' : 'none';
   if (newTradeBtn) newTradeBtn.style.display = (isStaff || isSeller) ? 'inline-flex' : 'none';
   if (newExpenseBtn) newExpenseBtn.style.display = (isStaff || isSeller) ? 'inline-flex' : 'none';
   if (insightsBtn) insightsBtn.style.display = (isStaff || isSeller) ? 'inline-flex' : 'none';
   if (buyersBtn) buyersBtn.style.display = (isStaff || isSeller) ? 'inline-flex' : 'none';
+  if (settingsBtn) settingsBtn.style.display = (isStaff || isSeller) ? 'inline-flex' : 'none';
 
   document.body.classList.remove('staff-role', 'seller-role', 'customer-role');
   if (isStaff) document.body.classList.add('staff-role');
@@ -194,6 +194,29 @@ var currentSearchQuery = '';
 var GOLD_RATE = 16000;
 window.GOLD_RATE = GOLD_RATE;
 window.batchUpdateGoldRate = batchUpdateGoldRate;
+
+// ============ APP CONFIG (Settings) ============
+// Business defaults that used to be hard-coded — the ₹→$ conversion rate
+// (was a bare divide-by-94 scattered across 4 files), and the default
+// multiplier and labor charge a new order starts with. Reading through
+// this shared object means every calculation stays in sync with whatever
+// is set in Settings, instead of some places picking up a change and
+// others not.
+var APP_CONFIG = {
+  usdRate: parseFloat(localStorage.getItem('vinere_usd_rate')) || 94,
+  defaultMultiplier: parseFloat(localStorage.getItem('vinere_default_multiplier')) || 0.595,
+  defaultLabor: parseFloat(localStorage.getItem('vinere_default_labor')) || 900,
+  tableDensity: localStorage.getItem('vinere_table_density') || 'comfortable'
+};
+window.APP_CONFIG = APP_CONFIG;
+
+function saveAppConfig() {
+  localStorage.setItem('vinere_usd_rate', APP_CONFIG.usdRate);
+  localStorage.setItem('vinere_default_multiplier', APP_CONFIG.defaultMultiplier);
+  localStorage.setItem('vinere_default_labor', APP_CONFIG.defaultLabor);
+  localStorage.setItem('vinere_table_density', APP_CONFIG.tableDensity);
+}
+window.saveAppConfig = saveAppConfig;
 window.loadGoldRate = loadGoldRate;
 
 var currentView = 'orders';
@@ -369,10 +392,6 @@ function renderAll() {
   }
 
   // Filter bar visibility
-  var goldWrap = $('goldRateInput');
-  if (goldWrap && goldWrap.parentElement) {
-    goldWrap.parentElement.style.display = (currentView === 'orders') ? 'flex' : 'none';
-  }
   var rateNote = $('rateNote');
   if (rateNote) rateNote.style.display = (currentView === 'orders') ? '' : 'none';
 
@@ -382,8 +401,6 @@ function renderAll() {
   ['filterExpenseCategory','filterExpenseSeller'].forEach(function(id) {
     var el = $(id); if (el) el.style.display = (currentView === 'expenses') ? '' : 'none';
   });
-
-  $('receivePaymentBtn').style.display = (ROLE !== 'customer' && currentView !== 'expenses') ? 'inline-flex' : 'none';
 
   var rateNoteCollapsed = $('rateNoteCollapsed');
   if (rateNoteCollapsed) {
@@ -474,10 +491,6 @@ function switchView(view) {
   }
 
   // Filter bar visibility
-  var goldWrap = $('goldRateInput');
-  if (goldWrap && goldWrap.parentElement) {
-    goldWrap.parentElement.style.display = (view === 'orders') ? 'flex' : 'none';
-  }
   var rateNote = $('rateNote');
   if (rateNote) rateNote.style.display = (view === 'orders') ? '' : 'none';
 
@@ -488,7 +501,6 @@ function switchView(view) {
     var el = $(id); if (el) el.style.display = (view === 'expenses') ? '' : 'none';
   });
 
-  $('receivePaymentBtn').style.display = (ROLE !== 'customer' && view !== 'expenses') ? 'inline-flex' : 'none';
   $('headerStats').style.display = 'none';
 
   // Mobile FAB wiring
@@ -565,10 +577,6 @@ $('newExpenseBtn').addEventListener('click', function() {
   if (window.openExpensePanel) window.openExpensePanel();
 });
 
-$('receivePaymentBtn').addEventListener('click', function() {
-  if (window.openPaymentSearch) window.openPaymentSearch();
-});
-
 /* ============ FILTERS ============ */
 function populateFilters() {
   // Customer dropdown removed — no-op
@@ -609,13 +617,13 @@ async function batchUpdateGoldRate(newRate) {
   for (var i = 0; i < unsold.length; i++) {
     var r = unsold[i];
     var net = parseFloat(r[DK.netWt]) || 0;
-    var mult = parseFloat(r[DK.multiplier]) || 0.595;
+    var mult = parseFloat(r[DK.multiplier]) || window.APP_CONFIG.defaultMultiplier;
     var pgWt = net * mult;
     var goldAmt = pgWt * newRate;
     var labor = parseFloat(r[DK.laborAmt]) || 0;
     var diam = parseFloat(r[DK.diamAmount]) || 0;
     var subTotal = goldAmt + labor + diam;
-    var usd = subTotal / 94;
+    var usd = subTotal / window.APP_CONFIG.usdRate;
     var data = {};
     for (var k in r) data[k] = r[k];
     data[DK.pgWt] = pgWt.toFixed(3);

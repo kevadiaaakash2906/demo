@@ -145,8 +145,8 @@ window.openOrderPanel = function(id) {
    'f_colourStone','f_multiplier','f_diamAmount','f_lCharges','f_memoNo',
    'f_soldTo','f_salePrice','f_dateSold','f_diamondShape','f_soldToBuyerId'].forEach(function(fid) { var el = $(fid); if (el) el.value = ''; });
   if (window.syncDiamondShapePicker) window.syncDiamondShapePicker();
-  $('f_multiplier').value = '0.595';
-  $('f_lCharges').value = '900';
+  $('f_multiplier').value = String(window.APP_CONFIG.defaultMultiplier);
+  $('f_lCharges').value = String(window.APP_CONFIG.defaultLabor);
   if ($('f_flatLabor')) $('f_flatLabor').checked = false;
 
   currentInstallments = [];
@@ -191,9 +191,9 @@ window.openOrderPanel = function(id) {
     $('f_diaQty').value = order[DK.diaQty] || '';
     $('f_inCt').value = order[DK.inCt] || '';
     $('f_colourStone').value = order[DK.colourStone] || '';
-    $('f_multiplier').value = order[DK.multiplier] || '0.595';
+    $('f_multiplier').value = order[DK.multiplier] || String(window.APP_CONFIG.defaultMultiplier);
     $('f_diamAmount').value = order[DK.diamAmount] || '';
-    $('f_lCharges').value = order[DK.lCharges] || '900';
+    $('f_lCharges').value = order[DK.lCharges] || String(window.APP_CONFIG.defaultLabor);
     if ($('f_flatLabor')) {
       $('f_flatLabor').checked = order._flatLabor === true || order._flatLabor === 'true';
     }
@@ -282,8 +282,8 @@ $('f_memoNo').addEventListener('input', function() {
 
 function updatePreview() {
   var netWt = parseFloat($('f_netWt').value) || 0;
-  var multiplier = parseFloat($('f_multiplier').value) || 0.595;
-  var lCharges = parseFloat($('f_lCharges').value) || 900;
+  var multiplier = parseFloat($('f_multiplier').value) || window.APP_CONFIG.defaultMultiplier;
+  var lCharges = parseFloat($('f_lCharges').value) || window.APP_CONFIG.defaultLabor;
   var diamAmount = parseFloat($('f_diamAmount').value) || 0;
   var salePrice = parseFloat($('f_salePrice').value) || 0;
 
@@ -297,7 +297,7 @@ function updatePreview() {
   var isFlatLabor = $('f_flatLabor') && $('f_flatLabor').checked;
   var laborAmt = isFlatLabor ? lCharges : netWt * lCharges;
   var subTotal = goldAmt + diamAmount + laborAmt;
-  var usd = subTotal / 94;
+  var usd = subTotal / window.APP_CONFIG.usdRate;
 
   $('prev_pgWt').textContent = pgWt ? pgWt.toFixed(3) + ' g' : '—';
   $('prev_goldAmt').textContent = goldAmt ? '₹' + Math.round(goldAmt).toLocaleString('en-IN') : '—';
@@ -520,8 +520,8 @@ $('saveBtn').addEventListener('click', async function() {
   $('saveMsg').textContent = '';
 
   var net = parseFloat($('f_netWt').value) || 0;
-  var mult = parseFloat($('f_multiplier').value) || 0.595;
-  var lCharge = parseFloat($('f_lCharges').value) || 900;
+  var mult = parseFloat($('f_multiplier').value) || window.APP_CONFIG.defaultMultiplier;
+  var lCharge = parseFloat($('f_lCharges').value) || window.APP_CONFIG.defaultLabor;
   var diam = parseFloat($('f_diamAmount').value) || 0;
   var pgWt = net * mult;
 
@@ -533,7 +533,7 @@ $('saveBtn').addEventListener('click', async function() {
   var isFlatLaborSave = $('f_flatLabor') && $('f_flatLabor').checked;
   var laborAmt = isFlatLaborSave ? lCharge : net * lCharge;
   var subTotal = goldAmt + diam + laborAmt;
-  var usd = subTotal / 94;
+  var usd = subTotal / window.APP_CONFIG.usdRate;
 
   var status = 'Not Sold';
   if (salePrice) {

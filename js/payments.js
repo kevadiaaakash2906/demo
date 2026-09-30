@@ -10,10 +10,8 @@ window.openPaymentSearch = function() {
   renderPayResults('');
 };
 
-// Payment button click handler (defined here since payments.js loads after app.js)
-$('receivePaymentBtn').addEventListener('click', function() {
-  window.openPaymentSearch();
-});
+// Payment button removed from header — openPaymentSearch is still available
+// if you want to wire it to a different trigger later.
 
 $('closePaymentSearch').addEventListener('click', closePaymentSearch);
 $('paymentSearchOverlay').addEventListener('click', closePaymentSearch);

@@ -72,7 +72,7 @@ function renderTable() {
       var sub;
       if (isUnsold) {
         var net = parseFloat(r[DK.netWt]) || 0;
-        var mult = parseFloat(r[DK.multiplier]) || 0.595;
+        var mult = parseFloat(r[DK.multiplier]) || window.APP_CONFIG.defaultMultiplier;
         var pgWt = net * mult;
         var goldRate = window.GOLD_RATE || 16000;
         var gold = pgWt * goldRate;
@@ -91,14 +91,14 @@ function renderTable() {
       var status = (r[DK.paymentStatus] || 'Not Sold').trim();
       if (status === 'Not Sold') {
         var net = parseFloat(r[DK.netWt]) || 0;
-        var mult = parseFloat(r[DK.multiplier]) || 0.595;
+        var mult = parseFloat(r[DK.multiplier]) || window.APP_CONFIG.defaultMultiplier;
         var pgWt = net * mult;
         var goldRate = window.GOLD_RATE || 16000;
         var gold = pgWt * goldRate;
         var labor = parseFloat(r[DK.laborAmt]) || 0;
         var diam = parseFloat(r[DK.diamAmount]) || 0;
         var sub = gold + labor + diam;
-        var usd = sub / 94;
+        var usd = sub / window.APP_CONFIG.usdRate;
         return usd ? '$' + usd.toFixed(2) : '';
       }
       return r[DK.usd] ? '$' + parseFloat(r[DK.usd]).toFixed(2) : '';
@@ -204,14 +204,14 @@ function renderCards(rows) {
     var usdVal;
     if (status === 'Not Sold') {
       var net = parseFloat(r[DK.netWt]) || 0;
-      var mult = parseFloat(r[DK.multiplier]) || 0.595;
+      var mult = parseFloat(r[DK.multiplier]) || window.APP_CONFIG.defaultMultiplier;
       var pgWt = net * mult;
       var goldRate = window.GOLD_RATE || 16000;
       var gold = pgWt * goldRate;
       var labor = parseFloat(r[DK.laborAmt]) || 0;
       var diam = parseFloat(r[DK.diamAmount]) || 0;
       var sub = gold + labor + diam;
-      usdVal = sub ? '$' + (sub / 94).toFixed(2) : '—';
+      usdVal = sub ? '$' + (sub / window.APP_CONFIG.usdRate).toFixed(2) : '—';
     } else {
       usdVal = r[DK.usd] ? '$' + parseFloat(r[DK.usd]).toFixed(2) : '—';
     }
@@ -274,7 +274,7 @@ function renderCards(rows) {
         var sub;
         if (st === 'Not Sold') {
           var net = parseFloat(r[DK.netWt]) || 0;
-          var mult = parseFloat(r[DK.multiplier]) || 0.595;
+          var mult = parseFloat(r[DK.multiplier]) || window.APP_CONFIG.defaultMultiplier;
           var pgWt = net * mult;
           var goldRate = window.GOLD_RATE || 16000;
           var gold = pgWt * goldRate;
@@ -293,14 +293,14 @@ function renderCards(rows) {
     var usdValDefault;
     if ((r[DK.paymentStatus] || 'Not Sold').trim() === 'Not Sold') {
       var net = parseFloat(r[DK.netWt]) || 0;
-      var mult = parseFloat(r[DK.multiplier]) || 0.595;
+      var mult = parseFloat(r[DK.multiplier]) || window.APP_CONFIG.defaultMultiplier;
       var pgWt = net * mult;
       var goldRate = window.GOLD_RATE || 16000;
       var gold = pgWt * goldRate;
       var labor = parseFloat(r[DK.laborAmt]) || 0;
       var diam = parseFloat(r[DK.diamAmount]) || 0;
       var sub = gold + labor + diam;
-      usdValDefault = sub ? '$' + (sub / 94).toFixed(2) : '—';
+      usdValDefault = sub ? '$' + (sub / window.APP_CONFIG.usdRate).toFixed(2) : '—';
     } else {
       usdValDefault = r[DK.usd] ? '$' + parseFloat(r[DK.usd]).toFixed(2) : '—';
     }
@@ -311,7 +311,7 @@ function renderCards(rows) {
     var subTotalVal;
     if (stDefault === 'Not Sold') {
       var net = parseFloat(r[DK.netWt]) || 0;
-      var mult = parseFloat(r[DK.multiplier]) || 0.595;
+      var mult = parseFloat(r[DK.multiplier]) || window.APP_CONFIG.defaultMultiplier;
       var pgWt = net * mult;
       var goldRate = window.GOLD_RATE || 16000;
       var gold = pgWt * goldRate;
@@ -321,7 +321,7 @@ function renderCards(rows) {
     } else {
       subTotalVal = parseFloat(r[DK.subTotal]) || 0;
     }
-    var plDefault = salePriceDefault && subTotalVal ? salePriceDefault - (subTotalVal / 94) : 0;
+    var plDefault = salePriceDefault && subTotalVal ? salePriceDefault - (subTotalVal / window.APP_CONFIG.usdRate) : 0;
     if (salePriceDefault) {
       summaryRows += '<div class="card-sum-row"><span>P/L</span><span style="color:' + (plDefault >= 0 ? 'var(--success)' : 'var(--error)') + '">' + (plDefault >= 0 ? '+' : '-') + '$' + fmtMoney(Math.abs(plDefault)) + '</span></div>';
     }

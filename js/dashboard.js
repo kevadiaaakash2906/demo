@@ -61,14 +61,14 @@ function renderKPIs() {
   var stockCount = notSold.length;
   var stockCost = notSold.reduce(function(s, r) {
     var net = parseFloat(r[DK.netWt]) || 0;
-    var mult = parseFloat(r[DK.multiplier]) || 0.595;
+    var mult = parseFloat(r[DK.multiplier]) || window.APP_CONFIG.defaultMultiplier;
     var pgWt = net * mult;
     var goldRate = window.GOLD_RATE || 16000;
     var gold = pgWt * goldRate;
     var labor = parseFloat(r[DK.laborAmt]) || 0;
     var diam = parseFloat(r[DK.diamAmount]) || 0;
     var sub = gold + labor + diam;
-    return s + (sub / 94);
+    return s + (sub / window.APP_CONFIG.usdRate);
   }, 0);
 
   $('hstat_1_label').textContent = 'Profit / Loss';

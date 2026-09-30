@@ -830,6 +830,20 @@ tbody .sticky-col-right {
   white-space: nowrap;
 }
 
+/* Table Density setting: shrinks row padding so more rows fit on screen
+   without changing text size. */
+body.density-compact #ordersTable tbody td,
+body.density-compact #tradingTable tbody td,
+body.density-compact #expensesTable tbody td {
+  padding: 8px 12px;
+}
+body.density-compact #ordersTable thead th,
+body.density-compact #tradingTable thead th,
+body.density-compact #expensesTable thead th {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
 #expensesTable tbody tr:last-child td {
   border-bottom: none;
 }
@@ -1905,6 +1919,30 @@ input[type="checkbox"] {
   margin-bottom: var(--space-3);
   font-size: calc(13.86px * var(--font-scale) / 100);
   color: var(--text-dim);
+}
+
+/* ============ SETTINGS ============ */
+.settings-section-label {
+  font-size: calc(11px * var(--font-scale) / 100);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  margin: var(--space-5) 0 var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--md-outline-variant);
+}
+.settings-section-label:first-child {
+  margin-top: 0;
+}
+.settings-value {
+  font-weight: 600;
+  color: var(--md-primary);
+  margin-left: var(--space-2);
+}
+input[type="range"] {
+  width: 100%;
+  accent-color: var(--md-primary);
 }
 
 .insights-chart-wrap {

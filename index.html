@@ -7,7 +7,7 @@
 <title>VINÉRE Ledger — Orders</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=18">
+<link rel="stylesheet" href="css/style.css?v=19">
 <base target="_blank">
 <base target="_blank">
 <base target="_blank">
@@ -51,7 +51,7 @@
       <button class="btn secondary small" id="refreshBtn" title="Refresh">↻</button>
       <button class="btn secondary small" id="insightsBtn" title="Vendor profitability & best sellers">Insights</button>
       <button class="btn secondary small" id="buyersBtn" title="Buyer directory">Buyers</button>
-      <button class="btn secondary small" id="receivePaymentBtn">Payment</button>
+      <button class="btn secondary small" id="settingsBtn" title="Settings">⚙</button>
       <button class="btn small" id="newOrderBtn">+ Order</button>
       <button class="btn small" id="newTradeBtn" style="display:none;">+ Trade</button>
       <button class="btn small" id="newExpenseBtn" style="display:none;">+ Expense</button>
@@ -65,10 +65,6 @@
         <span class="rate-note" id="rateNoteCollapsed"></span>
       </div>
       <div class="filter-bar compact" id="filterBarContent" style="display:none;">
-        <div class="field" style="margin:0;flex:0 0 auto;">
-          <label style="font-size:calc(11px * var(--font-scale) / 100);margin-bottom:2px;">Gold Rate (₹/gm)</label>
-          <input type="number" id="goldRateInput" value="16000" step="100" style="width:100px;padding:6px 10px;font-size:calc(14px * var(--font-scale) / 100);">
-        </div>
         <span class="rate-note" id="rateNote"></span>
 
         <div class="filter-right">
@@ -586,6 +582,56 @@
   </div>
 </div>
 
+<!-- ============ SETTINGS ============ -->
+<div id="settingsOverlay" class="overlay-fade"></div>
+<div id="settingsModal" class="side-modal">
+  <div class="panel-head"><h2>Settings</h2><button id="closeSettings">&times;</button></div>
+  <div class="side-modal-body">
+
+    <div class="settings-section-label">Display</div>
+    <div class="field">
+      <label>Text Size <span id="fontScaleValue" class="settings-value">100%</span></label>
+      <input type="range" id="fontScaleSlider" min="80" max="130" step="5" value="100">
+    </div>
+    <div class="field">
+      <label>Page Zoom <span id="uiZoomValue" class="settings-value">71%</span></label>
+      <input type="range" id="uiZoomSlider" min="50" max="120" step="1" value="71">
+    </div>
+    <div class="field">
+      <label>Table Density</label>
+      <select id="tableDensitySelect" class="filter-pill" style="width:100%;">
+        <option value="comfortable">Comfortable</option>
+        <option value="compact">Compact</option>
+      </select>
+    </div>
+
+    <div class="settings-section-label">Business Defaults</div>
+    <div class="field">
+      <label>Gold Rate (₹/gm)</label>
+      <input type="number" id="goldRateInput" value="16000" step="100">
+    </div>
+    <div class="field">
+      <label>Default Multiplier (new orders)</label>
+      <input type="number" id="defaultMultiplierInput" step="0.001">
+    </div>
+    <div class="field">
+      <label>Default Labor Charge (new orders)</label>
+      <input type="number" id="defaultLaborInput" step="50">
+    </div>
+    <div class="field">
+      <label>₹ → $ Conversion Rate</label>
+      <input type="number" id="usdRateInput" step="0.5">
+    </div>
+
+    <div class="settings-section-label">Data</div>
+    <div style="display:flex;gap:var(--space-3);flex-wrap:wrap;">
+      <button class="btn secondary small" id="exportDataBtn">Export to CSV</button>
+      <button class="btn secondary small" id="resetSettingsBtn" style="color:var(--error);">Reset to Defaults</button>
+    </div>
+
+  </div>
+</div>
+
 <div id="screenFx"></div>
 <div id="toast"></div>
 <div id="undoToast">
@@ -605,17 +651,18 @@
 <script src="js/diamond-shape.js?v=1"></script>
 <script src="js/api.js?v=4"></script>
 <script src="js/firebase.js?v=4"></script>
-<script src="js/app.js?v=8"></script>
-<script src="js/dashboard.js?v=7"></script>
+<script src="js/app.js?v=9"></script>
+<script src="js/dashboard.js?v=8"></script>
 <script src="js/filters.js?v=4"></script>
-<script src="js/panel.js?v=7"></script>
-<script src="js/table.js?v=6"></script>
-<script src="js/payments.js?v=6"></script>
+<script src="js/panel.js?v=8"></script>
+<script src="js/table.js?v=7"></script>
+<script src="js/payments.js?v=7"></script>
 <script src="js/trading.js?v=5"></script>
 <script src="js/expenses.js?v=3"></script>
 <script src="js/chart.js?v=1"></script>
 <script src="js/insights.js?v=9"></script>
 <script src="js/buyers.js?v=6"></script>
+<script src="js/settings.js?v=1"></script>
 <button id="mobileFab" class="mobile-fab" style="display:none;">+</button>
 </body>
 </html>

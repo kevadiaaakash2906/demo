@@ -187,6 +187,42 @@ body {
   filter: invert(1) brightness(0.15);
 }
 
+.login-role-select {
+  display: flex;
+  width: 100%;
+  border: 1px solid var(--md-outline);
+  border-radius: var(--radius-xs);
+  overflow: hidden;
+}
+
+.login-role-btn {
+  flex: 1;
+  padding: var(--space-3) var(--space-2);
+  font-family: var(--font-body);
+  font-size: calc(14px * var(--font-scale) / 100);
+  font-weight: 500;
+  color: var(--md-on-surface-variant);
+  background: var(--md-surface);
+  border: none;
+  border-right: 1px solid var(--md-outline);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-standard),
+              color var(--duration-fast) var(--ease-standard);
+}
+
+.login-role-btn:last-child {
+  border-right: none;
+}
+
+.login-role-btn:hover {
+  background: rgba(26,115,232,0.04);
+}
+
+.login-role-btn.active {
+  background: var(--md-primary);
+  color: #fff;
+}
+
 #passInput {
   width: 100%;
   padding: var(--space-3) var(--space-4);
@@ -510,6 +546,31 @@ body {
 
 .btn.secondary:active {
   background: rgba(26,115,232,0.08);
+}
+
+/* Settings gear — filled and circular so it stands out from the plain
+   outlined pills around it (Insights, Buyers) instead of blending in. */
+#settingsBtn {
+  background: var(--md-primary);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(16px * var(--font-scale) / 100);
+  box-shadow: var(--shadow-1);
+}
+#settingsBtn:hover {
+  background: #1557b0;
+  box-shadow: var(--shadow-2);
+}
+#settingsBtn:active {
+  background: #0d47a1;
 }
 
 /* Text button */
@@ -1195,7 +1256,7 @@ body.density-compact #expensesTable thead th {
 }
 
 #closePanel, #closeTradePanel, #closeExpensePanel, #closePaymentSearch,
-#closeCustomerProfile, #closeInsights, #closeBuyers, #closeBuyerForm, #closeMemoDetail {
+#closeCustomerProfile, #closeInsights, #closeBuyers, #closeBuyerForm, #closeMemoDetail, #closeSettings {
   width: 40px;
   height: 40px;
   display: flex;
@@ -1212,7 +1273,7 @@ body.density-compact #expensesTable thead th {
 }
 
 #closePanel:hover, #closeTradePanel:hover, #closeExpensePanel:hover, #closePaymentSearch:hover,
-#closeCustomerProfile:hover, #closeInsights:hover, #closeBuyers:hover, #closeBuyerForm:hover, #closeMemoDetail:hover {
+#closeCustomerProfile:hover, #closeInsights:hover, #closeBuyers:hover, #closeBuyerForm:hover, #closeMemoDetail:hover, #closeSettings:hover {
   background: #d93025;
   color: #ffffff;
 }
@@ -2721,7 +2782,7 @@ body.panel-open {
   .btn, .status-badge, .card-header, .pay-result-item,
   .pagination-bar button, .search-clear,
   #closePanel, #closeTradePanel, #closeExpensePanel, #closePaymentSearch,
-  #closeCustomerProfile, #closeInsights, #closeBuyers, #closeBuyerForm, #closeMemoDetail {
+  #closeCustomerProfile, #closeInsights, #closeBuyers, #closeBuyerForm, #closeMemoDetail, #closeSettings {
     min-height: 44px;
   }
   .view-toggle .btn {

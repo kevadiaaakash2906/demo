@@ -180,17 +180,24 @@ $('changePwBtn').addEventListener('click', async function() {
     setMsg('Password changed.', true);
     showToast('Password updated', 'success', 2500);
   } catch (err) {
+    // Always log the full error; also surface the raw code in the UI so
+    // the exact failure mode is visible without opening DevTools.
     console.error('Password change failed', err);
-    if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+    var code = err && err.code ? err.code : 'unknown';
+    if (code === 'auth/wrong-password' || code === 'auth/invalid-credential' || code === 'auth/invalid-login-credentials') {
       setMsg('Current password is incorrect.');
-    } else if (err.code === 'auth/too-many-requests') {
+    } else if (code === 'auth/too-many-requests') {
       setMsg('Too many attempts \u2014 wait a minute and try again.');
-    } else if (err.code === 'auth/weak-password') {
+    } else if (code === 'auth/weak-password') {
       setMsg('Password too weak: ' + (err.message || 'choose a longer one.'));
-    } else if (err.code === 'auth/requires-recent-login') {
+    } else if (code === 'auth/requires-recent-login' || code === 'auth/user-token-expired') {
       setMsg('For security, log out and back in, then try again.');
+    } else if (code === 'auth/network-request-failed') {
+      setMsg('Network error \u2014 check your connection or disable ad-blocker for this site.');
+    } else if (code === 'auth/no-user') {
+      setMsg('You are not signed in \u2014 log out and back in, then try again.');
     } else {
-      setMsg('Could not change password \u2014 check the console.');
+      setMsg('Could not change password (' + code + ').');
     }
   } finally {
     btn.disabled = false;

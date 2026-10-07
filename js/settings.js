@@ -137,3 +137,63 @@ $('resetSettingsBtn').addEventListener('click', function() {
 
   location.reload();
 });
+
+/* ============ CHANGE PASSWORD (Security) ============
+   The account password is the ONLY secret in this app, and it lives in
+   Firebase Auth — never in code, Firestore, or the Sheet. Firebase lets a
+   signed-in user change their own password after re-proving they know the
+   current one (reauthenticateWithCredential), so staff/sellers can rotate
+   passwords themselves without touching the Firebase Console. */
+$('changePwBtn').addEventListener('click', async function() {
+  var msgEl = $('pwMsg');
+  var current = $('pwCurrent').value;
+  var next = $('pwNew').value;
+  var confirmPw = $('pwConfirm').value;
+
+  function setMsg(text, ok) {
+    msgEl.textContent = text;
+    msgEl.className = 'pw-msg' + (ok ? ' ok' : '');
+  }
+
+  if (!current || !next || !confirmPw) return setMsg('Fill in all three fields.');
+  if (next.length < 6) return setMsg('New password must be at least 6 characters.');
+  if (next === current) return setMsg('New password must be different from the current one.');
+  if (next !== confirmPw) return setMsg('New passwords do not match.');
+
+  var btn = $('changePwBtn');
+  btn.disabled = true;
+  btn.textContent = 'Changing\u2026';
+  setMsg('');
+
+  try {
+    var user = window.firebase.auth().currentUser;
+    if (!user) throw { code: 'auth/no-user' };
+
+    // Re-prove identity with the current password, then apply the new one.
+    var cred = window.firebase.auth().EmailAuthProvider.credential(user.email, current);
+    await user.reauthenticateWithCredential(cred);
+    await user.updatePassword(next);
+
+    $('pwCurrent').value = '';
+    $('pwNew').value = '';
+    $('pwConfirm').value = '';
+    setMsg('Password changed.', true);
+    showToast('Password updated', 'success', 2500);
+  } catch (err) {
+    console.error('Password change failed', err);
+    if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+      setMsg('Current password is incorrect.');
+    } else if (err.code === 'auth/too-many-requests') {
+      setMsg('Too many attempts \u2014 wait a minute and try again.');
+    } else if (err.code === 'auth/weak-password') {
+      setMsg('Password too weak: ' + (err.message || 'choose a longer one.'));
+    } else if (err.code === 'auth/requires-recent-login') {
+      setMsg('For security, log out and back in, then try again.');
+    } else {
+      setMsg('Could not change password \u2014 check the console.');
+    }
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Change Password';
+  }
+});

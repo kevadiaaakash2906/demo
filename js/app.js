@@ -2,20 +2,27 @@
    VINÉRE — App Core
    ============================================ */
 
-/* ============ AUTH / ROLE ============ */
-var PASSWORDS = {
-  staff:   '25f885fa451c3c6b024fe23dbf834ceb2be6361316010ef348e7777faa78634c',
-  seller:  'c60a26e1e8094121dae3acccdfdb1fffeb616bcb2e3ae68f6b18c336e6e031d7',
-  customer:'9a900403ac313ba27a1bc81f0932652b8020dac92c234d98fa0b06bf0040ecfd'
-};
+/* ============ AUTH / ROLE ============
+   No password or password hash is stored in this file — every login
+   attempt is checked by Firebase Authentication itself. The person picks
+   their role, types their password, and we sign in as
+   "<role>@vinere.local" with exactly that one password; Firebase accepts
+   or rejects it server-side. Nothing secret ever leaves the person's own
+   browser except as part of that one sign-in request to Firebase. */
 
 var ROLE = null;
-var USER_HASH = null;
+var VALID_ROLES = ['staff', 'seller', 'customer'];
 
-async function sha256(str) {
-  var buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-  return Array.from(new Uint8Array(buf)).map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
-}
+var selectedLoginRole = localStorage.getItem('vinere_role') || 'staff';
+document.querySelectorAll('.login-role-btn').forEach(function(btn) {
+  if (btn.dataset.role === selectedLoginRole) btn.classList.add('active');
+  else btn.classList.remove('active');
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.login-role-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    selectedLoginRole = btn.dataset.role;
+  });
+});
 
 /* ---------- Auto-login on load ---------- */
 window.showApp = function(role) {
@@ -53,7 +60,7 @@ window.showApp = function(role) {
 
 window.checkStoredAuth = function() {
   var savedRole = localStorage.getItem('vinere_role');
-  if (!savedRole || !PASSWORDS[savedRole]) return;
+  if (!savedRole || VALID_ROLES.indexOf(savedRole) === -1) return;
 
   window.firebase.auth().onAuthStateChanged(async function(user) {
     if (user) {
@@ -70,56 +77,56 @@ window.checkStoredAuth = function() {
 window.login = async function() {
   var input = $('passInput').value.trim();
   if (!input) return;
-  var hash = await sha256(input);
+  $('loginError').textContent = '';
 
-  for (var role in PASSWORDS) {
-    if (hash === PASSWORDS[role]) {
-      ROLE = role;
-      USER_HASH = hash;
-      localStorage.setItem('vinere_role', role);
+  var role = selectedLoginRole;
+  var email = role + '@vinere.local';
 
+  try {
+    // The ONE place a password is checked — by Firebase itself, server-side.
+    await window.firebase.auth().signInWithEmailAndPassword(email, input);
+  } catch (err) {
+    if (err.code === 'auth/user-not-found') {
+      // No Firebase account exists yet for this role — this only happens
+      // once per role, the very first time anyone logs in as them.
+      // Whatever password is typed here becomes that role's real,
+      // Firebase-managed password going forward.
       try {
-        var email = role + '@vinere.local';
-        await window.firebase.auth().signInWithEmailAndPassword(email, input);
-      } catch (err) {
-        if (err.code === 'auth/user-not-found') {
-          try {
-            await window.firebase.auth().createUserWithEmailAndPassword(email, input);
-          } catch (createErr) {
-            console.error('Firebase create failed', createErr);
-            $('loginError').textContent = 'Auth error — check console';
-            showToast('Firebase auth failed: ' + createErr.message, 'error');
-            return;
-          }
-        } else if (err.code === 'auth/too-many-requests') {
-          $('loginError').textContent = 'Too many attempts — wait 1 minute and try again';
-          showToast('Too many login attempts. Please wait.', 'error', 4000);
-          return;
-        } else {
-          console.error('Firebase auth failed', err);
-          $('loginError').textContent = 'Auth error — check console';
-          showToast('Firebase auth failed: ' + err.message, 'error');
-          return;
-        }
+        await window.firebase.auth().createUserWithEmailAndPassword(email, input);
+      } catch (createErr) {
+        console.error('Firebase create failed', createErr);
+        $('loginError').textContent = 'Auth error — check console';
+        showToast('Firebase auth failed: ' + createErr.message, 'error');
+        return;
       }
-
-      showApp(role);
-      await initApp();
-      switchView('orders');  // Initialize view - show only Orders buttons
-      showToast('Welcome, ' + role, 'success', 2000);
+    } else if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential' || err.code === 'auth/invalid-login-credentials') {
+      $('loginError').textContent = 'Incorrect password';
+      showToast('Incorrect password', 'error');
+      return;
+    } else if (err.code === 'auth/too-many-requests') {
+      $('loginError').textContent = 'Too many attempts — wait 1 minute and try again';
+      showToast('Too many login attempts. Please wait.', 'error', 4000);
+      return;
+    } else {
+      console.error('Firebase auth failed', err);
+      $('loginError').textContent = 'Auth error — check console';
+      showToast('Firebase auth failed: ' + err.message, 'error');
       return;
     }
   }
 
-  $('loginError').textContent = 'Invalid access code';
-  showToast('Invalid access code', 'error');
+  ROLE = role;
+  localStorage.setItem('vinere_role', role);
+  showApp(role);
+  await initApp();
+  switchView('orders');  // Initialize view - show only Orders buttons
+  showToast('Welcome, ' + role, 'success', 2000);
 };
 
 /* ---------- Logout ---------- */
 window.logout = function() {
   localStorage.removeItem('vinere_role');
   ROLE = null;
-  USER_HASH = null;
   if (window.firebase && window.firebase.auth) {
     window.firebase.auth().signOut().catch(function() {});
   }

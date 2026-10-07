@@ -63,11 +63,12 @@ const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxOAsr95tNPqUzV
     })();
   }
 
-// Warm up the Apps Script instance as soon as the login page loads,
-// so by the time the user types their password and clicks Unlock,
-// the instance is already hot.
+// Warm up the Apps Script instance as soon as the login page loads, so
+// it's already hot by the time someone actually logs in. This is just a
+// wake-up ping — real login is handled entirely by Firebase Authentication
+// (see app.js), so no password needs to go anywhere near this call.
 (function warmUp() {
-  jsonp({ action: 'login', password: 'customer' })
+  jsonp({ action: 'ping' })
     .then(() => console.log('Warmup OK'))
     .catch(() => {}); // ignore errors — this is just a wake-up call
 })();

@@ -3027,3 +3027,13 @@ body.panel-open {
   text-transform: uppercase; letter-spacing: 0.04em;
   padding: 3px 10px; border-radius: var(--radius-pill);
 }
+
+
+/* ── Change password message ── */
+.pw-msg {
+  font-size: calc(13.86px * var(--font-scale) / 100);
+  color: var(--md-error);
+  min-height: 18px;
+  margin-bottom: var(--space-3);
+}
+.pw-msg.ok { color: var(--md-success); }

@@ -170,7 +170,7 @@ $('changePwBtn').addEventListener('click', async function() {
     if (!user) throw { code: 'auth/no-user' };
 
     // Re-prove identity with the current password, then apply the new one.
-    var cred = window.firebase.auth().EmailAuthProvider.credential(user.email, current);
+    var cred = window.firebase.auth.EmailAuthProvider.credential(user.email, current);
     await user.reauthenticateWithCredential(cred);
     await user.updatePassword(next);
 

@@ -1,689 +1,286 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#1E1B18">
-<title>VINÉRE Ledger — Orders</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Parcel tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=22">
-<base target="_blank">
-<base target="_blank">
-<base target="_blank">
-<base target="_blank">
-<base target="_blank">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --kraft: #dcc7a1;
+    --label: #fdfaf3;
+    --ink: #2b1d14;
+    --muted: #7a6650;
+    --brown: #4a2c1a;
+    --line: #cdb88f;
+    --c-created: #8a7a66;
+    --c-transit: #2f6f9f;
+    --c-out: #c77700;
+    --c-delivered: #2e7d4f;
+    --c-exception: #b3261e;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-padding-top: 1rem; }
+  body {
+    margin: 0; background: var(--kraft); color: var(--ink);
+    font: 16px/1.5 'Barlow', system-ui, sans-serif;
+    min-height: 100vh;
+  }
+  main { max-width: 760px; margin: 0 auto; padding: 1.5rem 1rem 4rem; }
+  h1, .num, .status { font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; }
+  h1 { margin: 0; font-size: 2.4rem; line-height: 1; color: var(--brown); letter-spacing: .01em; }
+  button {
+    font: inherit; cursor: pointer; border: 0; border-radius: 4px;
+    padding: .55rem .9rem; background: var(--brown); color: #fff;
+  }
+  button.ghost { background: transparent; color: var(--brown); border: 1px solid var(--brown); }
+  button:disabled { opacity: .55; cursor: default; }
+  button:focus-visible, input:focus-visible, summary:focus-visible { outline: 3px solid #1b5fa8; outline-offset: 2px; }
+
+  .add { display: grid; grid-template-columns: 1fr 9rem auto; gap: .5rem; margin-bottom: .5rem; }
+  input {
+    font: inherit; padding: .6rem .7rem; border: 1px solid var(--line); border-radius: 4px;
+    background: var(--label); color: var(--ink); min-width: 0;
+  }
+  .hint { color: var(--muted); font-size: .9rem; margin: 0 0 1.25rem; }
+  .bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: .75rem; color: var(--muted); font-size: .9rem; }
+  .msg { background: #f6dcd8; color: #5c1510; border-radius: 4px; padding: .6rem .8rem; margin-bottom: 1rem; }
+  .msg[hidden] { display: none; }
+
+  .parcel {
+    --c: var(--c-created);
+    background: var(--label); border-radius: 4px; margin-bottom: .75rem;
+    border-left: 8px solid var(--c); padding: .9rem 1rem;
+    box-shadow: 0 1px 0 var(--line);
+  }
+  .parcel[data-state="transit"] { --c: var(--c-transit); }
+  .parcel[data-state="out"] { --c: var(--c-out); }
+  .parcel[data-state="delivered"] { --c: var(--c-delivered); }
+  .parcel[data-state="exception"] { --c: var(--c-exception); }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: .75rem; flex-wrap: wrap; }
+  .num { font-size: 1.15rem; font-weight: 600; letter-spacing: .02em; }
+  .nick { color: var(--muted); margin-left: .5rem; font-family: 'Barlow', sans-serif; font-size: .95rem; font-weight: 400; letter-spacing: 0; }
+  .status { font-size: 1.5rem; font-weight: 700; color: var(--c); line-height: 1.1; margin: .35rem 0 .1rem; }
+  .meta { color: var(--muted); font-size: .95rem; }
+  .err { color: var(--c-exception); }
+  details { margin-top: .6rem; }
+  summary { cursor: pointer; color: var(--brown); font-weight: 500; }
+  ol { list-style: none; margin: .6rem 0 0; padding: 0 0 0 .9rem; border-left: 2px solid var(--line); }
+  li { margin: 0 0 .6rem; position: relative; }
+  li::before { content: ''; position: absolute; left: -1.2rem; top: .5rem; width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
+  li:first-child::before { background: var(--c); }
+  .actions { margin-top: .5rem; display: flex; gap: .5rem; }
+  .actions button { padding: .25rem .6rem; font-size: .9rem; }
+  .empty { text-align: center; color: var(--muted); padding: 2.5rem 1rem; border: 2px dashed var(--line); border-radius: 4px; }
+  #gate { text-align: center; padding: 3rem 1rem; }
+  #gate p { color: var(--muted); max-width: 32ch; margin: 0 auto 1.25rem; }
+  [hidden] { display: none !important; }
+  @media (max-width: 520px) { .add { grid-template-columns: 1fr auto; } .add #label { grid-column: 1 / -1; grid-row: 2; } }
+</style>
 </head>
 <body>
-
-<!-- ============ LOGIN ============ -->
-<div id="login">
-  <div class="login-card">
-    <img class="login-logo" src="images/vinere-logo-white.png" alt="VINÉRE Jewellery">
-    <div class="login-role-select" id="loginRoleSelect">
-      <button type="button" class="login-role-btn active" data-role="staff">Staff</button>
-      <button type="button" class="login-role-btn" data-role="seller">Seller</button>
-      <button type="button" class="login-role-btn" data-role="customer">Customer</button>
-    </div>
-    <input id="passInput" type="password" placeholder="Password" autofocus autocomplete="current-password">
-    <button id="loginBtn">Unlock</button>
-    <div id="loginError"></div>
-  </div>
-</div>
-
-<!-- ============ APP ============ -->
-<div id="app">
-  <header class="topbar">
-    <div class="topbar-left">
-      <div class="mark">VINÉRE<span class="dot">·</span>Ledger</div>
-      <div class="view-toggle">
-        <button class="btn secondary small active" id="ordersViewBtn">Orders</button>
-        <button class="btn secondary small" id="tradingViewBtn">Trading</button>
-        <button class="btn secondary small" id="expensesViewBtn">Expenses</button>
-      </div>
-    </div>
-    <div class="header-stats" id="headerStats">
-      <div class="hstat" id="hstat_1_wrap"><span class="hstat-label" id="hstat_1_label">Profit / Loss</span><span class="hstat-value" id="hstat_1">—</span></div>
-      <div class="hstat" id="hstat_2_wrap"><span class="hstat-label" id="hstat_2_label">Remaining Stock</span><span class="hstat-value" id="hstat_2">—</span></div>
-      <div class="hstat" id="hstat_3_wrap"><span class="hstat-label" id="hstat_3_label">Stock Cost</span><span class="hstat-value" id="hstat_3">—</span></div>
-    </div>
-    <div class="topbar-right">
-      <div class="search-wrap">
-        <input id="search" placeholder="Search…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" onfocus="this.setAttribute('readonly','readonly');setTimeout(()=>this.removeAttribute('readonly'),1)">
-        <button id="searchClear" class="search-clear" title="Clear search">&times;</button>
-        <span id="resultCount" class="result-count"></span>
-      </div>
-      <button class="btn secondary small" id="refreshBtn" title="Refresh">↻</button>
-      <button class="btn secondary small" id="insightsBtn" title="Vendor profitability & best sellers">Insights</button>
-      <button class="btn secondary small" id="buyersBtn" title="Buyer directory">Buyers</button>
-      <button class="btn secondary small" id="settingsBtn" title="Settings">⚙</button>
-      <button class="btn small" id="newOrderBtn">+ Order</button>
-      <button class="btn small" id="newTradeBtn" style="display:none;">+ Trade</button>
-      <button class="btn small" id="newExpenseBtn" style="display:none;">+ Expense</button>
-    </div>
+<main>
+  <header>
+    <h1>Parcel tracker</h1>
+    <button id="signout" class="ghost" hidden>Sign out</button>
   </header>
 
-  <main>
-    <div id="ordersView">
-      <div class="filter-bar-head">
-        <button class="btn secondary small" id="filtersToggleBtn" onclick="toggleFiltersBar()">Filters</button>
-        <span class="rate-note" id="rateNoteCollapsed"></span>
-      </div>
-      <div class="filter-bar compact" id="filterBarContent" style="display:none;">
-        <span class="rate-note" id="rateNote"></span>
+  <section id="gate" hidden>
+    <p>Sign in to keep your tracking list in sync across your devices.</p>
+    <button id="signin">Sign in with Google</button>
+  </section>
 
-        <div class="filter-right">
-          <select id="filterPaymentStatus" class="filter-pill" style="width:auto;min-width:130px;">
-            <option value="">All Status</option>
-            <option value="Not Sold">Not Sold</option>
-            <option value="Unpaid">Unpaid</option>
-            <option value="Partial">Partial</option>
-            <option value="Paid">Paid</option>
-          </select>
-          <input type="text" id="filterSoldTo" class="filter-pill" placeholder="Sold to…" autocomplete="off">
-          <input type="text" id="filterMemoNo" class="filter-pill" placeholder="Memo no…" autocomplete="off">
-          <select id="filterExpenseCategory" class="filter-pill" style="width:auto;min-width:140px;display:none;">
-            <option value="">All Categories</option>
-            <option value="Travel">Travel</option>
-            <option value="Food">Food</option>
-            <option value="Accommodation">Accommodation</option>
-            <option value="Marketing">Marketing</option>
-            <option value="Office">Office</option>
-            <option value="Shipping">Shipping</option>
-            <option value="Misc">Misc</option>
-          </select>
-          <input type="text" id="filterExpenseSeller" class="filter-pill" placeholder="Seller…" style="display:none;" autocomplete="off">
-          <button class="btn secondary small" id="clearFiltersBtn">Clear</button>
-        </div>
-      </div>
-
-      <div class="kpi-grid" id="kpiGrid"></div>
-      <div class="kpi-grid" id="tradeKpiGrid" style="display:none;"></div>
-      <div class="kpi-grid" id="expenseKpiGrid" style="display:none;"></div>
-
-      <div class="table-wrap">
-        <table id="ordersTable">
-          <colgroup>
-            <col style="width:4%"><col style="width:7%"><col style="width:9%"><col style="width:6%"><col style="width:7%"><col style="width:7%">
-            <col style="width:5%"><col style="width:5%"><col style="width:5%">
-            <col style="width:9%"><col style="width:5%"><col style="width:6%"><col style="width:9%">
-            <col style="width:7%"><col style="width:8%">
-          </colgroup>
-          <thead><tr>
-            <th class="num sticky-col-left">Sr.</th><th>Customer</th><th>Style No.</th><th>Jewelry Type</th><th>Diamond Shape</th><th>Date</th>
-            <th class="num">Gross Wt</th><th class="num">Net Wt</th><th class="num sortable" onclick="window.sortByColumn('inCt')" style="cursor:pointer;">Carat <span class="sort-icon">↕</span></th>
-            <th class="num">Sub Total</th><th class="num">$</th><th>Memo No.</th><th>Sold To</th>
-            <th class="num">Sale Price</th><th class="sticky-col-right">Status</th>
-          </tr></thead>
-          <tbody id="tbody">
-            <tr class="skeleton-row"><td colspan="14"><div class="skeleton-cell" style="width:100%"></div></td></tr>
-            <tr class="skeleton-row"><td colspan="14"><div class="skeleton-cell" style="width:100%"></div></td></tr>
-            <tr class="skeleton-row"><td colspan="14"><div class="skeleton-cell" style="width:100%"></div></td></tr>
-          </tbody>
-        </table>
-
-        <table id="tradingTable" style="display:none;">
-          <colgroup>
-            <col style="width:4%"><col style="width:8%"><col style="width:16%">
-            <col style="width:14%"><col style="width:8%"><col style="width:8%">
-            <col style="width:8%"><col style="width:14%"><col style="width:7%"><col style="width:8%">
-          </colgroup>
-          <thead><tr>
-            <th class="num sticky-col-left">Sr.</th><th>Date</th><th>Item</th><th>Vendor</th>
-            <th class="num">Purchase $</th><th>Memo No.</th><th class="num">Sale $</th><th>Sold To</th>
-            <th>Status</th><th class="num sticky-col-right">P/L</th>
-          </tr></thead>
-          <tbody id="tradeTbody">
-            <tr class="skeleton-row"><td colspan="10"><div class="skeleton-cell" style="width:100%"></div></td></tr>
-            <tr class="skeleton-row"><td colspan="10"><div class="skeleton-cell" style="width:100%"></div></td></tr>
-            <tr class="skeleton-row"><td colspan="10"><div class="skeleton-cell" style="width:100%"></div></td></tr>
-          </tbody>
-        </table>
-
-       <table id="expensesTable" style="display:none;">
-  <colgroup>
-    <col style="width:8%"><col style="width:14%"><col style="width:15%">
-    <col style="width:42%"><col style="width:21%">
-  </colgroup>
-  <thead><tr>
-    <th class="num">Sr.</th><th>Date</th><th>Category</th><th>Description</th>
-    <th class="num">Amount</th>
-  </tr></thead>
-  <tbody id="expenseTbody">
-    <tr class="skeleton-row"><td colspan="5"><div class="skeleton-cell" style="width:100%"></div></td></tr>
-    <tr class="skeleton-row"><td colspan="5"><div class="skeleton-cell" style="width:100%"></div></td></tr>
-  </tbody>
-</table>
-      </div>
-
-      <div class="card-list" id="cardList"></div>
-      <div class="card-list" id="tradeCardList"></div>
-      <div class="card-list" id="expenseCardList"></div>
-      <div class="pagination-bar" id="paginationBar"></div>
-      <div class="pagination-bar" id="tradePaginationBar" style="display:none;"></div>
-      <div class="pagination-bar" id="expensePaginationBar" style="display:none;"></div>
-      <div class="swipe-hint">Swipe left/right to change pages</div>
+  <section id="app" hidden>
+    <div class="add">
+      <input id="numbers" placeholder="Tracking numbers, e.g. 1Z999AA10123456784" autocomplete="off" aria-label="Tracking numbers">
+      <input id="label" placeholder="Nickname (optional)" aria-label="Nickname">
+      <button id="add">Add</button>
     </div>
-  </main>
-</div>
-
-<!-- ============ ORDERS PANEL ============ -->
-<div id="overlay"></div>
-<div id="panel">
-  <div class="panel-head">
-    <h2 id="panelTitle">New Order</h2>
-    <button id="closePanel">&times;</button>
-  </div>
-
-  <!-- Memo Banner (injected by JS when memo exists) -->
-  <div id="panelMemoBanner" class="panel-memo-banner" style="display:none;"></div>
-
-  <!-- Tabs -->
-  <div class="panel-tabs">
-    <button class="panel-tab active" data-tab="tab-costs">Cost</button>
-    <button class="panel-tab" data-tab="tab-sale">Payment</button>
-  </div>
-
-  <div class="panel-body">
-
-    <!-- ===== TAB 1: COST ===== -->
-    <div id="tab-costs" class="tab-content active">
-      <div class="section-card">
-        <div class="section-card-title">Item Details</div>
-        <div class="fields-grid compact">
-          <div class="field full-width">
-            <label>Customer *</label>
-            <input id="f_customer" placeholder="e.g. HET">
-            <div class="field-error" id="err_f_customer"></div>
-          </div>
-          <div class="field full-width">
-            <label>Style No. *</label>
-            <input id="f_style" placeholder="e.g. SLER-0079 I">
-            <div class="field-error" id="err_f_style"></div>
-          </div>
-          <div class="field">
-            <label>Jewelry Type</label>
-            <select id="f_jewelryType">
-              <option value="">Select type…</option>
-              <option value="Bracelet">Bracelet</option>
-              <option value="Necklace">Necklace</option>
-              <option value="Ring">Ring</option>
-              <option value="Earring">Earring</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>Diamond Shape</label>
-            <div class="field-row">
-              <select id="f_diamondShapeBase">
-                <option value="">Select shape…</option>
-              </select>
-              <select id="f_diamondShapeVariant" disabled>
-                <option value="">Select shape first…</option>
-              </select>
-            </div>
-            <!-- Hidden: keeps the real stored value; panel.js/table.js read/write this id unchanged -->
-            <select id="f_diamondShape" style="display:none">
-              <option value="">Select shape…</option>
-              <option value="Round">Round</option>           
-              <option value="Round Bezel">Round Bezel</option>
-              <option value="Oval East/West">Oval East/West</option>
-              <option value="Oval North/South">Oval North/South</option>
-              <option value="Oval Bezel East/West">Oval Bezel East/West</option>
-              <option value="Oval Bezel North/South">Oval Bezel North/South</option>
-              <option value="Marquise East/West">Marquise East/West</option>
-              <option value="Marquise North/South">Marquise North/South</option>
-              <option value="Marquise Bezel East/West">Marquise Bezel East/West</option>
-              <option value="Marquise Bezel North/South">Marquise Bezel North/South</option>
-              <option value="Emerald East/West">Emerald East/West</option>
-              <option value="Emerald North/South">Emerald North/South</option>
-              <option value="Emerald Bezel East/West">Emerald Bezel East/West</option>
-              <option value="Emerald Bezel North/South">Emerald Bezel North/South</option>
-              <option value="Pear East/West">Pear East/West</option>
-              <option value="Pear North/South">Pear North/South</option>
-              <option value="Pear Bezel East/West">Pear Bezel East/West</option>
-              <option value="Pear Bezel North/South">Pear Bezel North/South</option>
-              <option value="Radiant East/West">Radiant East/West</option>
-              <option value="Radiant North/South">Radiant North/South</option>
-              <option value="Radiant Bezel East/West">Radiant Bezel East/West</option>
-              <option value="Radiant Bezel North/South">Radiant Bezel North/South</option>
-              <option value="Cushion">Cushion</option>
-              <option value="Cushion Bezel">Cushion Bezel</option>
-              <option value="Cushion Half Bezel">Cushion Half Bezel</option>
-              <option value="Fancy Mix">Fancy Mix</option>
-              <option value="Fancy Mix Bezel">Fancy Mix Bezel</option>
-            </select>
-          </div>
-          <div class="field"><label>Date</label><input id="f_date" type="date"></div>
-          <div class="field"><label>Gross Wt (g)</label><input id="f_grossWt" type="number" step="0.001" placeholder="0.000"></div>
-          <div class="field"><label>Net Wt (g) *</label><input id="f_netWt" type="number" step="0.001" placeholder="0.000"><div class="field-error" id="err_f_netWt"></div></div>
-          <div class="field"><label>Multiplier</label><input id="f_multiplier" type="number" step="0.001" value="0.595"></div>
-          <div class="field"><label>Dia Qty</label><input id="f_diaQty" type="number" step="1" placeholder="0"></div>
-          <div class="field"><label>IN CT</label><input id="f_inCt" type="number" step="0.01" placeholder="0.00"></div>
-          <div class="field"><label>Colour Stone</label><input id="f_colourStone" type="number" step="1" placeholder="0"></div>
-        </div>
-      </div>
-
-      <div class="section-card">
-        <div class="section-card-title">Cost Breakdown</div>
-        <div class="fields-grid compact">
-          <div class="field"><label>Diamond Amount (₹)</label><input id="f_diamAmount" type="number" step="1" placeholder="0"></div>
-          <div class="field"><label>L Charges (₹/g)</label><input id="f_lCharges" type="number" step="1" placeholder="900"></div>
-          <div class="field full-width">
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:calc(13px * var(--font-scale) / 100);text-transform:none;letter-spacing:0;font-weight:400;color:var(--md-on-surface-variant);">
-              <input type="checkbox" id="f_flatLabor" style="width:16px;height:16px;"> Flat labor — fixed amount (don't multiply by weight)
-            </label>
-          </div>
-        </div>
-      </div>
-
-      <div class="panel-preview-bottom">
-        <div class="computed-preview compact" style="margin:0;">
-          <div class="computed-row"><span class="label">Pg Wt</span><span class="value" id="prev_pgWt">—</span></div>
-          <div class="computed-row"><span class="label">Gold Amount</span><span class="value" id="prev_goldAmt">—</span></div>
-          <div class="computed-row"><span class="label">Labor Amount</span><span class="value" id="prev_laborAmt">—</span></div>
-          <div class="computed-row"><span class="label">Sub Total</span><span class="value" id="prev_subTotal">—</span></div>
-          <div class="computed-row"><span class="label">USD ($)</span><span class="value" id="prev_usd">—</span></div>
-        </div>
-        <p class="computed-note" style="margin-bottom:0;font-size:calc(11px * var(--font-scale) / 100);">Pg Wt = Net Wt × Multiplier | Gold = Pg Wt × Rate | Labor = Net Wt × L Charges | $ = Sub Total ÷ 94</p>
-      </div>
+    <p class="hint">Paste one or several numbers separated by spaces or commas.</p>
+    <div id="error" class="msg" role="alert" hidden></div>
+    <div class="bar">
+      <span id="updated">Not refreshed yet</span>
+      <button id="refresh" class="ghost">Refresh all</button>
     </div>
+    <div id="list"></div>
+  </section>
+</main>
 
-    <!-- ===== TAB 3: SALE & PAYMENT ===== -->
-    <div id="tab-sale" class="tab-content">
-      <div class="section-card">
-        <div class="section-card-title">Sale Details</div>
-        <div class="fields-grid">
-          <div class="field"><label>Memo No.</label><input id="f_memoNo" placeholder="e.g. MEMO-014"></div>
-          <div class="field"><label>Sold To (Buyer)</label><input id="f_soldTo" list="buyersDatalist" autocomplete="off" placeholder="e.g. Priya Shah"><input type="hidden" id="f_soldToBuyerId"></div>
-          <div class="field"><label>Sale Price ($)</label><input id="f_salePrice" type="number" step="1" placeholder="0"><div class="field-error" id="err_f_salePrice"></div></div>
-          <div class="field"><label>Date Sold</label><input id="f_dateSold" type="date"></div>
-        </div>
-        <div id="memoSummary" style="display:none;margin-top:var(--space-3);"></div>
-      </div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+// ---- 1. Paste your Firebase web app config here (Project settings > Your apps) ----
+const firebaseConfig = {
+  apiKey: 'YOUR_API_KEY',
+  authDomain: 'YOUR_PROJECT.firebaseapp.com',
+  projectId: 'YOUR_PROJECT',
+  appId: 'YOUR_APP_ID',
+};
+// -----------------------------------------------------------------------------------
 
-      <div class="section-card">
-        <div class="section-card-title">Installments</div>
-        <div id="installmentChips" class="installment-chips"></div>
-        <div class="fields-grid">
-          <div class="field"><input id="f_instAmount" type="number" step="1" min="0" placeholder="Amount $"></div>
-          <div class="field"><input id="f_instDate" type="date"></div>
-        </div>
-        <div class="installment-add-row" style="display:flex;align-items:center;gap:var(--space-3);margin-top:var(--space-2);">
-          <button class="btn secondary small" id="addInstallmentBtn" type="button" style="flex:1;">+ Add installment</button>
-          <span id="f_remainingBalance" class="remaining-balance-tag"></span>
-        </div>
-        <div class="field-error" id="err_f_installment"></div>
-      </div>
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
 
-      <div class="section-card sticky-preview-card">
-        <div class="section-card-title">Payment Summary</div>
-        <div class="computed-preview compact" style="margin:0;">
-          <div class="computed-row"><span class="label">Amount Paid</span><span class="value" id="prev_amountPaid">$0</span></div>
-          <div class="computed-row"><span class="label">Balance Due</span><span class="value" id="prev_balanceDue">—</span></div>
-          <div class="computed-row"><span class="label">Payment Status</span><span class="value" id="prev_paymentStatus">Not Sold</span></div>
-        </div>
-      </div>
+const $ = (id) => document.getElementById(id);
+const NUMBER_RE = /^[0-9A-Z]{8,26}$/;
+const AUTO_REFRESH_MS = 10 * 60 * 1000;
 
-      <div id="saveMsg"></div>
-    </div>
+let parcels = [];      // from Firestore: { id, label, cached }
+let live = {};         // fresh results this session, keyed by tracking number
+let unsub = null;
+let busy = false;
+let timer = null;
 
-  </div>
+const col = () => db.collection('users').doc(auth.currentUser.uid).collection('parcels');
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-  <div class="panel-foot">
-    <button id="deleteBtn" style="display:none;"><span id="deleteText">Delete</span></button>
-    <button class="btn" id="saveBtn" style="flex:1;">Save</button>
-  </div>
-</div>
+function showError(text) {
+  $('error').textContent = text || '';
+  $('error').hidden = !text;
+}
 
-<!-- ============ TRADING PANEL ============ -->
-<div id="tradeOverlay"></div>
-<div id="tradePanel">
-  <div class="panel-head">
-    <h2 id="tradePanelTitle">New Trade</h2>
-    <span id="tradePanelStatusBadge" class="status-badge status-not-sold" style="display:none;">Not Sold</span>
-    <button id="closeTradePanel">&times;</button>
-  </div>
+// ---- Auth ----
+$('signin').onclick = () => auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch((e) => alert(e.message));
+$('signout').onclick = () => auth.signOut();
 
-  <!-- Memo Banner (injected by JS when memo exists) -->
-  <div id="tradePanelMemoBanner" class="panel-memo-banner" style="display:none;"></div>
+auth.onAuthStateChanged((user) => {
+  $('gate').hidden = !!user;
+  $('app').hidden = !user;
+  $('signout').hidden = !user;
+  if (unsub) { unsub(); unsub = null; }
+  clearInterval(timer);
+  if (!user) { parcels = []; live = {}; return; }
+  let first = true;
+  unsub = col().orderBy('addedAt', 'desc').onSnapshot((snap) => {
+    parcels = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    render();
+    if (first) { first = false; refresh(parcels.map((p) => p.id)); }
+  }, (e) => showError('Could not load your list: ' + e.message));
+  timer = setInterval(autoRefresh, AUTO_REFRESH_MS);
+});
 
-  <div class="panel-tabs">
-    <button class="panel-tab active" data-tab="tab-trade-costs">Cost</button>
-    <button class="panel-tab" data-tab="tab-trade-payment">Payment</button>
-  </div>
+// ---- Add / remove ----
+$('add').onclick = addParcels;
+$('numbers').addEventListener('keydown', (e) => { if (e.key === 'Enter') addParcels(); });
 
-  <div class="panel-body">
+async function addParcels() {
+  showError('');
+  const raw = $('numbers').value.split(/[\s,;]+/).map((s) => s.trim().toUpperCase()).filter(Boolean);
+  const valid = [...new Set(raw.filter((n) => NUMBER_RE.test(n)))];
+  const bad = raw.filter((n) => !NUMBER_RE.test(n));
+  if (!valid.length) return showError('Enter a tracking number (letters and digits only, such as 1Z999AA10123456784).');
+  if (bad.length) showError('Skipped invalid: ' + bad.join(', '));
 
-    <!-- ===== TAB 1: COST ===== -->
-    <div id="tab-trade-costs" class="tab-content active">
-      <div class="section-card">
-        <div class="section-card-title">Item Details</div>
-        <div class="fields-grid">
-          <div class="field full-width"><label>Item *</label><input id="t_item" placeholder="e.g. Diamond Bracelet"><div class="field-error" id="err_t_item"></div></div>
-          <div class="field full-width"><label>Vendor *</label><input id="t_vendor" placeholder="e.g. Rakesh Jewellers"><div class="field-error" id="err_t_vendor"></div></div>
-          <div class="field"><label>Date</label><input id="t_date" type="date"></div>
-          <div class="field"><label>Purchase Price ($) *</label><input id="t_purchasePrice" type="number" step="1" placeholder="0"><div class="field-error" id="err_t_purchasePrice"></div></div>
-          <div class="field full-width"><label>Notes</label><input id="t_notes" placeholder="Any notes…"></div>
-        </div>
-      </div>
-    </div>
+  const label = valid.length === 1 ? $('label').value.trim() : '';
+  const batch = db.batch();
+  valid.forEach((n) => {
+    const data = { addedAt: firebase.firestore.FieldValue.serverTimestamp() };
+    if (label) data.label = label;
+    // merge keeps cached status and the original addedAt of numbers already in the list
+    if (parcels.some((p) => p.id === n)) { if (label) batch.set(col().doc(n), { label }, { merge: true }); }
+    else batch.set(col().doc(n), data, { merge: true });
+  });
+  await batch.commit();
+  $('numbers').value = '';
+  $('label').value = '';
+  refresh(valid);
+}
 
-    <!-- ===== TAB 2: PAYMENT ===== -->
-    <div id="tab-trade-payment" class="tab-content">
-      <div class="section-card">
-        <div class="section-card-title">Sale Details</div>
-        <div class="fields-grid">
-          <div class="field"><label>Memo No.</label><input id="t_memoNo" placeholder="e.g. MEMO-014"></div>
-          <div class="field"><label>Sold To (Buyer)</label><input id="t_soldTo" list="buyersDatalist" autocomplete="off" placeholder="e.g. Priya Shah"><input type="hidden" id="t_soldToBuyerId"></div>
-          <div class="field"><label>Sale Price ($)</label><input id="t_salePrice" type="number" step="1" placeholder="0"><div class="field-error" id="err_t_salePrice"></div></div>
-          <div class="field"><label>Date Sold</label><input id="t_dateSold" type="date"></div>
-        </div>
-      </div>
+async function removeParcel(id) {
+  delete live[id];
+  await col().doc(id).delete();
+}
 
-      <div class="section-card">
-        <div class="section-card-title">Installments</div>
-        <div id="tradeInstallmentsList" class="installment-chips"></div>
-        <div class="fields-grid">
-          <div class="field"><input id="t_instAmount" type="number" step="1" min="0" placeholder="Amount $"></div>
-          <div class="field"><input id="t_instDate" type="date"></div>
-        </div>
-        <div class="installment-add-row" style="display:flex;align-items:center;gap:var(--space-3);margin-top:var(--space-2);">
-          <button class="btn secondary small" id="addTradeInstallmentBtn" type="button" style="flex:1;">+ Add installment</button>
-          <span id="t_remainingBalance" class="remaining-balance-tag"></span>
-        </div>
-        <div class="field-error" id="err_t_installment"></div>
-      </div>
+// ---- Refresh ----
+$('refresh').onclick = () => refresh(parcels.map((p) => p.id));
 
-      <div class="section-card sticky-preview-card">
-        <div class="section-card-title">Payment Summary</div>
-        <div class="computed-preview compact" style="margin:0;">
-          <div class="computed-row"><span class="label">Profit / Loss</span><span class="value" id="t_prev_profit" style="color:var(--text-dim)">—</span></div>
-          <div class="computed-row"><span class="label">Amount Paid</span><span class="value" id="t_prev_amountPaid">—</span></div>
-          <div class="computed-row"><span class="label">Balance Due</span><span class="value" id="t_prev_balanceDue">—</span></div>
-          <div class="computed-row"><span class="label">Payment Status</span><span class="value" id="t_prev_paymentStatus">—</span></div>
-        </div>
-      </div>
+function autoRefresh() {
+  if (document.hidden) return;
+  // delivered parcels don't change, so skip them
+  const ids = parcels.filter((p) => (live[p.id] || p.cached)?.state !== 'delivered').map((p) => p.id);
+  refresh(ids);
+}
 
-      <div id="tradeSaveMsg"></div>
-    </div>
+async function refresh(ids) {
+  if (!ids.length || busy || !auth.currentUser) return;
+  busy = true;
+  $('refresh').disabled = true;
+  $('refresh').textContent = 'Refreshing…';
+  try {
+    const token = await auth.currentUser.getIdToken();
+    const res = await fetch('/api/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ numbers: ids }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Tracking request failed (' + res.status + ')');
 
-  </div>
-  <div class="panel-foot">
-    <button id="deleteTradeBtn" style="display:none;"><span id="deleteTradeText">Delete</span></button>
-    <button class="btn" id="saveTradeBtn" style="flex:1;">Save</button>
-  </div>
-</div>
+    const batch = db.batch();
+    data.results.forEach((r) => {
+      live[r.number] = r;
+      if (r.ok && parcels.some((p) => p.id === r.number)) {
+        const { number, ok, ...cached } = JSON.parse(JSON.stringify(r)); // drops undefined
+        batch.set(col().doc(r.number), { cached, checkedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+      }
+    });
+    await batch.commit();
+    $('updated').textContent = 'Updated ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    showError('');
+  } catch (e) {
+    showError(e.message);
+  } finally {
+    busy = false;
+    $('refresh').disabled = false;
+    $('refresh').textContent = 'Refresh all';
+    render();
+  }
+}
 
-<!-- ============ EXPENSES PANEL ============ -->
-<div id="expenseOverlay"></div>
-<div id="expensePanel">
-  <div class="panel-head">
-    <h2 id="expensePanelTitle">New Expense</h2>
-    <button id="closeExpensePanel">&times;</button>
-  </div>
-  <div class="panel-body">
-    <div class="section-card">
-      <div class="section-card-title">Expense Details</div>
-      <div class="fields-grid">
-        <div class="field"><label>Date *</label><input id="e_date" type="date"><div class="field-error" id="err_e_date"></div></div>
-        <div class="field"><label>Category *</label>
-          <select id="e_category">
-            <option value="Travel">Travel</option>
-            <option value="Food">Food</option>
-            <option value="Accommodation">Accommodation</option>
-            <option value="Marketing">Marketing</option>
-            <option value="Office">Office</option>
-            <option value="Shipping">Shipping</option>
-            <option value="Misc">Misc</option>
-          </select>
-          <div class="field-error" id="err_e_category"></div>
-        </div>
-        <div class="field full-width"><label>Description</label><input id="e_description" placeholder="e.g. Flight to Mumbai"></div>
-        <div class="field"><label>Amount ($) *</label><input id="e_amount" type="number" step="0.01" placeholder="0.00"><div class="field-error" id="err_e_amount"></div></div>
-        <div class="field"><label>Seller</label><input id="e_seller" placeholder="e.g. Aakash"></div>
-        <div class="field full-width"><label>Notes</label><input id="e_notes" placeholder="Any notes…"></div>
-      </div>
-    </div>
+// ---- Render ----
+const fmtDay = (d) => (d ? new Date(d + 'T00:00').toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }) : '');
 
-    <div class="section-card">
-      <div class="section-card-title">Reimbursement</div>
-      <div class="fields-grid">
-        <div class="field full-width">
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:calc(13px * var(--font-scale) / 100);text-transform:none;letter-spacing:0;font-weight:400;color:var(--md-on-surface-variant);">
-            <input type="checkbox" id="e_reimbursed" style="width:16px;height:16px;"> Reimbursed
-          </label>
-        </div>
-        <div class="field full-width" id="e_reimbursementDateWrap" style="display:none;">
-          <label>Reimbursement Date</label>
-          <input id="e_reimbursementDate" type="date">
-        </div>
-      </div>
-    </div>
+function render() {
+  const list = $('list');
+  if (!parcels.length) {
+    list.innerHTML = '<div class="empty">No parcels yet. Add a tracking number above.</div>';
+    return;
+  }
+  const open = new Set([...list.querySelectorAll('details[open]')].map((d) => d.dataset.id));
+  list.innerHTML = parcels.map((p) => {
+    const r = live[p.id] || (p.cached ? { ok: true, ...p.cached } : null);
+    const nick = p.label ? `<span class="nick">${esc(p.label)}</span>` : '';
+    const head = `<div class="row"><span class="num">${esc(p.id)}${nick}</span></div>`;
+    const remove = `<div class="actions"><button class="ghost" data-remove="${esc(p.id)}">Remove</button></div>`;
 
-    <div id="expenseSaveMsg"></div>
-  </div>
-  <div class="panel-foot">
-    <button id="deleteExpenseBtn" style="display:none;"><span>Delete</span></button>
-    <button class="btn" id="saveExpenseBtn" style="flex:1;">Save</button>
-  </div>
-</div>
+    if (!r) return `<article class="parcel">${head}<div class="meta">Checking…</div>${remove}</article>`;
+    if (!r.ok) return `<article class="parcel" data-state="exception">${head}<div class="meta err">${esc(r.error)}</div>${remove}</article>`;
 
-<!-- ============ RECEIVE PAYMENT ============ -->
-<div id="paymentSearchOverlay"></div>
-<div id="paymentSearchModal">
-  <div class="panel-head"><h2>Receive Payment</h2><button id="closePaymentSearch">&times;</button></div>
-  <div class="pay-search-body">
-    <input id="paySearchInput" placeholder="Search memo no., buyer, style, or customer…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" onfocus="this.setAttribute('readonly','readonly');setTimeout(()=>this.removeAttribute('readonly'),1)">
-    <div id="payResults" class="pay-results"></div>
-  </div>
-</div>
+    const when = [fmtDay(r.date), r.time].filter(Boolean).join(' at ');
+    const eta = r.state === 'delivered' ? '' : r.eta ? `Estimated delivery ${esc(fmtDay(r.eta))}` : '';
+    const events = (r.events || []).map((e) =>
+      `<li><strong>${esc(e.status)}</strong><div class="meta">${esc([e.location, [fmtDay(e.date), e.time].filter(Boolean).join(' at ')].filter(Boolean).join(' · '))}</div></li>`
+    ).join('');
+    return `<article class="parcel" data-state="${esc(r.state)}">
+      ${head}
+      <div class="status">${esc(r.status)}</div>
+      <div class="meta">${esc([r.location, when].filter(Boolean).join(' · '))}</div>
+      ${eta ? `<div class="meta">${eta}</div>` : ''}
+      ${events ? `<details data-id="${esc(p.id)}"${open.has(p.id) ? ' open' : ''}><summary>History (${r.events.length})</summary><ol>${events}</ol></details>` : ''}
+      ${remove}
+    </article>`;
+  }).join('');
+}
 
-<!-- ============ CUSTOMER PROFILE ============ -->
-<div id="customerProfileOverlay" class="overlay-fade"></div>
-<div id="customerProfileModal" class="side-modal">
-  <div class="panel-head"><h2 id="customerProfileName">Customer</h2><button id="closeCustomerProfile">&times;</button></div>
-  <div class="side-modal-body">
-    <div class="kpi-grid" id="customerProfileKPIs"></div>
-    <div id="customerProfileItems"></div>
-  </div>
-</div>
-
-<!-- ============ MEMO DETAIL ============
-     Opens on top of Customer Profile (and anywhere else a memo number is
-     shown), so it needs a higher z-index than the standard side-modal. -->
-<div id="memoDetailOverlay" class="overlay-fade"></div>
-<div id="memoDetailModal" class="side-modal">
-  <div class="panel-head"><h2 id="memoDetailTitle">Memo</h2><button id="closeMemoDetail">&times;</button></div>
-  <div class="side-modal-body">
-    <div class="kpi-grid" id="memoDetailKPIs"></div>
-    <div id="memoDetailItems"></div>
-  </div>
-</div>
-
-<!-- Floating hover-preview card for memo links; positioned via JS -->
-<div id="memoHoverPreview" class="memo-hover-preview"></div>
-
-<!-- ============ INSIGHTS ============ -->
-<div id="insightsOverlay" class="overlay-fade"></div>
-<div id="insightsModal" class="side-modal side-modal-wide">
-  <div class="panel-head"><h2>Insights</h2><button id="closeInsights">&times;</button></div>
-  <div class="insights-tabs">
-    <button class="insights-tab-btn active" data-target="insightsVendorsTab">Vendor Profitability</button>
-    <button class="insights-tab-btn" data-target="insightsBestSellersTab">Best Sellers</button>
-    <button class="insights-tab-btn" data-target="insightsProfitTrendTab">Profit Trend</button>
-  </div>
-  <div class="side-modal-body">
-    <div id="insightsVendorsTab" class="insights-tab-content active"></div>
-    <div id="insightsBestSellersTab" class="insights-tab-content">
-      <div class="insights-chart-controls">
-        <label for="seasonalDimensionSelect">Seasonal trend by</label>
-        <select id="seasonalDimensionSelect" class="filter-pill" style="width:auto;">
-          <option value="type">Jewelry Type</option>
-          <option value="shape">Diamond Shape</option>
-        </select>
-      </div>
-      <div class="insights-chart-wrap"><canvas id="seasonalChart"></canvas><div id="seasonalChartEmpty" class="chart-empty-msg" style="display:none;">No sold orders yet</div></div>
-      <div id="bestSellersTables"></div>
-    </div>
-    <div id="insightsProfitTrendTab" class="insights-tab-content">
-      <div class="insights-chart-controls">
-        <label for="profitTrendGranularity">Group by</label>
-        <select id="profitTrendGranularity" class="filter-pill" style="width:auto;">
-          <option value="month">Month</option>
-          <option value="quarter">Quarter</option>
-        </select>
-      </div>
-      <div class="insights-chart-wrap"><canvas id="profitTrendChart"></canvas><div id="profitTrendChartEmpty" class="chart-empty-msg" style="display:none;">No sold items yet</div></div>
-    </div>
-  </div>
-</div>
-
-<!-- Suggestions for the Sold To fields; populated at runtime from BUYERS -->
-<datalist id="buyersDatalist"></datalist>
-
-<!-- ============ BUYERS ============ -->
-<div id="buyersOverlay" class="overlay-fade"></div>
-<div id="buyersModal" class="side-modal side-modal-wide">
-  <div class="panel-head"><h2>Buyers</h2><button id="closeBuyers">&times;</button></div>
-  <div class="side-modal-body">
-    <div style="display:flex;gap:var(--space-3);margin-bottom:var(--space-4);">
-      <input type="text" id="buyerSearchInput" class="filter-pill" placeholder="Search buyers…" style="flex:1;" autocomplete="off">
-      <button class="btn small" id="newBuyerBtn">+ Buyer</button>
-    </div>
-    <div id="buyerListContainer"></div>
-  </div>
-</div>
-
-<!-- ============ BUYER EDIT PANEL ============ -->
-<div id="buyerFormOverlay" class="overlay-fade"></div>
-<div id="buyerFormModal" class="side-modal">
-  <div class="panel-head"><h2 id="buyerFormTitle">New Buyer</h2><button id="closeBuyerForm">&times;</button></div>
-  <div class="side-modal-body">
-    <div class="field">
-      <label>Name</label>
-      <input id="b_name" placeholder="e.g. Priya Shah">
-      <div class="field-error" id="err_b_name"></div>
-    </div>
-    <div class="field">
-      <label>Phone</label>
-      <input id="b_phone" placeholder="e.g. +91 98765 43210">
-    </div>
-    <div class="field">
-      <label>Email</label>
-      <input id="b_email" placeholder="optional">
-    </div>
-    <div class="field">
-      <label>Address</label>
-      <input id="b_address" placeholder="optional">
-    </div>
-    <div class="field">
-      <label>Notes</label>
-      <textarea id="b_notes" rows="3" placeholder="ring size, preferences, etc."></textarea>
-    </div>
-    <div style="display:flex;gap:var(--space-3);margin-top:var(--space-4);">
-      <button class="btn" id="deleteBuyerBtn" style="display:none;background:var(--error);color:#fff;"><span>Delete</span></button>
-      <button class="btn" id="saveBuyerBtn" style="flex:1;">Save</button>
-    </div>
-  </div>
-</div>
-
-<!-- ============ SETTINGS ============ -->
-<div id="settingsOverlay" class="overlay-fade"></div>
-<div id="settingsModal" class="side-modal">
-  <div class="panel-head"><h2>Settings</h2><button id="closeSettings">&times;</button></div>
-  <div class="side-modal-body">
-
-    <div class="settings-section-label">Display</div>
-    <div class="field">
-      <label>Text Size <span id="fontScaleValue" class="settings-value">100%</span></label>
-      <input type="range" id="fontScaleSlider" min="80" max="130" step="5" value="100">
-    </div>
-    <div class="field">
-      <label>Page Zoom <span id="uiZoomValue" class="settings-value">71%</span></label>
-      <input type="range" id="uiZoomSlider" min="50" max="120" step="1" value="71">
-    </div>
-    <div class="field">
-      <label>Table Density</label>
-      <select id="tableDensitySelect" class="filter-pill" style="width:100%;">
-        <option value="comfortable">Comfortable</option>
-        <option value="compact">Compact</option>
-      </select>
-    </div>
-
-    <div class="settings-section-label">Business Defaults</div>
-    <div class="field">
-      <label>Gold Rate (₹/gm)</label>
-      <input type="number" id="goldRateInput" value="16000" step="100">
-    </div>
-    <div class="field">
-      <label>Default Multiplier (new orders)</label>
-      <input type="number" id="defaultMultiplierInput" step="0.001">
-    </div>
-    <div class="field">
-      <label>Default Labor Charge (new orders)</label>
-      <input type="number" id="defaultLaborInput" step="50">
-    </div>
-    <div class="field">
-      <label>₹ → $ Conversion Rate</label>
-      <input type="number" id="usdRateInput" step="0.5">
-    </div>
-
-    <div class="settings-section-label">Security</div>
-    <div class="field">
-      <label>Current Password</label>
-      <input type="password" id="pwCurrent" autocomplete="current-password">
-    </div>
-    <div class="field">
-      <label>New Password</label>
-      <input type="password" id="pwNew" autocomplete="new-password">
-    </div>
-    <div class="field">
-      <label>Confirm New Password</label>
-      <input type="password" id="pwConfirm" autocomplete="new-password">
-    </div>
-    <div id="pwMsg" class="pw-msg"></div>
-    <button class="btn small" id="changePwBtn">Change Password</button>
-
-    <div class="settings-section-label">Data</div>
-    <div style="display:flex;gap:var(--space-3);flex-wrap:wrap;">
-      <button class="btn secondary small" id="exportDataBtn">Export to CSV</button>
-      <button class="btn secondary small" id="resetSettingsBtn" style="color:var(--error);">Reset to Defaults</button>
-    </div>
-
-  </div>
-</div>
-
-<div id="screenFx"></div>
-<div id="toast"></div>
-<div id="undoToast">
-  <span class="undo-msg">Order deleted — <span class="undo-count" id="undoCount">60</span>s left</span>
-  <button id="undoBtn">Undo</button>
-</div>
-<div id="toastContainer" class="toast-container"></div>
-
-<!-- Firebase SDKs -->
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-
-<!-- App scripts — load order matters -->
-<script src="js/utils.js?v=4"></script>
-<script src="js/diamond-shape.js?v=1"></script>
-<script src="js/api.js?v=5"></script>
-<script src="js/firebase.js?v=4"></script>
-<script src="js/app.js?v=10"></script>
-<script src="js/dashboard.js?v=8"></script>
-<script src="js/filters.js?v=4"></script>
-<script src="js/panel.js?v=8"></script>
-<script src="js/table.js?v=7"></script>
-<script src="js/payments.js?v=7"></script>
-<script src="js/trading.js?v=5"></script>
-<script src="js/expenses.js?v=3"></script>
-<script src="js/chart.js?v=1"></script>
-<script src="js/insights.js?v=9"></script>
-<script src="js/buyers.js?v=6"></script>
-<script src="js/settings.js?v=2"></script>
-<button id="mobileFab" class="mobile-fab" style="display:none;">+</button>
+$('list').addEventListener('click', (e) => {
+  const id = e.target.dataset.remove;
+  if (id && confirm('Remove ' + id + ' from your list?')) removeParcel(id);
+});
+</script>
 </body>
 </html>
